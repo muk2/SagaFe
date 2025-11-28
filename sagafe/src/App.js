@@ -8,16 +8,12 @@ function App() {
   useEffect(() => {
     axios.get("https://sagaapi.onrender.com/token")
       .then(res => {
-        setMessage(res.data);
-        console.log(res.data);
+        setMessage(res.data.token);  // FIX
       })
       .catch(err => {
         console.error("API error:", err);
         setMessage("Error fetching API");
       });
-      
-
-
   }, []);
 
   return (
@@ -30,7 +26,6 @@ function App() {
         />
         <p>Saga Home</p>
 
-        {/* Display API result */}
         <p style={{ marginTop: '20px', fontSize: '20px' }}>
           {message || "Loading..."}
         </p>
