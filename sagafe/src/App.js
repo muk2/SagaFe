@@ -6,7 +6,7 @@ function App() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    axios.get("http://127.0.0.1:8000/")
+    axios.get("https://sagaapi.onrender.com/token")
       .then(res => {
         setMessage(res.data);
         console.log(res.data);
