@@ -1,37 +1,45 @@
 import './App.css';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useEffect, useState } from 'react';
 
-function App() {
-  const [message, setMessage] = useState("");
+export function App() {
+  return (
+        <div>
+        <img src="https://i.ebayimg.com/images/g/UKIAAOSwLOViWckO/s-l1200.jpg" className="App-logo" alt="logo" />
+        <p>
+          Saga Home
+        </p>
+        </div>
+  );
+}
+
+export function ItemList() {
+  const [items, setItems] = useState([]);
 
   useEffect(() => {
-    axios.get("https://sagaapi.onrender.com/token")
-      .then(res => {
-        setMessage(res.data.token);  // FIX
-      })
-      .catch(err => {
-        console.error("API error:", err);
-        setMessage("Error fetching API");
-      });
+    const fetchItems = async () => {
+      try {
+        // Fetch data from the FastAPI backend endpoint
+        const response = await axios.get('http://localhost:8000/api/items'); 
+        setItems(response.data);
+      } catch (error) {
+        console.error('Error fetching items:', error);
+      }
+    };
+
+    fetchItems();
   }, []);
-
   return (
-    <div className="App">
-      <header className="App-header">
-        <img 
-          src="https://i.ebayimg.com/images/g/UKIAAOSwLOViWckO/s-l1200.jpg" 
-          className="App-logo" 
-          alt="logo" 
-        />
-        <p>Saga Home</p>
-
-        <p style={{ marginTop: '20px', fontSize: '20px' }}>
-          {message || "Loading..."}
-        </p>
-      </header>
+    <div>
+      <h1>Golf Courses 2026</h1>
+      <ul>
+        {items.map((item) => (
+          <li>{item.golf_course} in {item.township}</li> 
+        ))}
+      </ul>
     </div>
   );
 }
 
-export default App;
+
+
