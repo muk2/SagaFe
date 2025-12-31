@@ -20,7 +20,7 @@ export function ItemList() {
     const fetchItems = async () => {
       try {
         // Fetch data from the FastAPI backend endpoint
-        const response = await axios.get('http://localhost:8000/api/items'); 
+        const response = await axios.get('https://sagaapi.onrender.com/api/items'); 
         setItems(response.data);
       } catch (error) {
         console.error('Error fetching items:', error);
