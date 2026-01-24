@@ -6,6 +6,7 @@ import LoginPage from "./LoginPage.js";
 import SignUpPage from "./SignUpPage.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser } from "@fortawesome/free-solid-svg-icons";
+import Banner from "./Banner";
 
 
 export function App() {
@@ -19,10 +20,11 @@ export function App() {
   });
   
 
+
   return (
     <div className="app">
       <Header user={user} setUser={setUser} />
-
+      <Banner />
       <Routes>
         <Route
           path="/"
