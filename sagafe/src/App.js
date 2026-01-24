@@ -1,6 +1,5 @@
 import './App.css';
 import React, { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
 import { Routes, Route, useNavigate, NavLink, Link } from "react-router-dom";
 import LoginPage from "./LoginPage.js";
 import SignUpPage from "./SignUpPage.js";
@@ -12,23 +11,14 @@ import ContactPage from "./pages/ContactPage.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser } from "@fortawesome/free-solid-svg-icons";
 import Banner from "./Banner";
+import { useAuth } from "./context/AuthContext";
+import { eventsApi } from "./lib/api";
 
 
 export function App() {
-  const [user, setUser] = useState(() => {
-    try {
-      const stored = localStorage.getItem("user");
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
-
-
-
   return (
     <div className="app">
-      <Header user={user} setUser={setUser} />
+      <Header />
       <Banner />
       <Routes>
         <Route
@@ -47,7 +37,7 @@ export function App() {
         <Route path="/contact" element={<ContactPage />} />
         <Route
           path="/login"
-          element={<LoginPage setUser={setUser} />}
+          element={<LoginPage />}
         />
         <Route
           path="/signup"
@@ -62,17 +52,17 @@ export function App() {
 
 
 
-function Header({ user, setUser }) {
+function Header() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const iconRef = useRef(null);
+  const { user, logout } = useAuth();
 
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
+  const handleLogout = async () => {
+    await logout();
+    setMenuOpen(false);
     navigate("/");
   };
 
@@ -126,6 +116,11 @@ function Header({ user, setUser }) {
         {user ? (
           <div className="user-info">
             <span className="user-name">{user.first_name}</span>
+            {user.golf_handicap && (
+              <span className="user-handicap" title="Golf Handicap">
+                HCP: {user.golf_handicap}
+              </span>
+            )}
             <div ref={iconRef} style={{ display: "inline-block" }}>
             <FontAwesomeIcon
             icon={faUser}
@@ -140,6 +135,10 @@ function Header({ user, setUser }) {
 
             {menuOpen && (
               <div className="user-menu" ref={menuRef}>
+                <div className="user-menu-header">
+                  <span>{user.first_name} {user.last_name}</span>
+                  <small>{user.role}</small>
+                </div>
                 <button onClick={handleLogout}>Logout</button>
               </div>
             )}
@@ -200,13 +199,27 @@ function Hero() {
 
 export function ItemList() {
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios
-      .get('http://localhost:8000/api/items')
-      .then(res => setItems(res.data))
-      .catch(err => console.error(err));
+    const fetchEvents = async () => {
+      try {
+        setLoading(true);
+        const data = await eventsApi.getAll();
+        setItems(data);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch events:', err);
+        setError('Unable to load events');
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
   }, []);
 
   return (
@@ -224,9 +237,20 @@ export function ItemList() {
         </button>
       </div>
       <div className="card-grid">
-        {items.length > 0 ? (
+        {loading ? (
+          <div className="empty-state">
+            <p>Loading courses...</p>
+          </div>
+        ) : error ? (
+          <div className="empty-state">
+            <p>{error}</p>
+            <p style={{ fontSize: '0.9rem', marginTop: '0.5rem', opacity: 0.7 }}>
+              Make sure the backend server is running.
+            </p>
+          </div>
+        ) : items.length > 0 ? (
           items.map((item, index) => (
-            <div className="card" key={index}>
+            <div className="card" key={item.id || index}>
               <div className="card-image" style={{
                 backgroundImage: `url(https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=400)`,
                 backgroundSize: 'cover',
@@ -246,7 +270,7 @@ export function ItemList() {
           ))
         ) : (
           <div className="empty-state">
-            <p>Golf courses will appear here once the backend is connected.</p>
+            <p>No courses available at the moment.</p>
           </div>
         )}
       </div>

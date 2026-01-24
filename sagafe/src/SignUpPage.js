@@ -1,6 +1,6 @@
 import { useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
 
 export default function SignUpPage() {
   const [form, setForm] = useState({
@@ -11,26 +11,31 @@ export default function SignUpPage() {
     password: "",
     golf_handicap: ""
   });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { signup } = useAuth();
 
   const handleSignUp = async (e) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
+
     try {
-      await axios.post("http://localhost:8000/auth/signup", form);
-      alert("Signup successful!");
+      // Prepare data - convert golf_handicap to number if provided
+      const userData = {
+        ...form,
+        golf_handicap: form.golf_handicap ? parseInt(form.golf_handicap, 10) : null,
+      };
+
+      await signup(userData);
+      alert("Account created successfully! Please log in.");
       navigate("/login");
     } catch (err) {
-      const detail = err.response?.data?.detail;
-
-      if (typeof detail === "string") {
-        alert(detail);
-      } else if (Array.isArray(detail)) {
-        alert(detail[0]?.msg || "Signup failed");
-      } else if (typeof detail === "object") {
-        alert(detail.message || "Signup failed");
-      } else {
-        alert("Signup failed");
-      }
+      const message = err.message || "Signup failed";
+      setError(message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -40,7 +45,7 @@ export default function SignUpPage() {
     { key: "phone_number", label: "Phone Number", type: "tel", placeholder: "(555) 555-5555" },
     { key: "email", label: "Email Address", type: "email", placeholder: "john@example.com" },
     { key: "password", label: "Password", type: "password", placeholder: "Create a password" },
-    { key: "golf_handicap", label: "Golf Handicap", type: "text", placeholder: "e.g., 12 (optional)" }
+    { key: "golf_handicap", label: "Golf Handicap", type: "number", placeholder: "e.g., 12 (optional)" }
   ];
 
   return (
@@ -56,15 +61,26 @@ export default function SignUpPage() {
               placeholder={field.placeholder}
               value={form[field.key]}
               onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
-              required={field.key !== "golf_handicap"}
+              required={field.key !== "golf_handicap" && field.key !== "phone_number"}
+              disabled={loading}
             />
           </div>
         ))}
-        <button type="submit">Create Account</button>
+
+        <button type="submit" disabled={loading}>
+          {loading ? "Creating account..." : "Create Account"}
+        </button>
+
+        {error && (
+          <div className="error-message" style={{ color: "#ef4444", marginTop: "1rem", textAlign: "center" }}>
+            {error}
+          </div>
+        )}
+
         <p>
           Already have an account?{" "}
           <span
-            style={{ cursor: "pointer" }}
+            style={{ color: "var(--primary)", cursor: "pointer", fontWeight: 500 }}
             onClick={() => navigate("/login")}
           >
             Sign In
