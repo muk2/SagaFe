@@ -1,62 +1,74 @@
 import { useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
 
-export default function LoginPage({ setUser }) {
+export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-  
+    setError("");
+    setLoading(true);
+
     try {
-      const res = await axios.post("http://localhost:8000/auth/login", {
-        email,
-        password,
-      });
-  
-      // Save user
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      setUser(res.data.user);
-  
+      await login(email, password);
       navigate("/");
     } catch (err) {
-      alert(err.response?.data?.detail || "Login failed");
+      setError(err.message || "Invalid email or password");
+    } finally {
+      setLoading(false);
     }
   };
-  
 
   return (
     <div className="login-page">
       <h1>Login</h1>
       <form onSubmit={handleLogin} className="login-form">
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+        <div className="form-group">
+          <label htmlFor="email">Email Address</label>
+          <input
+            id="email"
+            type="email"
+            placeholder="Enter your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={loading}
+          />
+        </div>
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+        <div className="form-group">
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            disabled={loading}
+          />
+        </div>
 
-        <button type="submit">Login</button>
+        <button type="submit" disabled={loading}>
+          {loading ? "Signing in..." : "Login"}
+        </button>
 
-        {/* Inline error display */}
-        {error && <div style={{ color: "red", marginTop: "10px" }}>{error}</div>}
+        {error && (
+          <div className="error-message" style={{ color: "#ef4444", marginTop: "1rem", textAlign: "center" }}>
+            {error}
+          </div>
+        )}
 
         <p>
           Don't have an account?{" "}
           <span
-            style={{ color: "blue", cursor: "pointer" }}
+            style={{ color: "var(--primary)", cursor: "pointer", fontWeight: 500 }}
             onClick={() => navigate("/signup")}
           >
             Sign Up

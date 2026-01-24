@@ -4,17 +4,19 @@ import './index.css';
 import {App} from './App';
 import reportWebVitals from './reportWebVitals';
 import { BrowserRouter } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <BrowserRouter>
-    <div className='App'>
-      <header className='App-header'>
-    <App />
-    
-    </header>
-    </div>
+      <AuthProvider>
+        <div className='App'>
+          <header className='App-header'>
+            <App />
+          </header>
+        </div>
+      </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

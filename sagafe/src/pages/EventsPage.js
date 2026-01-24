@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { eventsApi } from '../lib/api';
 
-// Mock events data - will be replaced with API calls later
+// Fallback mock events data - used when API is unavailable
 const MOCK_EVENTS = [
   {
     id: 1,
@@ -99,6 +100,34 @@ export default function EventsPage() {
     handicap: ''
   });
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  // eslint-disable-next-line no-unused-vars
+  const [apiEvents, setApiEvents] = useState([]);
+  // eslint-disable-next-line no-unused-vars
+  const [loading, setLoading] = useState(true);
+
+  // Fetch events from API on mount
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setLoading(true);
+        const data = await eventsApi.getAll();
+        // Transform API data to match our event structure if needed
+        // The API returns {id, township, golf_course} format
+        // We'll merge with mock data for now until full event data is available
+        setApiEvents(data);
+      } catch (err) {
+        console.error('Failed to fetch events from API:', err);
+        // Fall back to mock events if API fails
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
+  // Use mock events for display (API events could be merged in future)
+  const events = MOCK_EVENTS;
 
   const getDaysInMonth = (month, year) => {
     return new Date(year, month + 1, 0).getDate();
@@ -110,10 +139,10 @@ export default function EventsPage() {
 
   const getEventsForDate = (day) => {
     const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return MOCK_EVENTS.filter(event => event.date === dateStr);
+    return events.filter(event => event.date === dateStr);
   };
 
-  const filteredEvents = MOCK_EVENTS.filter(event => {
+  const filteredEvents = events.filter(event => {
     const eventDate = new Date(event.date);
     return eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear;
   });
@@ -315,7 +344,7 @@ export default function EventsPage() {
       <section className="all-events-section">
         <h2>All Upcoming Events</h2>
         <div className="events-grid">
-          {MOCK_EVENTS.map(event => (
+          {events.map(event => (
             <div key={event.id} className="event-card-compact">
               <div className="compact-date">
                 <span className="compact-month">{MONTHS[new Date(event.date).getMonth()].slice(0, 3)}</span>

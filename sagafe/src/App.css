@@ -185,6 +185,15 @@ body {
   color: var(--text-primary);
 }
 
+.user-handicap {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(13, 148, 136, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
 .user-icon {
   color: var(--text-secondary);
   transition: var(--transition);
@@ -203,8 +212,30 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);
-  min-width: 150px;
+  min-width: 180px;
   z-index: 1000;
+  overflow: hidden;
+}
+
+.user-menu-header {
+  padding: 0.75rem 1rem;
+  background: var(--border-light);
+  border-bottom: 1px solid var(--border);
+}
+
+.user-menu-header span {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.user-menu-header small {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+  margin-top: 0.125rem;
 }
 
 .user-menu button {
