@@ -4,9 +4,9 @@ import "./Banner.css";
 export default function Banner() {
   const messages = [
     "🏌️‍♂️ Register now for 2026 premium golf events",
-    "⛳ New courses added weekly",
+    "⛳ New courses this season",
     "🎉 Members get exclusive discounts",
-    "📅 Book your tee times early"
+    "📅 Book your events"
   ];
 
   const [index, setIndex] = useState(0);
