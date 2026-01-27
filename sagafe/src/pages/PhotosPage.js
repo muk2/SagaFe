@@ -5,7 +5,7 @@ const PHOTO_ALBUMS = [
     id: 1,
     title: "Fall Championship 2025",
     date: "2025-10-15",
-    coverImage: "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=800",
+    coverImage: "https://lh3.googleusercontent.com/pw/AP1GczPRKQxmX7ds6sGmifCqW1eBAozmipSxOPKGpTBJjFAJQFQYEmm8yGNG7euD5Uo86NbolmdXHgwXhsnrL4-t1qgfbYhnqz-Z1ija9g9S099nXtv4KHK4-YnQicv6W5v97H_efRPJ_RwJOpqbnfRkDm6EBg=w2214-h1476-s-no-gm?authuser=0",
     photoCount: 48,
     photos: [
       "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=800",
