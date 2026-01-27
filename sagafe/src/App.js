@@ -1,18 +1,18 @@
 import './App.css';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Routes, Route, useNavigate, NavLink, Link } from "react-router-dom";
 import LoginPage from "./LoginPage.js";
 import SignUpPage from "./SignUpPage.js";
 import AboutPage from "./pages/AboutPage.js";
 import EventsPage from "./pages/EventsPage.js";
-import NewsPage from "./pages/NewsPage.js";
 import PhotosPage from "./pages/PhotosPage.js";
 import ContactPage from "./pages/ContactPage.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser } from "@fortawesome/free-solid-svg-icons";
 import Banner from "./Banner";
 import { useAuth } from "./context/AuthContext";
-import { eventsApi } from "./lib/api";
+import { eventsApi} from "./lib/api";
+
 
 
 export function App() {
@@ -32,7 +32,6 @@ export function App() {
         />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/events" element={<EventsPage />} />
-        <Route path="/news" element={<NewsPage />} />
         <Route path="/photos" element={<PhotosPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route
@@ -49,7 +48,6 @@ export function App() {
     </div>
   );
 }
-
 
 
 function Header() {
@@ -105,9 +103,9 @@ function Header() {
       </button>
 
       <nav className={`nav ${mobileMenuOpen ? 'nav-open' : ''}`}>
+      <NavLink to="/" className={({ isActive }) => isActive ? 'active' : ''}>Home</NavLink>
         <NavLink to="/about" className={({ isActive }) => isActive ? 'active' : ''}>About</NavLink>
         <NavLink to="/events" className={({ isActive }) => isActive ? 'active' : ''}>Events</NavLink>
-        <NavLink to="/news" className={({ isActive }) => isActive ? 'active' : ''}>News</NavLink>
         <NavLink to="/photos" className={({ isActive }) => isActive ? 'active' : ''}>Photos</NavLink>
         <NavLink to="/contact" className={({ isActive }) => isActive ? 'active' : ''}>Contact</NavLink>
       </nav>
@@ -181,16 +179,7 @@ function Hero() {
           alt="Golf Course"
           className="hero-image"
         />
-        <div className="hero-stats">
-          <div className="hero-stat">
-            <span className="stat-value">150+</span>
-            <span className="stat-label">Members</span>
-          </div>
-          <div className="hero-stat">
-            <span className="stat-value">24</span>
-            <span className="stat-label">Events/Year</span>
-          </div>
-        </div>
+    
       </div>
     </section>
   );
@@ -201,7 +190,33 @@ export function ItemList() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
   const navigate = useNavigate();
+
+  const ITEMS_PER_SLIDE = 4;
+
+  const [selectedEvent, setSelectedEvent] = useState(null);
+const [registrationForm, setRegistrationForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    handicap: ''
+  });
+const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+
+const openRegistration = (event) => {
+  setSelectedEvent(event);
+  setShowRegistrationModal(true);
+};
+
+const handleRegistrationSubmit = (e) => {
+  e.preventDefault();
+  // This will be connected to backend later
+  alert(`Registration submitted for ${selectedEvent.title}! You will receive a confirmation email shortly.`);
+  setShowRegistrationModal(false);
+  setRegistrationForm({ name: '', email: '', phone: '', handicap: '' });
+  setSelectedEvent(null);
+};
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -211,8 +226,8 @@ export function ItemList() {
         setItems(data);
         setError(null);
       } catch (err) {
-        console.error('Failed to fetch events:', err);
-        setError('Unable to load events');
+        console.error("Failed to fetch events:", err);
+        setError("Unable to load events");
         setItems([]);
       } finally {
         setLoading(false);
@@ -222,60 +237,254 @@ export function ItemList() {
     fetchEvents();
   }, []);
 
+
+  // 🔹 Split events into slides of 4
+  const slides = useMemo(() => {
+    const result = [];
+    for (let i = 0; i < items.length; i += ITEMS_PER_SLIDE) {
+      result.push(items.slice(i, i + ITEMS_PER_SLIDE));
+    }
+    return result;
+  }, [items]);
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) =>
+      prev === slides.length - 1 ? 0 : prev + 1
+    );
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) =>
+      prev === 0 ? slides.length - 1 : prev - 1
+    );
+  };
+
   return (
     <section className="collection">
       <div className="section-header">
         <div>
-          <h2>Featured Courses</h2>
-          <p className="section-subtitle">Our partner courses across New Jersey</p>
+          <h2>Upcoming Events</h2>
+          <p className="section-subtitle">
+            Our upcoming events for this season
+          </p>
         </div>
+
         <button className="view-all-btn" onClick={() => navigate("/events")}>
           View All Events
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="16" height="16">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+            width="16"
+            height="16"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M8.25 4.5l7.5 7.5-7.5 7.5"
+            />
           </svg>
         </button>
       </div>
-      <div className="card-grid">
-        {loading ? (
-          <div className="empty-state">
-            <p>Loading courses...</p>
-          </div>
-        ) : error ? (
-          <div className="empty-state">
-            <p>{error}</p>
-            <p style={{ fontSize: '0.9rem', marginTop: '0.5rem', opacity: 0.7 }}>
-              Make sure the backend server is running.
-            </p>
-          </div>
-        ) : items.length > 0 ? (
-          items.map((item, index) => (
-            <div className="card" key={item.id || index}>
-              <div className="card-image" style={{
-                backgroundImage: `url(https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=400)`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center'
-              }} />
-              <div className="card-content">
-                <h3>{item.golf_course}</h3>
-                <p className="card-location">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="16" height="16">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                  </svg>
-                  {item.township}
-                </p>
+
+      {loading ? (
+        <div className="empty-state">
+          <p>Loading events...</p>
+        </div>
+      ) : error ? (
+        <div className="empty-state">
+          <p>{error}</p>
+        </div>
+      ) : slides.length > 0 ? (
+        <>
+          {/* 🔹 Slide */}
+          <div className="card-grid slider">
+            {slides[currentSlide].map((item, index) => (
+              <div className="card" key={item.id || index}>
+                <div
+                  className="card-image"
+                  style={{
+                    backgroundImage:
+                      "url(https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=400)",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                />
+
+                <div className="card-content">
+                  <h3>{item.golf_course}</h3>
+
+                  <p className="card-location">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      width="16"
+                      height="16"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+                      />
+                    </svg>
+                    {item.township}, {item.state}
+                  </p>
+
+                  <p className="card-date">
+                  <svg xmlns="http://www.w3.org" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="16" height="16">
+  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+</svg>
+
+                    {item.date}
+                  </p>
+                </div>
+                <div class = "homepage-actions">
+                <button
+                className="compact-register"
+                onClick={() => openRegistration(item)}
+              >
+                Register
+              </button>
               </div>
-            </div>
-          ))
-        ) : (
-          <div className="empty-state">
-            <p>No courses available at the moment.</p>
-          </div>
-        )}
+              </div>
+            ))}
+
+{showRegistrationModal && selectedEvent && (
+  <div className="modal-overlay" onClick={() => setShowRegistrationModal(false)}>
+    <div className="modal" onClick={e => e.stopPropagation()}>
+      <button className="modal-close" onClick={() => setShowRegistrationModal(false)}>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="24" height="24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+      <div className="modal-header">
+        <h2>Register for Event</h2>
+        <p>{selectedEvent.golf_course}</p>
       </div>
+      <div className="modal-event-info">
+        <div className="info-row">
+          <span className="info-label">Date:</span>
+          <span>{new Date(selectedEvent.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+        </div>
+        <div className="info-row">
+          <span className="info-label">Time:</span>
+          <span>{selectedEvent.start_time}</span>
+        </div>
+        <div className="info-row">
+          <span className="info-label">Location:</span>
+          <span>{selectedEvent.township}, {selectedEvent.state}</span>
+        </div>
+        <div className="info-row">
+          <span className="info-label">Price:</span>
+          <span className="price-highlight">${selectedEvent.price}</span>
+        </div>
+      </div>
+      <form onSubmit={handleRegistrationSubmit} className="registration-form">
+        <div className="form-group">
+          <label htmlFor="name">Full Name</label>
+          <input
+            type="text"
+            id="name"
+            value={registrationForm.name}
+            onChange={(e) => setRegistrationForm({...registrationForm, name: e.target.value})}
+            required
+            placeholder="Enter your full name"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="email">Email Address</label>
+          <input
+            type="email"
+            id="email"
+            value={registrationForm.email}
+            onChange={(e) => setRegistrationForm({...registrationForm, email: e.target.value})}
+            required
+            placeholder="Enter your email"
+          />
+        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="phone">Phone Number</label>
+            <input
+              type="tel"
+              id="phone"
+              value={registrationForm.phone}
+              onChange={(e) => setRegistrationForm({...registrationForm, phone: e.target.value})}
+              required
+              placeholder="(555) 555-5555"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="handicap">Golf Handicap</label>
+            <input
+              type="text"
+              id="handicap"
+              value={registrationForm.handicap}
+              onChange={(e) => setRegistrationForm({...registrationForm, handicap: e.target.value})}
+              placeholder="e.g., 12"
+            />
+          </div>
+        </div>
+        <button type="submit" className="submit-registration">
+          Complete Registration - ${selectedEvent.price}
+        </button>
+      </form>
+    </div>
+  </div>
+)}
+
+          </div>
+{/* 🔹 Slider Navigation */}
+<div className="slider-nav">
+  <button
+    className="slider-arrow"
+    onClick={prevSlide}
+    aria-label="Previous slide"
+  >
+    &#10094;
+  </button>
+
+  <div className="slider-dots">
+    {slides.map((_, index) => (
+      <button
+        key={index}
+        className={`slider-dot ${
+          index === currentSlide ? "active" : ""
+        }`}
+        onClick={() => setCurrentSlide(index)}
+        aria-label={`Go to slide ${index + 1}`}
+      />
+    ))}
+  </div>
+
+  <button
+    className="slider-arrow"
+    onClick={nextSlide}
+    aria-label="Next slide"
+  >
+    &#10095;
+  </button>
+</div>
+
+        </>
+      ) : (
+        <div className="empty-state">
+          <p>No events available at the moment.</p>
+        </div>
+      )}
     </section>
   );
+  
 }
 
 

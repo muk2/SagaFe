@@ -2,86 +2,86 @@ import React, { useState, useEffect } from 'react';
 import { eventsApi } from '../lib/api';
 
 // Fallback mock events data - used when API is unavailable
-const MOCK_EVENTS = [
-  {
-    id: 1,
-    title: "Spring Championship",
-    date: "2026-03-15",
-    time: "8:00 AM",
-    course: "Royce Brook Golf Club",
-    location: "Hillsborough, NJ",
-    description: "Kick off the season with our annual Spring Championship. 18-hole stroke play with flights for all handicap levels.",
-    spots: 72,
-    registered: 45,
-    price: 125,
-    image: "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=800"
-  },
-  {
-    id: 2,
-    title: "Monthly Mixer - April",
-    date: "2026-04-12",
-    time: "7:30 AM",
-    course: "Knob Hill Golf Club",
-    location: "Manalapan, NJ",
-    description: "Casual scramble format perfect for meeting new members and enjoying a relaxed round of golf.",
-    spots: 48,
-    registered: 32,
-    price: 85,
-    image: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=800"
-  },
-  {
-    id: 3,
-    title: "Charity Classic",
-    date: "2026-05-24",
-    time: "8:30 AM",
-    course: "Neshanic Valley Golf Course",
-    location: "Neshanic Station, NJ",
-    description: "Annual charity event benefiting local youth golf programs. Includes lunch, prizes, and silent auction.",
-    spots: 120,
-    registered: 89,
-    price: 150,
-    image: "https://images.unsplash.com/photo-1593111774240-d529f12cf4bb?w=800"
-  },
-  {
-    id: 4,
-    title: "Summer Invitational",
-    date: "2026-06-21",
-    time: "7:00 AM",
-    course: "Fiddler's Elbow Country Club",
-    location: "Bedminster, NJ",
-    description: "Premier summer event featuring best ball format. Post-round dinner and awards ceremony included.",
-    spots: 80,
-    registered: 56,
-    price: 175,
-    image: "https://images.unsplash.com/photo-1600569436985-b50f3882e8ed?w=800"
-  },
-  {
-    id: 5,
-    title: "Monthly Mixer - July",
-    date: "2026-07-19",
-    time: "6:30 AM",
-    course: "Jumping Brook Country Club",
-    location: "Neptune, NJ",
-    description: "Beat the summer heat with an early tee time. Individual stroke play with net scoring.",
-    spots: 48,
-    registered: 18,
-    price: 95,
-    image: "https://images.unsplash.com/photo-1592919505780-303950717480?w=800"
-  },
-  {
-    id: 6,
-    title: "Fall Championship",
-    date: "2026-09-27",
-    time: "8:00 AM",
-    course: "Gambler Ridge Golf Club",
-    location: "Cream Ridge, NJ",
-    description: "Season finale championship. Points leaders compete for the annual SAGA Cup trophy.",
-    spots: 72,
-    registered: 12,
-    price: 135,
-    image: "https://images.unsplash.com/photo-1596727362302-b8d891c42ab8?w=800"
-  }
-];
+// const MOCK_EVENTS = [
+//   {
+//     id: 1,
+//     title: "Spring Championship",
+//     date: "2026-03-15",
+//     time: "8:00 AM",
+//     course: "Royce Brook Golf Club",
+//     location: "Hillsborough, NJ",
+//     description: "Kick off the season with our annual Spring Championship. 18-hole stroke play with flights for all handicap levels.",
+//     spots: 72,
+//     registered: 45,
+//     price: 125,
+//     image: "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=800"
+//   },
+//   {
+//     id: 2,
+//     title: "Monthly Mixer - April",
+//     date: "2026-04-12",
+//     time: "7:30 AM",
+//     course: "Knob Hill Golf Club",
+//     location: "Manalapan, NJ",
+//     description: "Casual scramble format perfect for meeting new members and enjoying a relaxed round of golf.",
+//     spots: 48,
+//     registered: 32,
+//     price: 85,
+//     image: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=800"
+//   },
+//   {
+//     id: 3,
+//     title: "Charity Classic",
+//     date: "2026-05-24",
+//     time: "8:30 AM",
+//     course: "Neshanic Valley Golf Course",
+//     location: "Neshanic Station, NJ",
+//     description: "Annual charity event benefiting local youth golf programs. Includes lunch, prizes, and silent auction.",
+//     spots: 120,
+//     registered: 89,
+//     price: 150,
+//     image: "https://images.unsplash.com/photo-1593111774240-d529f12cf4bb?w=800"
+//   },
+//   {
+//     id: 4,
+//     title: "Summer Invitational",
+//     date: "2026-06-21",
+//     time: "7:00 AM",
+//     course: "Fiddler's Elbow Country Club",
+//     location: "Bedminster, NJ",
+//     description: "Premier summer event featuring best ball format. Post-round dinner and awards ceremony included.",
+//     spots: 80,
+//     registered: 56,
+//     price: 175,
+//     image: "https://images.unsplash.com/photo-1600569436985-b50f3882e8ed?w=800"
+//   },
+//   {
+//     id: 5,
+//     title: "Monthly Mixer - July",
+//     date: "2026-07-19",
+//     time: "6:30 AM",
+//     course: "Jumping Brook Country Club",
+//     location: "Neptune, NJ",
+//     description: "Beat the summer heat with an early tee time. Individual stroke play with net scoring.",
+//     spots: 48,
+//     registered: 18,
+//     price: 95,
+//     image: "https://images.unsplash.com/photo-1592919505780-303950717480?w=800"
+//   },
+//   {
+//     id: 6,
+//     title: "Fall Championship",
+//     date: "2026-09-27",
+//     time: "8:00 AM",
+//     course: "Gambler Ridge Golf Club",
+//     location: "Cream Ridge, NJ",
+//     description: "Season finale championship. Points leaders compete for the annual SAGA Cup trophy.",
+//     spots: 72,
+//     registered: 12,
+//     price: 135,
+//     image: "https://images.unsplash.com/photo-1596727362302-b8d891c42ab8?w=800"
+//   }
+// ];
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -104,30 +104,31 @@ export default function EventsPage() {
   const [apiEvents, setApiEvents] = useState([]);
   // eslint-disable-next-line no-unused-vars
   const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState([]);
+  const [error, setError] = useState(null);
 
   // Fetch events from API on mount
   useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        setLoading(true);
-        const data = await eventsApi.getAll();
-        // Transform API data to match our event structure if needed
-        // The API returns {id, township, golf_course} format
-        // We'll merge with mock data for now until full event data is available
-        setApiEvents(data);
-      } catch (err) {
-        console.error('Failed to fetch events from API:', err);
-        // Fall back to mock events if API fails
-      } finally {
-        setLoading(false);
-      }
-    };
+      const fetchEvents = async () => {
+        try {
+          setLoading(true);
+          const data = await eventsApi.getAll();
+          setItems(data);
+          setError(null);
+        } catch (err) {
+          console.error("Failed to fetch events:", err);
+          setError("Unable to load events");
+          setItems([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+  
+      fetchEvents();
+    }, []);
 
-    fetchEvents();
-  }, []);
-
-  // Use mock events for display (API events could be merged in future)
-  const events = MOCK_EVENTS;
+  // // Use mock events for display (API events could be merged in future)
+  // const events = MOCK_EVENTS;
 
   const getDaysInMonth = (month, year) => {
     return new Date(year, month + 1, 0).getDate();
@@ -138,11 +139,12 @@ export default function EventsPage() {
   };
 
   const getEventsForDate = (day) => {
-    const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return events.filter(event => event.date === dateStr);
+    const backendDateStr = `${String(selectedMonth + 1).padStart(2, "0")}/${String(day).padStart(2, "0")}/${selectedYear}`;
+    return items.filter((event) => event.date === backendDateStr);
   };
+  
 
-  const filteredEvents = events.filter(event => {
+  const filteredEvents = items.filter(event => {
     const eventDate = new Date(event.date);
     return eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear;
   });
@@ -204,9 +206,9 @@ export default function EventsPage() {
               key={event.id}
               className="calendar-event-dot"
               onClick={() => openRegistration(event)}
-              title={event.title}
+              title={event.golf_course}
             >
-              {event.title}
+              {event.golf_course}
             </div>
           ))}
         </div>
@@ -288,30 +290,29 @@ export default function EventsPage() {
           ) : (
             filteredEvents.map(event => (
               <div key={event.id} className="event-card">
-                <div className="event-image" style={{ backgroundImage: `url(${event.image})` }}></div>
+                <div className="event-image" style={{ backgroundImage: `url("https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=800")` }}></div>
                 <div className="event-content">
                   <div className="event-date-badge">
                     <span className="event-month">{MONTHS[new Date(event.date).getMonth()].slice(0, 3)}</span>
                     <span className="event-day">{new Date(event.date).getDate()}</span>
                   </div>
                   <div className="event-details">
-                    <h3>{event.title}</h3>
+                    <h3>{event.golf_course}</h3>
                     <div className="event-meta">
                       <span className="event-time">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="16" height="16">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        {event.time}
+                        {event.start_time}
                       </span>
                       <span className="event-location">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="16" height="16">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                         </svg>
-                        {event.course}
+                        {event.township}
                       </span>
                     </div>
-                    <p className="event-description">{event.description}</p>
                     <div className="event-footer">
                       <div className="event-spots">
                         <div className="spots-bar">
@@ -343,16 +344,47 @@ export default function EventsPage() {
       {/* All Events Section */}
       <section className="all-events-section">
         <h2>All Upcoming Events</h2>
-        <div className="events-grid">
-          {events.map(event => (
+        {loading ? (
+        <div className="empty-state">
+          <p>Loading events...</p>
+        </div>
+      ) : error ? (
+        <div className="empty-state">
+          <p>{error}</p>
+        </div>
+      ) : items.length > 0 ?  ( <>
+          <div className="events-grid">
+          {items.map(event => (
             <div key={event.id} className="event-card-compact">
               <div className="compact-date">
                 <span className="compact-month">{MONTHS[new Date(event.date).getMonth()].slice(0, 3)}</span>
                 <span className="compact-day">{new Date(event.date).getDate()}</span>
               </div>
               <div className="compact-info">
-                <h4>{event.title}</h4>
-                <p>{event.course}</p>
+                <h4>{event.golf_course}</h4>
+                <p className="card-location">
+                <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      width="16"
+                      height="16"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+                      />
+                    </svg>
+                  {event.township}, {event.state}
+                  </p>
               </div>
               <button
                 className="compact-register"
@@ -363,6 +395,12 @@ export default function EventsPage() {
             </div>
           ))}
         </div>
+        </>
+      ) : (
+        <div className="empty-state">
+          <p>No events available at the moment.</p>
+        </div>
+      )}
       </section>
 
       {/* Registration Modal */}
@@ -376,7 +414,7 @@ export default function EventsPage() {
             </button>
             <div className="modal-header">
               <h2>Register for Event</h2>
-              <p>{selectedEvent.title}</p>
+              <p>{selectedEvent.golf_course}</p>
             </div>
             <div className="modal-event-info">
               <div className="info-row">
@@ -385,11 +423,11 @@ export default function EventsPage() {
               </div>
               <div className="info-row">
                 <span className="info-label">Time:</span>
-                <span>{selectedEvent.time}</span>
+                <span>{selectedEvent.start_time}</span>
               </div>
               <div className="info-row">
                 <span className="info-label">Location:</span>
-                <span>{selectedEvent.course}, {selectedEvent.location}</span>
+                <span>{selectedEvent.township}, {selectedEvent.state}</span>
               </div>
               <div className="info-row">
                 <span className="info-label">Price:</span>

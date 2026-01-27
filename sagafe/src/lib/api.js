@@ -153,10 +153,24 @@ export const authApi = {
 export const eventsApi = {
   /**
    * Get all events
-   * @returns {Promise<Array<{id: number, township: string, golf_course: string}>>}
+   * @returns {Promise<Array<{id: number, township: string, golf_course: string, date: date}>>}
    */
   getAll: async () => {
     return api.get('/api/events/');
+  },
+};
+
+
+/**
+ * Banner Messages API methods
+ */
+export const bannerApi = {
+  /**
+   * Get all events
+   * @returns {Promise<Array<{id: number, message: string}>>}
+   */
+  getAll: async () => {
+    return api.get('/api/banner_messages/');
   },
 };
 
