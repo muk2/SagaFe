@@ -53,6 +53,14 @@ export default function LoginPage() {
             required
             disabled={loading}
           />
+          <div style={{ textAlign: "right", marginTop: "0.5rem" }}>
+            <span
+              style={{ color: "var(--primary)", cursor: "pointer", fontSize: "0.9rem" }}
+              onClick={() => navigate("/forgot-password")}
+            >
+              Forgot Password?
+            </span>
+          </div>
         </div>
 
         <button type="submit" disabled={loading}>

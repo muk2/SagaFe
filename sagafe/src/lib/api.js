@@ -145,6 +145,25 @@ export const authApi = {
   isAuthenticated: () => {
     return !!localStorage.getItem('access_token');
   },
+
+  /**
+   * Request password reset
+   * @param {string} email - User's email address
+   * @returns {Promise<{message: string}>}
+   */
+  forgotPassword: async (email) => {
+    return api.post('/auth/forgot-password', { email });
+  },
+
+  /**
+   * Reset password with token
+   * @param {string} token - Reset token from email
+   * @param {string} new_password - New password
+   * @returns {Promise<{message: string}>}
+   */
+  resetPassword: async (token, new_password) => {
+    return api.post('/auth/reset-password', { token, new_password });
+  },
 };
 
 /**
