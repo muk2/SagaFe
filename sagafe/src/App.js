@@ -3,6 +3,8 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Routes, Route, useNavigate, NavLink, Link } from "react-router-dom";
 import LoginPage from "./LoginPage.js";
 import SignUpPage from "./SignUpPage.js";
+import ForgotPasswordPage from "./ForgotPasswordPage.js";
+import ResetPasswordPage from "./ResetPasswordPage.js";
 import AboutPage from "./pages/AboutPage.js";
 import EventsPage from "./pages/EventsPage.js";
 import PhotosPage from "./pages/PhotosPage.js";
@@ -41,6 +43,14 @@ export function App() {
         <Route
           path="/signup"
           element={<SignUpPage />}
+        />
+        <Route
+          path="/forgot-password"
+          element={<ForgotPasswordPage />}
+        />
+        <Route
+          path="/reset-password"
+          element={<ResetPasswordPage />}
         />
       </Routes>
 
