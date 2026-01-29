@@ -7,11 +7,12 @@ import AboutPage from "./pages/AboutPage.js";
 import EventsPage from "./pages/EventsPage.js";
 import PhotosPage from "./pages/PhotosPage.js";
 import ContactPage from "./pages/ContactPage.js";
+import DashboardPage from "./pages/DashboardPage.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser } from "@fortawesome/free-solid-svg-icons";
 import Banner from "./Banner";
 import { useAuth } from "./context/AuthContext";
-import { eventsApi} from "./lib/api";
+import { eventsApi, api } from "./lib/api";
 
 
 
@@ -34,6 +35,7 @@ export function App() {
         <Route path="/events" element={<EventsPage />} />
         <Route path="/photos" element={<PhotosPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
         <Route
           path="/login"
           element={<LoginPage />}
@@ -137,6 +139,7 @@ function Header() {
                   <span>{user.first_name} {user.last_name}</span>
                   <small>{user.role}</small>
                 </div>
+                <button onClick={() => { navigate("/dashboard"); setMenuOpen(false); }}>Dashboard</button>
                 <button onClick={handleLogout}>Logout</button>
               </div>
             )}
@@ -192,6 +195,7 @@ export function ItemList() {
   const [error, setError] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const ITEMS_PER_SLIDE = 4;
 
@@ -206,16 +210,46 @@ const [showRegistrationModal, setShowRegistrationModal] = useState(false);
 
 const openRegistration = (event) => {
   setSelectedEvent(event);
+  // Auto-populate form if user is logged in
+  if (user) {
+    setRegistrationForm({
+      name: `${user.first_name} ${user.last_name}`,
+      email: user.email,
+      phone: user.phone_number || '',
+      handicap: user.golf_handicap || ''
+    });
+  }
   setShowRegistrationModal(true);
 };
 
-const handleRegistrationSubmit = (e) => {
+const handleRegistrationSubmit = async (e) => {
   e.preventDefault();
-  // This will be connected to backend later
-  alert(`Registration submitted for ${selectedEvent.title}! You will receive a confirmation email shortly.`);
-  setShowRegistrationModal(false);
-  setRegistrationForm({ name: '', email: '', phone: '', handicap: '' });
-  setSelectedEvent(null);
+
+  try {
+    // Prepare registration data
+    const registrationData = {
+      event_id: selectedEvent.id,
+      name: registrationForm.name,
+      email: registrationForm.email,
+      phone: registrationForm.phone,
+      handicap: registrationForm.handicap
+    };
+
+    // If user is logged in, include user_id
+    if (user) {
+      registrationData.user_id = user.id;
+    }
+
+    // Submit registration to backend
+    await api.post('/api/event-registrations', registrationData);
+
+    alert(`Registration submitted for ${selectedEvent.golf_course}! You will receive a confirmation email shortly.`);
+    setShowRegistrationModal(false);
+    setRegistrationForm({ name: '', email: '', phone: '', handicap: '' });
+    setSelectedEvent(null);
+  } catch (error) {
+    alert(`Registration failed: ${error.message}. Please try again.`);
+  }
 };
 
   useEffect(() => {
