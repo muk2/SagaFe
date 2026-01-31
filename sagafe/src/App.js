@@ -7,6 +7,7 @@ import AboutPage from "./pages/AboutPage.js";
 import EventsPage from "./pages/EventsPage.js";
 import PhotosPage from "./pages/PhotosPage.js";
 import ContactPage from "./pages/ContactPage.js";
+import DashboardPage from "./pages/DashboardPage.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser } from "@fortawesome/free-solid-svg-icons";
 import Banner from "./Banner";
@@ -34,6 +35,7 @@ export function App() {
         <Route path="/events" element={<EventsPage />} />
         <Route path="/photos" element={<PhotosPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
         <Route
           path="/login"
           element={<LoginPage />}
@@ -137,6 +139,7 @@ function Header() {
                   <span>{user.first_name} {user.last_name}</span>
                   <small>{user.role}</small>
                 </div>
+                <button onClick={() => { navigate("/dashboard"); setMenuOpen(false); }}>Dashboard</button>
                 <button onClick={handleLogout}>Logout</button>
               </div>
             )}
