@@ -39,6 +39,26 @@ export default function SignUpPage() {
     }
   };
 
+  const formatPhoneNumber = (value) => {
+    // Remove all non-digits
+    const phoneNumber = value.replace(/\D/g, '');
+    
+    // Format as (555) 555-5555
+    if (phoneNumber.length <= 3) {
+      return phoneNumber;
+    } else if (phoneNumber.length <= 6) {
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
+    } else {
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
+    }
+  };
+  
+  // In your input handler:
+  const handlePhoneChange = (e) => {
+    const formatted = formatPhoneNumber(e.target.value);
+    setForm({ ...form, phone_number: formatted });
+  };
+
   const fields = [
     { key: "first_name", label: "First Name", type: "text", placeholder: "John" },
     { key: "last_name", label: "Last Name", type: "text", placeholder: "Doe" },
@@ -60,7 +80,7 @@ export default function SignUpPage() {
               type={field.type}
               placeholder={field.placeholder}
               value={form[field.key]}
-              onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
+              onChange={field.key === "phone_number" ? handlePhoneChange : (e) => setForm({ ...form, [field.key]: e.target.value })}
               required={field.key !== "golf_handicap" && field.key !== "phone_number"}
               disabled={loading}
             />

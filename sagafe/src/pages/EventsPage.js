@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { eventsApi } from '../lib/api';
+import { eventsApi, api } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 
 // Fallback mock events data - used when API is unavailable
 // const MOCK_EVENTS = [
@@ -89,6 +90,7 @@ const MONTHS = [
 ];
 
 export default function EventsPage() {
+  const { user } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(2026);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar'
@@ -169,16 +171,46 @@ export default function EventsPage() {
 
   const openRegistration = (event) => {
     setSelectedEvent(event);
+    // Auto-populate form if user is logged in
+    if (user) {
+      setRegistrationForm({
+        name: `${user.first_name} ${user.last_name}`,
+        email: user.email,
+        phone: user.phone_number || '',
+        handicap: user.handicap || ''
+      });
+    }
     setShowRegistrationModal(true);
   };
 
-  const handleRegistrationSubmit = (e) => {
+  const handleRegistrationSubmit = async (e) => {
     e.preventDefault();
-    // This will be connected to backend later
-    alert(`Registration submitted for ${selectedEvent.title}! You will receive a confirmation email shortly.`);
-    setShowRegistrationModal(false);
-    setRegistrationForm({ name: '', email: '', phone: '', handicap: '' });
-    setSelectedEvent(null);
+
+    try {
+      // Prepare registration data
+      const registrationData = {
+        event_id: selectedEvent.id,
+        name: registrationForm.name,
+        email: registrationForm.email,
+        phone: registrationForm.phone,
+        handicap: registrationForm.handicap
+      };
+
+      // If user is logged in, include user_id
+      if (user) {
+        registrationData.user_id = user.id;
+      }
+
+      // Submit registration to backend
+      await api.post('/api/event-registrations', registrationData);
+
+      alert(`Registration submitted for ${selectedEvent.golf_course}!`);
+      setShowRegistrationModal(false);
+      setRegistrationForm({ name: '', email: '', phone: '', handicap: '' });
+      setSelectedEvent(null);
+    } catch (error) {
+      alert(`Registration failed: ${error.message}.`);
+    }
   };
 
   const renderCalendar = () => {
