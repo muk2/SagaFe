@@ -4,18 +4,25 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 
 export default function DashboardPage() {
-  const { user, updateUser, isAuthenticated } = useAuth();
+  const { user, updateUser} = useAuth();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-
+  console.log('DashboardPage - user:', user);
   // Handicap form state
   const [handicapForm, setHandicapForm] = useState({
-    golf_handicap: user?.golf_handicap || ''
+    handicap: user?.handicap || ''
   });
 
+  useEffect(() => {
+    if (user) {
+      setHandicapForm({ handicap: user.handicap || '' });
+    }
+  }, [user]);
+
+  
   // Password reset form state
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
@@ -28,12 +35,6 @@ export default function DashboardPage() {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(true);
 
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-    }
-  }, [isAuthenticated, navigate]);
 
   // Fetch user's registered events
   useEffect(() => {
@@ -41,13 +42,14 @@ export default function DashboardPage() {
       try {
         setEventsLoading(true);
         const response = await api.get('/api/users/events');
-
+        
+        const userEvents = response.events || [];
         // Separate past and upcoming events
         const now = new Date();
         const past = [];
         const upcoming = [];
 
-        response.forEach(event => {
+        userEvents.forEach(event => {
           const eventDate = new Date(event.date);
           if (eventDate < now) {
             past.push(event);
@@ -80,11 +82,11 @@ export default function DashboardPage() {
 
     try {
       const response = await api.put('/api/users/profile', {
-        golf_handicap: handicapForm.golf_handicap
+        handicap: handicapForm.handicap
       });
-
+      updateUser(response);
       // Update user in context
-      updateUser({ ...user, golf_handicap: handicapForm.golf_handicap });
+      updateUser({ ...user, handicap: handicapForm.handicap });
 
       setMessage({ type: 'success', text: 'Golf handicap updated successfully!' });
     } catch (error) {
@@ -93,6 +95,8 @@ export default function DashboardPage() {
       setLoading(false);
     }
   };
+
+  console.log(JSON.parse(localStorage.getItem('user')));
 
   const handlePasswordReset = async (e) => {
     e.preventDefault();
@@ -106,12 +110,6 @@ export default function DashboardPage() {
       return;
     }
 
-    // Validate password strength
-    if (passwordForm.newPassword.length < 8) {
-      setMessage({ type: 'error', text: 'Password must be at least 8 characters long' });
-      setLoading(false);
-      return;
-    }
 
     try {
       await api.put('/api/users/password', {
@@ -188,7 +186,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="stat-info">
                   <h3>Golf Handicap</h3>
-                  <p className="stat-value">{user.golf_handicap || 'Not set'}</p>
+                  <p className="stat-value">{user.handicap || 'Not set'}</p>
                 </div>
               </div>
 
@@ -270,7 +268,7 @@ export default function DashboardPage() {
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="16" height="16">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          {event.start_time}
+                          {event.date}
                         </p>
                       </div>
                       <div className="event-status">
@@ -336,8 +334,8 @@ export default function DashboardPage() {
                   <input
                     type="text"
                     id="golf_handicap"
-                    value={handicapForm.golf_handicap}
-                    onChange={(e) => setHandicapForm({ golf_handicap: e.target.value })}
+                    value={handicapForm.handicap}
+                    onChange={(e) => setHandicapForm({ handicap: e.target.value })}
                     placeholder="Enter your handicap (e.g., 12.5)"
                     disabled={loading}
                   />
@@ -375,7 +373,6 @@ export default function DashboardPage() {
                     disabled={loading}
                     placeholder="Enter new password"
                   />
-                  <small>Password must be at least 8 characters long</small>
                 </div>
                 <div className="form-group">
                   <label htmlFor="confirmPassword">Confirm New Password</label>

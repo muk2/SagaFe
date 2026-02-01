@@ -177,7 +177,7 @@ export default function EventsPage() {
         name: `${user.first_name} ${user.last_name}`,
         email: user.email,
         phone: user.phone_number || '',
-        handicap: user.golf_handicap || ''
+        handicap: user.handicap || ''
       });
     }
     setShowRegistrationModal(true);
@@ -204,12 +204,12 @@ export default function EventsPage() {
       // Submit registration to backend
       await api.post('/api/event-registrations', registrationData);
 
-      alert(`Registration submitted for ${selectedEvent.golf_course}! You will receive a confirmation email shortly.`);
+      alert(`Registration submitted for ${selectedEvent.golf_course}!`);
       setShowRegistrationModal(false);
       setRegistrationForm({ name: '', email: '', phone: '', handicap: '' });
       setSelectedEvent(null);
     } catch (error) {
-      alert(`Registration failed: ${error.message}. Please try again.`);
+      alert(`Registration failed: ${error.message}.`);
     }
   };
 

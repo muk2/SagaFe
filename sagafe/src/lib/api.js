@@ -27,13 +27,19 @@ async function apiRequest(endpoint, options = {}) {
     headers,
   });
 
-  // Handle 401 Unauthorized - token expired or invalid
+  // Handle 401 Unauthorized
   if (response.status === 401) {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user');
-    // Dispatch custom event for auth state change
-    window.dispatchEvent(new CustomEvent('auth-expired'));
-    throw new Error('Session expired. Please log in again.');
+    const error = await response.json().catch(() => ({ detail: 'Unauthorized' }));
+    
+    if (token && headers['Authorization']) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user');
+      window.dispatchEvent(new CustomEvent('auth-expired'));
+      throw new Error('Session expired. Please log in again.');
+    }
+    
+    // For login failures, throw the actual error message
+    throw new Error(error.detail || 'Unauthorized');
   }
 
   if (!response.ok) {
@@ -164,6 +170,12 @@ export const authApi = {
   resetPassword: async (token, new_password) => {
     return api.post('/auth/reset-password', { token, new_password });
   },
+  
+  /* Grabs the data associated with the logged-in user*/
+  getMe: async () => {
+    return api.get('/api/users/me');
+  },
+
 };
 
 /**

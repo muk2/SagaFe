@@ -1,6 +1,6 @@
 import './App.css';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Routes, Route, useNavigate, NavLink, Link } from "react-router-dom";
+import { Routes, Route, useNavigate, NavLink, Link, Navigate } from "react-router-dom";
 import LoginPage from "./LoginPage.js";
 import SignUpPage from "./SignUpPage.js";
 import ForgotPasswordPage from "./ForgotPasswordPage.js";
@@ -14,7 +14,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser } from "@fortawesome/free-solid-svg-icons";
 import Banner from "./Banner";
 import { useAuth } from "./context/AuthContext";
-import { eventsApi, api } from "./lib/api";
+import { eventsApi, api, authApi } from "./lib/api";
 
 
 
@@ -37,7 +37,7 @@ export function App() {
         <Route path="/events" element={<EventsPage />} />
         <Route path="/photos" element={<PhotosPage />} />
         <Route path="/contact" element={<ContactPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route
           path="/login"
           element={<LoginPage />}
@@ -126,9 +126,9 @@ function Header() {
         {user ? (
           <div className="user-info">
             <span className="user-name">{user.first_name}</span>
-            {user.golf_handicap && (
+            {user.handicap && (
               <span className="user-handicap" title="Golf Handicap">
-                HCP: {user.golf_handicap}
+                HCP: {user.handicap}
               </span>
             )}
             <div ref={iconRef} style={{ display: "inline-block" }}>
@@ -165,7 +165,18 @@ function Header() {
   );
 }
 
+function ProtectedRoute({ children }) {
+  const isAuthenticated = authApi.isAuthenticated(); // Checks localStorage directly
+  console.log('ProtectedRoute - isAuthenticated:', isAuthenticated); // 👈 Add this
+  console.log('ProtectedRoute - token:', localStorage.getItem('access_token')); // 👈 Add this
+  if (!isAuthenticated) {
+    console.log('REDIRECTING TO LOGIN'); // 👈 Add this
+    return <Navigate to="/login" replace />;
+  }
 
+  console.log('RENDERING PROTECTED CONTENT');
+  return children;
+}
 
 function Hero() {
   const navigate = useNavigate();
@@ -226,7 +237,7 @@ const openRegistration = (event) => {
       name: `${user.first_name} ${user.last_name}`,
       email: user.email,
       phone: user.phone_number || '',
-      handicap: user.golf_handicap || ''
+      handicap: user.handicap || ''
     });
   }
   setShowRegistrationModal(true);
@@ -251,14 +262,14 @@ const handleRegistrationSubmit = async (e) => {
     }
 
     // Submit registration to backend
-    await api.post('/api/event-registrations', registrationData);
+    await api.post('/api/users/event-registrations', registrationData);
 
-    alert(`Registration submitted for ${selectedEvent.golf_course}! You will receive a confirmation email shortly.`);
+    alert(`Registration submitted for ${selectedEvent.golf_course}!`);
     setShowRegistrationModal(false);
     setRegistrationForm({ name: '', email: '', phone: '', handicap: '' });
     setSelectedEvent(null);
   } catch (error) {
-    alert(`Registration failed: ${error.message}. Please try again.`);
+    alert(`Registration failed: ${error.message}.`);
   }
 };
 
