@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { adminMediaApi } from '../../lib/api';
 
-function MediaManagement() {
+const MediaManagement = () => {
   const [carouselImages, setCarouselImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -10,221 +10,513 @@ function MediaManagement() {
   const [newImageUrl, setNewImageUrl] = useState('');
 
   useEffect(() => {
-    loadCarouselImages();
+    fetchCarouselImages();
   }, []);
 
-  const loadCarouselImages = async () => {
+  const fetchCarouselImages = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await adminMediaApi.getCarouselImages();
       setCarouselImages(data.images || []);
-      setError(null);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to load carousel images');
+      // Default to empty array if API not implemented
+      setCarouselImages([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFileUpload = async (e) => {
+  const handleFileUpload = async (e, imageType = 'carousel') => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file
+    // Validate file type
     if (!file.type.startsWith('image/')) {
-      setError('Please select an image file');
-      setTimeout(() => setError(null), 3000);
+      setError('Please select a valid image file');
       return;
     }
 
+    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      setError('Image must be smaller than 5MB');
-      setTimeout(() => setError(null), 3000);
+      setError('Image size must be less than 5MB');
       return;
     }
 
     try {
       setUploading(true);
-      const response = await adminMediaApi.uploadImage(file, 'carousel');
-      const updatedImages = [...carouselImages, response.image_url];
-      await adminMediaApi.updateCarouselImages(updatedImages);
-      setCarouselImages(updatedImages);
-      setSuccess('Image uploaded successfully');
-      setTimeout(() => setSuccess(null), 3000);
+      setError(null);
+      setSuccess(null);
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', imageType);
+
+      const response = await adminMediaApi.uploadImage(formData);
+
+      if (imageType === 'carousel') {
+        setCarouselImages([...carouselImages, response.url]);
+        setSuccess('Image uploaded successfully! Remember to save changes.');
+      }
+
+      // Reset file input
       e.target.value = '';
     } catch (err) {
-      setError(err.message);
-      setTimeout(() => setError(null), 3000);
+      setError(err.message || 'Failed to upload image');
     } finally {
       setUploading(false);
     }
   };
 
-  const handleAddUrl = async () => {
+  const handleAddImageUrl = () => {
     if (!newImageUrl.trim()) {
       setError('Please enter an image URL');
-      setTimeout(() => setError(null), 3000);
       return;
     }
 
+    // Basic URL validation
     try {
-      const updatedImages = [...carouselImages, newImageUrl];
-      await adminMediaApi.updateCarouselImages(updatedImages);
-      setCarouselImages(updatedImages);
+      new URL(newImageUrl);
+      setCarouselImages([...carouselImages, newImageUrl]);
       setNewImageUrl('');
-      setSuccess('Image URL added successfully');
+      setSuccess('Image URL added! Remember to save changes.');
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
-      setError(err.message);
-      setTimeout(() => setError(null), 3000);
+    } catch {
+      setError('Please enter a valid URL');
     }
   };
 
-  const handleRemoveImage = async (index) => {
-    if (!window.confirm('Remove this image from the carousel?')) {
-      return;
-    }
+  const handleRemoveImage = (index) => {
+    const newImages = carouselImages.filter((_, i) => i !== index);
+    setCarouselImages(newImages);
+    setSuccess('Image removed. Remember to save changes.');
+    setTimeout(() => setSuccess(null), 3000);
+  };
 
+  const handleSaveCarousel = async () => {
     try {
-      const updatedImages = carouselImages.filter((_, i) => i !== index);
-      await adminMediaApi.updateCarouselImages(updatedImages);
-      setCarouselImages(updatedImages);
-      setSuccess('Image removed successfully');
-      setTimeout(() => setSuccess(null), 3000);
+      setError(null);
+      setSuccess(null);
+
+      if (carouselImages.length === 0) {
+        setError('Please add at least one image to the carousel');
+        return;
+      }
+
+      await adminMediaApi.updateCarousel(carouselImages);
+      setSuccess('Carousel images saved successfully!');
+
+      setTimeout(() => setSuccess(null), 5000);
     } catch (err) {
-      setError(err.message);
-      setTimeout(() => setError(null), 3000);
+      setError(err.message || 'Failed to save carousel images');
     }
   };
 
-  const handleMoveUp = async (index) => {
-    if (index === 0) return;
+  const moveImage = (index, direction) => {
+    const newImages = [...carouselImages];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
 
-    const updatedImages = [...carouselImages];
-    [updatedImages[index - 1], updatedImages[index]] = [updatedImages[index], updatedImages[index - 1]];
+    if (newIndex < 0 || newIndex >= newImages.length) return;
 
-    try {
-      await adminMediaApi.updateCarouselImages(updatedImages);
-      setCarouselImages(updatedImages);
-    } catch (err) {
-      setError(err.message);
-      setTimeout(() => setError(null), 3000);
-    }
-  };
-
-  const handleMoveDown = async (index) => {
-    if (index === carouselImages.length - 1) return;
-
-    const updatedImages = [...carouselImages];
-    [updatedImages[index], updatedImages[index + 1]] = [updatedImages[index + 1], updatedImages[index]];
-
-    try {
-      await adminMediaApi.updateCarouselImages(updatedImages);
-      setCarouselImages(updatedImages);
-    } catch (err) {
-      setError(err.message);
-      setTimeout(() => setError(null), 3000);
-    }
+    [newImages[index], newImages[newIndex]] = [newImages[newIndex], newImages[index]];
+    setCarouselImages(newImages);
   };
 
   if (loading) {
-    return <div className="admin-loading">Loading media...</div>;
+    return <div className="loading">Loading media settings...</div>;
   }
 
   return (
-    <div className="admin-section">
-      <h2>Media Management</h2>
+    <div className="media-management">
+      <h2 className="admin-section-title">Media & Image Management</h2>
 
-      {error && <div className="admin-error">{error}</div>}
-      {success && <div className="admin-success">{success}</div>}
+      <div className="info-banner">
+        <strong>Homepage Carousel:</strong> Upload or add images that will rotate on the homepage hero section.
+        All images should have the same dimensions (recommended: 1920x800px) for best results.
+      </div>
 
-      <div className="media-upload-section">
+      {error && <div className="error">{error}</div>}
+      {success && <div className="success">{success}</div>}
+
+      <div className="carousel-section">
         <h3>Homepage Carousel Images</h3>
-        <p>These images will rotate on the homepage hero section. All images should have the same dimensions for best results.</p>
+        <p className="section-description">
+          Images will rotate automatically on the homepage. Drag to reorder or use the arrow buttons.
+        </p>
 
-        <div className="upload-options">
-          <div className="upload-option">
+        <div className="upload-methods">
+          <div className="upload-card">
             <h4>Upload Image File</h4>
-            <label className="btn-upload">
-              {uploading ? 'Uploading...' : 'Choose File'}
+            <label className="file-upload-button">
               <input
                 type="file"
                 accept="image/*"
-                onChange={handleFileUpload}
+                onChange={(e) => handleFileUpload(e, 'carousel')}
                 disabled={uploading}
-                style={{ display: 'none' }}
               />
+              {uploading ? 'Uploading...' : 'Choose File'}
             </label>
-            <small>Max 5MB, JPG/PNG/GIF</small>
+            <small className="help-text">Max size: 5MB | Formats: JPG, PNG, WebP</small>
           </div>
 
-          <div className="upload-option">
+          <div className="upload-card">
             <h4>Add Image URL</h4>
             <div className="url-input-group">
               <input
                 type="url"
-                placeholder="https://..."
                 value={newImageUrl}
                 onChange={(e) => setNewImageUrl(e.target.value)}
+                placeholder="https://example.com/image.jpg"
               />
-              <button className="btn-primary" onClick={handleAddUrl}>
-                Add URL
+              <button onClick={handleAddImageUrl} className="btn-primary">
+                Add
               </button>
             </div>
+            <small className="help-text">Use an existing image URL</small>
           </div>
         </div>
-      </div>
 
-      <div className="carousel-images-grid">
-        {carouselImages.map((imageUrl, index) => (
-          <div key={index} className="carousel-image-item">
-            <img src={imageUrl} alt={`Carousel ${index + 1}`} />
-            <div className="carousel-image-overlay">
-              <span className="image-order">#{index + 1}</span>
-              <div className="image-actions">
-                <button
-                  className="btn-icon"
-                  onClick={() => handleMoveUp(index)}
-                  disabled={index === 0}
-                  title="Move up"
-                >
-                  ↑
-                </button>
-                <button
-                  className="btn-icon"
-                  onClick={() => handleMoveDown(index)}
-                  disabled={index === carouselImages.length - 1}
-                  title="Move down"
-                >
-                  ↓
-                </button>
-                <button
-                  className="btn-icon btn-delete"
-                  onClick={() => handleRemoveImage(index)}
-                  title="Remove"
-                >
-                  ×
-                </button>
-              </div>
+        {carouselImages.length === 0 ? (
+          <div className="empty-state">
+            No carousel images yet. Upload or add an image URL to get started.
+          </div>
+        ) : (
+          <>
+            <div className="images-grid">
+              {carouselImages.map((imageUrl, index) => (
+                <div key={index} className="image-card">
+                  <div className="image-preview">
+                    <img
+                      src={imageUrl}
+                      alt={`Carousel ${index + 1}`}
+                      onError={(e) => {
+                        e.target.src = 'https://via.placeholder.com/400x200?text=Image+Not+Found';
+                      }}
+                    />
+                    <div className="image-overlay">
+                      <div className="order-controls">
+                        <button
+                          onClick={() => moveImage(index, 'up')}
+                          disabled={index === 0}
+                          className="btn-icon"
+                          title="Move up"
+                        >
+                          ↑
+                        </button>
+                        <span className="order-number">#{index + 1}</span>
+                        <button
+                          onClick={() => moveImage(index, 'down')}
+                          disabled={index === carouselImages.length - 1}
+                          className="btn-icon"
+                          title="Move down"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="image-info">
+                    <div className="image-url" title={imageUrl}>
+                      {imageUrl.length > 40 ? imageUrl.substring(0, 40) + '...' : imageUrl}
+                    </div>
+                    <button
+                      onClick={() => handleRemoveImage(index)}
+                      className="btn-remove"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        ))}
+
+            <div className="save-section">
+              <button onClick={handleSaveCarousel} className="btn-primary btn-large">
+                Save Carousel Images
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
-      {carouselImages.length === 0 && (
-        <div className="admin-empty">
-          <p>No carousel images yet. Upload your first image!</p>
+      <div className="additional-info">
+        <h3>Other Site Images</h3>
+        <div className="info-card">
+          <p>
+            To update other site images (logo, background images, event covers, etc.),
+            upload them to your server or hosting service and update the image URLs
+            in the relevant sections (Events, Photos, Content).
+          </p>
+          <p>
+            For best performance, use optimized images:
+          </p>
+          <ul>
+            <li>Hero/Carousel: 1920x800px (16:9 ratio)</li>
+            <li>Event covers: 800x600px</li>
+            <li>Photo album covers: 600x400px</li>
+            <li>Logo: 200x80px (transparent PNG)</li>
+          </ul>
         </div>
-      )}
+      </div>
 
-      {carouselImages.length > 0 && (
-        <div className="carousel-preview">
-          <h3>Preview</h3>
-          <p>Current carousel will show {carouselImages.length} image(s) in rotation</p>
-        </div>
-      )}
+      <style jsx>{`
+        .info-banner {
+          background: #eff6ff;
+          border: 1px solid #bfdbfe;
+          color: #1e40af;
+          padding: 1rem;
+          border-radius: 6px;
+          margin-bottom: 2rem;
+        }
+
+        .carousel-section {
+          background: #f9fafb;
+          padding: 1.5rem;
+          border-radius: 8px;
+          margin-bottom: 2rem;
+          border: 1px solid #e5e7eb;
+        }
+
+        .carousel-section h3 {
+          margin: 0 0 0.5rem 0;
+          color: #1f2937;
+        }
+
+        .section-description {
+          color: #6b7280;
+          margin-bottom: 1.5rem;
+        }
+
+        .upload-methods {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 1rem;
+          margin-bottom: 2rem;
+        }
+
+        .upload-card {
+          background: white;
+          padding: 1.5rem;
+          border-radius: 6px;
+          border: 1px solid #e5e7eb;
+        }
+
+        .upload-card h4 {
+          margin: 0 0 1rem 0;
+          color: #1f2937;
+        }
+
+        .file-upload-button {
+          display: inline-block;
+          padding: 0.75rem 1.5rem;
+          background: #3b82f6;
+          color: white;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 500;
+          transition: background 0.2s;
+        }
+
+        .file-upload-button:hover {
+          background: #2563eb;
+        }
+
+        .file-upload-button input {
+          display: none;
+        }
+
+        .url-input-group {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .url-input-group input {
+          flex: 1;
+          padding: 0.5rem;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+        }
+
+        .help-text {
+          display: block;
+          color: #6b7280;
+          font-size: 0.85rem;
+          margin-top: 0.5rem;
+        }
+
+        .images-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 1.5rem;
+          margin-bottom: 2rem;
+        }
+
+        .image-card {
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          overflow: hidden;
+        }
+
+        .image-preview {
+          position: relative;
+          width: 100%;
+          height: 180px;
+          background: #f3f4f6;
+        }
+
+        .image-preview img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .image-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.6);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0;
+          transition: opacity 0.2s;
+        }
+
+        .image-card:hover .image-overlay {
+          opacity: 1;
+        }
+
+        .order-controls {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          color: white;
+        }
+
+        .btn-icon {
+          background: rgba(255, 255, 255, 0.2);
+          border: 1px solid white;
+          color: white;
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 1.2rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.2s;
+        }
+
+        .btn-icon:hover:not(:disabled) {
+          background: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-icon:disabled {
+          opacity: 0.3;
+          cursor: not-allowed;
+        }
+
+        .order-number {
+          font-size: 1.2rem;
+          font-weight: 700;
+        }
+
+        .image-info {
+          padding: 1rem;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .image-url {
+          flex: 1;
+          font-size: 0.85rem;
+          color: #6b7280;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .btn-remove {
+          background: transparent;
+          color: #ef4444;
+          border: 1px solid #ef4444;
+          padding: 0.25rem 0.75rem;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.85rem;
+          transition: all 0.2s;
+        }
+
+        .btn-remove:hover {
+          background: #ef4444;
+          color: white;
+        }
+
+        .save-section {
+          text-align: center;
+          padding-top: 1rem;
+          border-top: 1px solid #e5e7eb;
+        }
+
+        .btn-large {
+          padding: 0.75rem 2rem;
+          font-size: 1rem;
+        }
+
+        .additional-info {
+          background: #fefce8;
+          border: 1px solid #fde047;
+          padding: 1.5rem;
+          border-radius: 8px;
+        }
+
+        .additional-info h3 {
+          margin: 0 0 1rem 0;
+          color: #854d0e;
+        }
+
+        .info-card {
+          color: #713f12;
+        }
+
+        .info-card p {
+          margin: 0 0 1rem 0;
+        }
+
+        .info-card ul {
+          margin: 0.5rem 0 0 1.5rem;
+        }
+
+        .info-card li {
+          margin-bottom: 0.5rem;
+        }
+
+        .empty-state {
+          text-align: center;
+          padding: 3rem;
+          color: #6b7280;
+          font-size: 1.1rem;
+        }
+
+        @media (max-width: 768px) {
+          .upload-methods {
+            grid-template-columns: 1fr;
+          }
+
+          .images-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </div>
   );
-}
+};
 
 export default MediaManagement;

@@ -254,14 +254,16 @@ body {
   background: var(--border-light);
 }
 
-.admin-menu-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-  color: white !important;
+.user-menu button.admin-menu-item {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
   font-weight: 600;
+  border-radius: 4px;
+  margin: 0.25rem;
 }
 
-.admin-menu-btn:hover {
-  background: linear-gradient(135deg, #5568d3 0%, #63408a 100%) !important;
+.user-menu button.admin-menu-item:hover {
+  background: linear-gradient(135deg, #5568d3 0%, #63408b 100%);
 }
 
 /* ========================================

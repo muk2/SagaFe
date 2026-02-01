@@ -206,12 +206,12 @@ export const bannerApi = {
 };
 
 /**
- * Admin Users API methods
+ * Users API methods (for admin)
  */
-export const adminUsersApi = {
+export const usersApi = {
   /**
    * Get all users (admin only)
-   * @returns {Promise<Array>}
+   * @returns {Promise<Array<User>>}
    */
   getAll: async () => {
     return api.get('/api/admin/users');
@@ -220,7 +220,7 @@ export const adminUsersApi = {
   /**
    * Update user role (admin only)
    * @param {number} userId
-   * @param {string} role - 'admin' or 'user'
+   * @param {string} role
    */
   updateRole: async (userId, role) => {
     return api.put(`/api/admin/users/${userId}/role`, { role });
@@ -235,7 +235,7 @@ export const adminUsersApi = {
   },
 
   /**
-   * Get registrations for a specific event (admin only)
+   * Get event registrations for a specific event (admin only)
    * @param {number} eventId
    */
   getEventRegistrations: async (eventId) => {
@@ -271,34 +271,6 @@ export const adminEventsApi = {
   delete: async (eventId) => {
     return api.delete(`/api/admin/events/${eventId}`);
   },
-
-  /**
-   * Upload event cover image (admin only)
-   * @param {number} eventId
-   * @param {File} imageFile
-   */
-  uploadCoverImage: async (eventId, imageFile) => {
-    const formData = new FormData();
-    formData.append('image', imageFile);
-
-    const token = localStorage.getItem('access_token');
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-    const response = await fetch(`${apiUrl}/api/admin/events/${eventId}/cover-image`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
-      throw new Error(error.detail || 'Upload failed');
-    }
-
-    const text = await response.text();
-    return text ? JSON.parse(text) : null;
-  },
 };
 
 /**
@@ -307,18 +279,18 @@ export const adminEventsApi = {
 export const adminBannerApi = {
   /**
    * Update banner messages (admin only)
-   * @param {Array} messages
+   * @param {Array<{id?: number, message: string}>} messages
    */
   updateMessages: async (messages) => {
     return api.put('/api/admin/banner-messages', { messages });
   },
 
   /**
-   * Update banner settings (admin only)
-   * @param {object} settings - { display_count: number }
+   * Update banner display count (admin only)
+   * @param {number} count
    */
-  updateSettings: async (settings) => {
-    return api.put('/api/admin/banner-settings', settings);
+  updateDisplayCount: async (count) => {
+    return api.put('/api/admin/banner-settings', { display_count: count });
   },
 };
 
@@ -360,27 +332,41 @@ export const adminPhotosApi = {
 };
 
 /**
+ * Admin Content API methods
+ */
+export const adminContentApi = {
+  /**
+   * Get site content/prompts (admin only)
+   */
+  getContent: async () => {
+    return api.get('/api/admin/content');
+  },
+
+  /**
+   * Update site content/prompts (admin only)
+   * @param {object} content
+   */
+  updateContent: async (content) => {
+    return api.put('/api/admin/content', content);
+  },
+};
+
+/**
  * Admin Media API methods
  */
 export const adminMediaApi = {
   /**
    * Upload image (admin only)
-   * @param {File} imageFile
-   * @param {string} category - e.g., 'carousel', 'general'
+   * @param {FormData} formData - Must contain 'file' and 'type' (e.g., 'hero', 'carousel', 'logo')
    */
-  uploadImage: async (imageFile, category = 'general') => {
-    const formData = new FormData();
-    formData.append('image', imageFile);
-    formData.append('category', category);
-
+  uploadImage: async (formData) => {
     const token = localStorage.getItem('access_token');
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-    const response = await fetch(`${apiUrl}/api/admin/media/upload`, {
+    const response = await fetch(`${API_URL}/api/admin/media/upload`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
       },
-      body: formData,
+      body: formData, // Don't set Content-Type for FormData
     });
 
     if (!response.ok) {
@@ -388,8 +374,7 @@ export const adminMediaApi = {
       throw new Error(error.detail || 'Upload failed');
     }
 
-    const text = await response.text();
-    return text ? JSON.parse(text) : null;
+    return response.json();
   },
 
   /**
@@ -401,10 +386,10 @@ export const adminMediaApi = {
 
   /**
    * Update carousel images (admin only)
-   * @param {Array} images - Array of image URLs
+   * @param {Array<string>} imageUrls
    */
-  updateCarouselImages: async (images) => {
-    return api.put('/api/admin/media/carousel', { images });
+  updateCarousel: async (imageUrls) => {
+    return api.put('/api/admin/media/carousel', { images: imageUrls });
   },
 };
 

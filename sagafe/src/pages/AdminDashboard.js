@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isAdmin } from '../lib/auth';
+import './AdminDashboard.css';
 import UserManagement from './admin/UserManagement';
 import EventManagement from './admin/EventManagement';
 import EventRegistrations from './admin/EventRegistrations';
 import BannerManagement from './admin/BannerManagement';
 import PhotoManagement from './admin/PhotoManagement';
+import ContentManagement from './admin/ContentManagement';
 import MediaManagement from './admin/MediaManagement';
-import './AdminDashboard.css';
 
-function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('users');
+const AdminDashboard = () => {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('users');
 
-  useEffect(() => {
-    // Check if user is admin, redirect if not
+  // Check admin access
+  React.useEffect(() => {
     if (!isAdmin()) {
       navigate('/dashboard');
     }
@@ -23,13 +24,14 @@ function AdminDashboard() {
   const tabs = [
     { id: 'users', label: 'Users', icon: '👥' },
     { id: 'events', label: 'Events', icon: '📅' },
-    { id: 'registrations', label: 'Registrations', icon: '📋' },
+    { id: 'registrations', label: 'Registrations', icon: '📝' },
     { id: 'banner', label: 'Banner', icon: '📢' },
-    { id: 'photos', label: 'Photos', icon: '📷' },
+    { id: 'photos', label: 'Photos', icon: '📸' },
+    { id: 'content', label: 'Content', icon: '📄' },
     { id: 'media', label: 'Media', icon: '🖼️' },
   ];
 
-  const renderActiveTab = () => {
+  const renderTabContent = () => {
     switch (activeTab) {
       case 'users':
         return <UserManagement />;
@@ -41,6 +43,8 @@ function AdminDashboard() {
         return <BannerManagement />;
       case 'photos':
         return <PhotoManagement />;
+      case 'content':
+        return <ContentManagement />;
       case 'media':
         return <MediaManagement />;
       default:
@@ -52,13 +56,13 @@ function AdminDashboard() {
     <div className="admin-dashboard">
       <div className="admin-header">
         <h1>Admin Dashboard</h1>
-        <button className="btn-back" onClick={() => navigate('/dashboard')}>
-          ← Back to User Dashboard
+        <button onClick={() => navigate('/dashboard')} className="btn-secondary">
+          Back to User Dashboard
         </button>
       </div>
 
       <div className="admin-tabs">
-        {tabs.map(tab => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             className={`admin-tab ${activeTab === tab.id ? 'active' : ''}`}
@@ -71,10 +75,10 @@ function AdminDashboard() {
       </div>
 
       <div className="admin-content">
-        {renderActiveTab()}
+        {renderTabContent()}
       </div>
     </div>
   );
-}
+};
 
 export default AdminDashboard;

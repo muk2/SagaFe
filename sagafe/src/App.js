@@ -154,7 +154,7 @@ function Header() {
                 </div>
                 <button onClick={() => { navigate("/dashboard"); setMenuOpen(false); }}>Dashboard</button>
                 {isAdmin() && (
-                  <button className="admin-menu-btn" onClick={() => { navigate("/admin"); setMenuOpen(false); }}>
+                  <button onClick={() => { navigate("/admin"); setMenuOpen(false); }} className="admin-menu-item">
                     Admin Dashboard
                   </button>
                 )}
