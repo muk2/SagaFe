@@ -206,6 +206,194 @@ export const bannerApi = {
 };
 
 /**
+ * Users API methods (for admin)
+ */
+export const usersApi = {
+  /**
+   * Get all users (admin only)
+   * @returns {Promise<Array<User>>}
+   */
+  getAll: async () => {
+    return api.get('/api/admin/users');
+  },
+
+  /**
+   * Update user role (admin only)
+   * @param {number} userId
+   * @param {string} role
+   */
+  updateRole: async (userId, role) => {
+    return api.put(`/api/admin/users/${userId}/role`, { role });
+  },
+
+  /**
+   * Delete user (admin only)
+   * @param {number} userId
+   */
+  delete: async (userId) => {
+    return api.delete(`/api/admin/users/${userId}`);
+  },
+
+  /**
+   * Get event registrations for a specific event (admin only)
+   * @param {number} eventId
+   */
+  getEventRegistrations: async (eventId) => {
+    return api.get(`/api/admin/events/${eventId}/registrations`);
+  },
+};
+
+/**
+ * Admin Events API methods
+ */
+export const adminEventsApi = {
+  /**
+   * Create new event (admin only)
+   * @param {object} eventData
+   */
+  create: async (eventData) => {
+    return api.post('/api/admin/events', eventData);
+  },
+
+  /**
+   * Update event (admin only)
+   * @param {number} eventId
+   * @param {object} eventData
+   */
+  update: async (eventId, eventData) => {
+    return api.put(`/api/admin/events/${eventId}`, eventData);
+  },
+
+  /**
+   * Delete event (admin only)
+   * @param {number} eventId
+   */
+  delete: async (eventId) => {
+    return api.delete(`/api/admin/events/${eventId}`);
+  },
+};
+
+/**
+ * Admin Banner API methods
+ */
+export const adminBannerApi = {
+  /**
+   * Update banner messages (admin only)
+   * @param {Array<{id?: number, message: string}>} messages
+   */
+  updateMessages: async (messages) => {
+    return api.put('/api/admin/banner-messages', { messages });
+  },
+
+  /**
+   * Update banner display count (admin only)
+   * @param {number} count
+   */
+  updateDisplayCount: async (count) => {
+    return api.put('/api/admin/banner-settings', { display_count: count });
+  },
+};
+
+/**
+ * Admin Photos API methods
+ */
+export const adminPhotosApi = {
+  /**
+   * Get all photo albums (admin only)
+   */
+  getAll: async () => {
+    return api.get('/api/admin/photo-albums');
+  },
+
+  /**
+   * Create photo album (admin only)
+   * @param {object} albumData
+   */
+  create: async (albumData) => {
+    return api.post('/api/admin/photo-albums', albumData);
+  },
+
+  /**
+   * Update photo album (admin only)
+   * @param {number} albumId
+   * @param {object} albumData
+   */
+  update: async (albumId, albumData) => {
+    return api.put(`/api/admin/photo-albums/${albumId}`, albumData);
+  },
+
+  /**
+   * Delete photo album (admin only)
+   * @param {number} albumId
+   */
+  delete: async (albumId) => {
+    return api.delete(`/api/admin/photo-albums/${albumId}`);
+  },
+};
+
+/**
+ * Admin Content API methods
+ */
+export const adminContentApi = {
+  /**
+   * Get site content/prompts (admin only)
+   */
+  getContent: async () => {
+    return api.get('/api/admin/content');
+  },
+
+  /**
+   * Update site content/prompts (admin only)
+   * @param {object} content
+   */
+  updateContent: async (content) => {
+    return api.put('/api/admin/content', content);
+  },
+};
+
+/**
+ * Admin Media API methods
+ */
+export const adminMediaApi = {
+  /**
+   * Upload image (admin only)
+   * @param {FormData} formData - Must contain 'file' and 'type' (e.g., 'hero', 'carousel', 'logo')
+   */
+  uploadImage: async (formData) => {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_URL}/api/admin/media/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData, // Don't set Content-Type for FormData
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
+      throw new Error(error.detail || 'Upload failed');
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Get carousel images (admin only)
+   */
+  getCarouselImages: async () => {
+    return api.get('/api/admin/media/carousel');
+  },
+
+  /**
+   * Update carousel images (admin only)
+   * @param {Array<string>} imageUrls
+   */
+  updateCarousel: async (imageUrls) => {
+    return api.put('/api/admin/media/carousel', { images: imageUrls });
+  },
+};
+
+/**
  * Health check
  */
 export const healthCheck = async () => {
