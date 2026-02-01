@@ -206,6 +206,209 @@ export const bannerApi = {
 };
 
 /**
+ * Admin Users API methods
+ */
+export const adminUsersApi = {
+  /**
+   * Get all users (admin only)
+   * @returns {Promise<Array>}
+   */
+  getAll: async () => {
+    return api.get('/api/admin/users');
+  },
+
+  /**
+   * Update user role (admin only)
+   * @param {number} userId
+   * @param {string} role - 'admin' or 'user'
+   */
+  updateRole: async (userId, role) => {
+    return api.put(`/api/admin/users/${userId}/role`, { role });
+  },
+
+  /**
+   * Delete user (admin only)
+   * @param {number} userId
+   */
+  delete: async (userId) => {
+    return api.delete(`/api/admin/users/${userId}`);
+  },
+
+  /**
+   * Get registrations for a specific event (admin only)
+   * @param {number} eventId
+   */
+  getEventRegistrations: async (eventId) => {
+    return api.get(`/api/admin/events/${eventId}/registrations`);
+  },
+};
+
+/**
+ * Admin Events API methods
+ */
+export const adminEventsApi = {
+  /**
+   * Create new event (admin only)
+   * @param {object} eventData
+   */
+  create: async (eventData) => {
+    return api.post('/api/admin/events', eventData);
+  },
+
+  /**
+   * Update event (admin only)
+   * @param {number} eventId
+   * @param {object} eventData
+   */
+  update: async (eventId, eventData) => {
+    return api.put(`/api/admin/events/${eventId}`, eventData);
+  },
+
+  /**
+   * Delete event (admin only)
+   * @param {number} eventId
+   */
+  delete: async (eventId) => {
+    return api.delete(`/api/admin/events/${eventId}`);
+  },
+
+  /**
+   * Upload event cover image (admin only)
+   * @param {number} eventId
+   * @param {File} imageFile
+   */
+  uploadCoverImage: async (eventId, imageFile) => {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+
+    const token = localStorage.getItem('access_token');
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+    const response = await fetch(`${apiUrl}/api/admin/events/${eventId}/cover-image`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
+      throw new Error(error.detail || 'Upload failed');
+    }
+
+    const text = await response.text();
+    return text ? JSON.parse(text) : null;
+  },
+};
+
+/**
+ * Admin Banner API methods
+ */
+export const adminBannerApi = {
+  /**
+   * Update banner messages (admin only)
+   * @param {Array} messages
+   */
+  updateMessages: async (messages) => {
+    return api.put('/api/admin/banner-messages', { messages });
+  },
+
+  /**
+   * Update banner settings (admin only)
+   * @param {object} settings - { display_count: number }
+   */
+  updateSettings: async (settings) => {
+    return api.put('/api/admin/banner-settings', settings);
+  },
+};
+
+/**
+ * Admin Photos API methods
+ */
+export const adminPhotosApi = {
+  /**
+   * Get all photo albums (admin only)
+   */
+  getAll: async () => {
+    return api.get('/api/admin/photo-albums');
+  },
+
+  /**
+   * Create photo album (admin only)
+   * @param {object} albumData
+   */
+  create: async (albumData) => {
+    return api.post('/api/admin/photo-albums', albumData);
+  },
+
+  /**
+   * Update photo album (admin only)
+   * @param {number} albumId
+   * @param {object} albumData
+   */
+  update: async (albumId, albumData) => {
+    return api.put(`/api/admin/photo-albums/${albumId}`, albumData);
+  },
+
+  /**
+   * Delete photo album (admin only)
+   * @param {number} albumId
+   */
+  delete: async (albumId) => {
+    return api.delete(`/api/admin/photo-albums/${albumId}`);
+  },
+};
+
+/**
+ * Admin Media API methods
+ */
+export const adminMediaApi = {
+  /**
+   * Upload image (admin only)
+   * @param {File} imageFile
+   * @param {string} category - e.g., 'carousel', 'general'
+   */
+  uploadImage: async (imageFile, category = 'general') => {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    formData.append('category', category);
+
+    const token = localStorage.getItem('access_token');
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+    const response = await fetch(`${apiUrl}/api/admin/media/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
+      throw new Error(error.detail || 'Upload failed');
+    }
+
+    const text = await response.text();
+    return text ? JSON.parse(text) : null;
+  },
+
+  /**
+   * Get carousel images (admin only)
+   */
+  getCarouselImages: async () => {
+    return api.get('/api/admin/media/carousel');
+  },
+
+  /**
+   * Update carousel images (admin only)
+   * @param {Array} images - Array of image URLs
+   */
+  updateCarouselImages: async (images) => {
+    return api.put('/api/admin/media/carousel', { images });
+  },
+};
+
+/**
  * Health check
  */
 export const healthCheck = async () => {

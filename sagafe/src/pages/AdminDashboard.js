@@ -1,0 +1,80 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { isAdmin } from '../lib/auth';
+import UserManagement from './admin/UserManagement';
+import EventManagement from './admin/EventManagement';
+import EventRegistrations from './admin/EventRegistrations';
+import BannerManagement from './admin/BannerManagement';
+import PhotoManagement from './admin/PhotoManagement';
+import MediaManagement from './admin/MediaManagement';
+import './AdminDashboard.css';
+
+function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState('users');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check if user is admin, redirect if not
+    if (!isAdmin()) {
+      navigate('/dashboard');
+    }
+  }, [navigate]);
+
+  const tabs = [
+    { id: 'users', label: 'Users', icon: '👥' },
+    { id: 'events', label: 'Events', icon: '📅' },
+    { id: 'registrations', label: 'Registrations', icon: '📋' },
+    { id: 'banner', label: 'Banner', icon: '📢' },
+    { id: 'photos', label: 'Photos', icon: '📷' },
+    { id: 'media', label: 'Media', icon: '🖼️' },
+  ];
+
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case 'users':
+        return <UserManagement />;
+      case 'events':
+        return <EventManagement />;
+      case 'registrations':
+        return <EventRegistrations />;
+      case 'banner':
+        return <BannerManagement />;
+      case 'photos':
+        return <PhotoManagement />;
+      case 'media':
+        return <MediaManagement />;
+      default:
+        return <UserManagement />;
+    }
+  };
+
+  return (
+    <div className="admin-dashboard">
+      <div className="admin-header">
+        <h1>Admin Dashboard</h1>
+        <button className="btn-back" onClick={() => navigate('/dashboard')}>
+          ← Back to User Dashboard
+        </button>
+      </div>
+
+      <div className="admin-tabs">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            className={`admin-tab ${activeTab === tab.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            <span className="tab-icon">{tab.icon}</span>
+            <span className="tab-label">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="admin-content">
+        {renderActiveTab()}
+      </div>
+    </div>
+  );
+}
+
+export default AdminDashboard;
