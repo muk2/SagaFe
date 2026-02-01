@@ -10,11 +10,13 @@ import EventsPage from "./pages/EventsPage.js";
 import PhotosPage from "./pages/PhotosPage.js";
 import ContactPage from "./pages/ContactPage.js";
 import DashboardPage from "./pages/DashboardPage.js";
+import AdminDashboard from "./pages/AdminDashboard.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser } from "@fortawesome/free-solid-svg-icons";
 import Banner from "./Banner";
 import { useAuth } from "./context/AuthContext";
 import { eventsApi, api, authApi } from "./lib/api";
+import { isAdmin } from "./lib/auth";
 
 
 
@@ -38,6 +40,7 @@ export function App() {
         <Route path="/photos" element={<PhotosPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
         <Route
           path="/login"
           element={<LoginPage />}
@@ -150,6 +153,11 @@ function Header() {
                   <small>{user.role}</small>
                 </div>
                 <button onClick={() => { navigate("/dashboard"); setMenuOpen(false); }}>Dashboard</button>
+                {isAdmin() && (
+                  <button onClick={() => { navigate("/admin"); setMenuOpen(false); }} className="admin-menu-item">
+                    Admin Dashboard
+                  </button>
+                )}
                 <button onClick={handleLogout}>Logout</button>
               </div>
             )}
