@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { eventsApi, usersApi } from '../../lib/api';
+import { formatTime } from '../../lib/dateUtils';
 
 const EventRegistrations = () => {
   const [events, setEvents] = useState([]);
@@ -8,6 +9,19 @@ const EventRegistrations = () => {
   const [loading, setLoading] = useState(true);
   const [loadingRegistrations, setLoadingRegistrations] = useState(false);
   const [error, setError] = useState(null);
+
+  const formatToEastern = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
 
   useEffect(() => {
     fetchEvents();
@@ -67,7 +81,7 @@ const EventRegistrations = () => {
       reg.email,
       reg.phone || reg.phone_number || 'N/A',
       reg.handicap || reg.golf_handicap || 'N/A',
-      new Date(reg.created_at || reg.registered_at).toLocaleString(),
+      formatToEastern(new Date(reg.created_at || reg.registered_at).toLocaleString()),
     ]);
 
     const csvContent = [
@@ -110,7 +124,7 @@ const EventRegistrations = () => {
               >
                 {events.map(event => (
                   <option key={event.id} value={event.id}>
-                    {event.golf_course} - {new Date(event.date).toLocaleDateString()} at {event.start_time}
+                    {event.golf_course} - {new Date(event.date).toLocaleDateString()} at {formatTime(event.start_time)}
                   </option>
                 ))}
               </select>
@@ -137,7 +151,7 @@ const EventRegistrations = () => {
                 </div>
                 <div className="info-item">
                   <span className="label">Time:</span>
-                  <span className="value">{selectedEvent.start_time}</span>
+                  <span className="value">{formatTime(selectedEvent.start_time)}</span>
                 </div>
                 <div className="info-item">
                   <span className="label">Capacity:</span>
@@ -180,18 +194,24 @@ const EventRegistrations = () => {
                 </tr>
               </thead>
               <tbody>
-                {registrations.map((reg, index) => (
+                
+                {registrations.map((reg, index) => {
+                   console.log('Registration:', reg);  // ✅ Add this
+                   console.log('user_name:', reg.user_name);  // ✅ Add this
+
+                   return (
                   <tr key={reg.id || index}>
                     <td>{index + 1}</td>
                     <td>
-                      <strong>{reg.name || `${reg.first_name} ${reg.last_name}`}</strong>
+                      <strong>{reg.user_name || `${reg.first_name} ${reg.last_name}`}</strong>
                     </td>
                     <td>{reg.email}</td>
                     <td>{reg.phone || reg.phone_number || 'N/A'}</td>
                     <td>{reg.handicap || reg.golf_handicap || 'N/A'}</td>
-                    <td>{new Date(reg.created_at || reg.registered_at).toLocaleString()}</td>
+                    <td>{formatToEastern(new Date(reg.created_at || reg.registered_at).toLocaleString())}</td>
                   </tr>
-                ))}
+                   );
+                  })}
               </tbody>
             </table>
           )}

@@ -7,7 +7,6 @@ import EventManagement from './admin/EventManagement';
 import EventRegistrations from './admin/EventRegistrations';
 import BannerManagement from './admin/BannerManagement';
 import PhotoManagement from './admin/PhotoManagement';
-import ContentManagement from './admin/ContentManagement';
 import MediaManagement from './admin/MediaManagement';
 
 const AdminDashboard = () => {
@@ -27,7 +26,6 @@ const AdminDashboard = () => {
     { id: 'registrations', label: 'Registrations', icon: '📝' },
     { id: 'banner', label: 'Banner', icon: '📢' },
     { id: 'photos', label: 'Photos', icon: '📸' },
-    { id: 'content', label: 'Content', icon: '📄' },
     { id: 'media', label: 'Media', icon: '🖼️' },
   ];
 
@@ -43,8 +41,6 @@ const AdminDashboard = () => {
         return <BannerManagement />;
       case 'photos':
         return <PhotoManagement />;
-      case 'content':
-        return <ContentManagement />;
       case 'media':
         return <MediaManagement />;
       default:

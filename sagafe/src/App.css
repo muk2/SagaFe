@@ -399,7 +399,7 @@ body {
 
 .stat-label {
   font-size: 0.8rem;
-  color: var(--text-secondary);
+  color: var(--surface);
   font-weight: 500;
 }
 

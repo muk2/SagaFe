@@ -17,8 +17,8 @@ import Banner from "./Banner";
 import { useAuth } from "./context/AuthContext";
 import { eventsApi, api, authApi } from "./lib/api";
 import { isAdmin } from "./lib/auth";
-
-
+import { getEventImage } from './lib/eventImages';
+import { formatTime } from './lib/dateUtils';
 
 export function App() {
   return (
@@ -369,8 +369,7 @@ const handleRegistrationSubmit = async (e) => {
                 <div
                   className="card-image"
                   style={{
-                    backgroundImage:
-                      "url(https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=400)",
+                    backgroundImage: `url(${getEventImage(item)})`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                   }}
@@ -441,7 +440,7 @@ const handleRegistrationSubmit = async (e) => {
         </div>
         <div className="info-row">
           <span className="info-label">Time:</span>
-          <span>{selectedEvent.start_time}</span>
+          <span>{formatTime(selectedEvent.start_time)}</span>
         </div>
         <div className="info-row">
           <span className="info-label">Location:</span>

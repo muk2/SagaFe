@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { eventsApi, adminEventsApi } from '../../lib/api';
+import { formatTime, toDateInputFormat} from '../../lib/dateUtils';
 
 const EventManagement = () => {
   const [events, setEvents] = useState([]);
@@ -8,16 +9,18 @@ const EventManagement = () => {
   const [success, setSuccess] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [sortOrder, setSortOrder] = useState('asc');
   const [formData, setFormData] = useState({
     golf_course: '',
     township: '',
     state: '',
     date: '',
     start_time: '',
-    price: '',
+    guest_price: '',
     member_price: '',
     spots: '',
-    description: '',
+    image_url: '',
   });
 
   useEffect(() => {
@@ -29,7 +32,14 @@ const EventManagement = () => {
       setLoading(true);
       setError(null);
       const data = await eventsApi.getAll();
-      setEvents(data);
+
+      // Load images from localStorage
+      const eventsWithImages = data.map(event => ({
+        ...event,
+        image_url: localStorage.getItem(`event_image_${event.id}`) || event.image_url || ''
+      }));
+      
+      setEvents(eventsWithImages);
     } catch (err) {
       setError(err.message || 'Failed to load events');
     } finally {
@@ -42,40 +52,89 @@ const EventManagement = () => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const sortEventsByDate = (eventsArray, order = 'desc') => {
+    return [...eventsArray].sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      
+      if (order === 'desc') {
+        return dateB - dateA; // Newest first
+      } else {
+        return dateA - dateB; // Oldest first
+      }
+    });
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please select a valid image file');
+      return;
+    }
+
+    // Validate file size (max 2MB for localStorage)
+    if (file.size > 2 * 1024 * 1024) {
+      setError('Image size must be less than 2MB');
+      return;
+    }
+
+    // Read and convert to base64
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64Image = event.target.result;
+      setImagePreview(base64Image);
+      setFormData({ ...formData, image_url: base64Image });
+    };
+    reader.onerror = () => {
+      setError('Failed to read image file');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setImagePreview(null);
+    setFormData({ ...formData, image_url: '' });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setError(null);
       setSuccess(null);
 
+      const dataToSend = {
+        ...formData,
+        date: formData.date, // Already in YYYY-MM-DD from the input
+      };
+
+      let eventId;
       if (editingEvent) {
-        await adminEventsApi.update(editingEvent.id, formData);
+        await adminEventsApi.update(editingEvent.id, dataToSend);
+        eventId = editingEvent.id;
         setSuccess('Event updated successfully');
       } else {
-        await adminEventsApi.create(formData);
+        const response = await adminEventsApi.create(dataToSend);
+        eventId = response.id;
         setSuccess('Event created successfully');
+      }
+
+      // Save image to localStorage if exists
+      if (formData.image_url && formData.image_url.startsWith('data:image')) {
+        localStorage.setItem(`event_image_${eventId}`, formData.image_url);
       }
 
       // Refresh events list
       await fetchEvents();
 
       // Reset form
-      setShowForm(false);
-      setEditingEvent(null);
-      setFormData({
-        golf_course: '',
-        township: '',
-        state: '',
-        date: '',
-        start_time: '',
-        price: '',
-        member_price: '',
-        spots: '',
-        description: '',
-      });
+      handleCancel();
 
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
+      console.error('Full error:', err);
       setError(err.message || 'Failed to save event');
     }
   };
@@ -86,13 +145,20 @@ const EventManagement = () => {
       golf_course: event.golf_course,
       township: event.township,
       state: event.state,
-      date: event.date,
+      date: toDateInputFormat(event.date),
       start_time: event.start_time,
-      price: event.price,
-      member_price: event.member_price || event.price,
+      guest_price: event.guest_price,
+      member_price: event.member_price,
       spots: event.spots,
       description: event.description || '',
+      image_url: event.image_url || '',
     });
+    
+    // Set preview if image exists
+    if (event.image_url) {
+      setImagePreview(event.image_url);
+    }
+    
     setShowForm(true);
   };
 
@@ -106,6 +172,9 @@ const EventManagement = () => {
       setSuccess(null);
       await adminEventsApi.delete(eventId);
 
+      // Remove image from localStorage
+      localStorage.removeItem(`event_image_${eventId}`);
+
       setEvents(events.filter(event => event.id !== eventId));
       setSuccess('Event deleted successfully');
       setTimeout(() => setSuccess(null), 3000);
@@ -117,17 +186,25 @@ const EventManagement = () => {
   const handleCancel = () => {
     setShowForm(false);
     setEditingEvent(null);
+    setImagePreview(null);
     setFormData({
       golf_course: '',
       township: '',
       state: '',
       date: '',
       start_time: '',
-      price: '',
+      guest_price: '',
       member_price: '',
       spots: '',
       description: '',
+      image_url: '',
     });
+  };
+
+  const sortedEvents = sortEventsByDate(events, sortOrder);
+
+  const toggleSortOrder = () => {
+    setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
   };
 
   if (loading) {
@@ -152,6 +229,32 @@ const EventManagement = () => {
         <div className="event-form-card">
           <h3>{editingEvent ? 'Edit Event' : 'Create New Event'}</h3>
           <form onSubmit={handleSubmit} className="admin-form">
+            {/* Image Upload Section */}
+            <div className="image-upload-section">
+              <label className="upload-label">Event Thumbnail Image</label>
+              <p className="help-text">Recommended size: 800x600px. Max 2MB. All event thumbnails will be displayed at the same size.</p>
+              
+              {imagePreview ? (
+                <div className="image-preview-container">
+                  <img src={imagePreview} alt="Event preview" className="event-image-preview" />
+                  <button type="button" onClick={handleRemoveImage} className="btn-remove-image">
+                    Remove Image
+                  </button>
+                </div>
+              ) : (
+                <label className="file-upload-button">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    style={{ display: 'none' }}
+                  />
+                  <span className="upload-icon">📷</span>
+                  <span>Choose Image File</span>
+                </label>
+              )}
+            </div>
+
             <div className="form-row">
               <div className="form-group">
                 <label>Golf Course *</label>
@@ -193,7 +296,7 @@ const EventManagement = () => {
                 <input
                   type="date"
                   name="date"
-                  value={formData.date}
+                  value={toDateInputFormat(formData.date)}
                   onChange={handleInputChange}
                   required
                 />
@@ -230,7 +333,7 @@ const EventManagement = () => {
                 <input
                   type="number"
                   name="price"
-                  value={formData.price}
+                  value={parseFloat(formData.guest_price).toFixed(2) || 0}
                   onChange={handleInputChange}
                   min="0"
                   step="0.01"
@@ -242,7 +345,7 @@ const EventManagement = () => {
                 <input
                   type="number"
                   name="member_price"
-                  value={formData.member_price}
+                  value={parseFloat(formData.member_price).toFixed(2) || 0}
                   onChange={handleInputChange}
                   min="0"
                   step="0.01"
@@ -251,16 +354,6 @@ const EventManagement = () => {
               </div>
             </div>
 
-            <div className="form-group">
-              <label>Description</label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                rows="3"
-                placeholder="Optional event description"
-              />
-            </div>
 
             <div className="form-actions">
               <button type="submit" className="btn-primary">
@@ -277,9 +370,15 @@ const EventManagement = () => {
       <table className="admin-table">
         <thead>
           <tr>
+            <th>Image</th>
             <th>Course</th>
             <th>Location</th>
-            <th>Date</th>
+            <th 
+              onClick={toggleSortOrder} 
+              style={{ cursor: 'pointer', userSelect: 'none' }}
+            >
+              Date {sortOrder === 'desc' ? '↓' : '↑'} 
+            </th>
             <th>Time</th>
             <th>Price (Guest/Member)</th>
             <th>Capacity</th>
@@ -288,13 +387,26 @@ const EventManagement = () => {
           </tr>
         </thead>
         <tbody>
-          {events.map((event) => (
+          {sortedEvents.map((event) => (
             <tr key={event.id}>
+              <td>
+                <div className="table-image-container">
+                  {event.image_url ? (
+                    <img 
+                      src={event.image_url} 
+                      alt={event.golf_course}
+                      className="table-thumbnail"
+                    />
+                  ) : (
+                    <div className="table-thumbnail-placeholder">No Image</div>
+                  )}
+                </div>
+              </td>
               <td><strong>{event.golf_course}</strong></td>
               <td>{event.township}, {event.state}</td>
               <td>{new Date(event.date).toLocaleDateString()}</td>
-              <td>{event.start_time}</td>
-              <td>${event.price} / ${event.member_price || event.price}</td>
+              <td>{formatTime(event.start_time)}</td>
+              <td>${parseFloat(event.guest_price).toFixed(2)} / ${parseFloat(event.member_price).toFixed(2)}</td>
               <td>{event.spots}</td>
               <td>
                 <span className={event.registered >= event.spots ? 'badge-full' : 'badge-available'}>
@@ -346,6 +458,81 @@ const EventManagement = () => {
           color: #1f2937;
         }
 
+        .image-upload-section {
+          background: white;
+          padding: 1.5rem;
+          border-radius: 8px;
+          border: 2px dashed #d1d5db;
+          margin-bottom: 2rem;
+          text-align: center;
+        }
+
+        .upload-label {
+          display: block;
+          font-weight: 600;
+          color: #374151;
+          margin-bottom: 0.5rem;
+        }
+
+        .help-text {
+          color: #6b7280;
+          font-size: 0.85rem;
+          margin-bottom: 1rem;
+        }
+
+        .file-upload-button {
+          display: inline-flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 2rem 3rem;
+          background: #f9fafb;
+          border: 2px dashed #9ca3af;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .file-upload-button:hover {
+          background: #eff6ff;
+          border-color: #3b82f6;
+        }
+
+        .upload-icon {
+          font-size: 3rem;
+        }
+
+        .image-preview-container {
+          position: relative;
+          display: inline-block;
+        }
+
+        .event-image-preview {
+          max-width: 400px;
+          max-height: 300px;
+          width: 100%;
+          height: auto;
+          border-radius: 8px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-remove-image {
+          display: block;
+          margin: 1rem auto 0;
+          padding: 0.5rem 1rem;
+          background: #ef4444;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 500;
+          transition: background 0.2s;
+        }
+
+        .btn-remove-image:hover {
+          background: #dc2626;
+        }
+
         .form-row {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -366,6 +553,36 @@ const EventManagement = () => {
         .btn-sm {
           padding: 0.25rem 0.75rem;
           font-size: 0.85rem;
+        }
+
+        .table-image-container {
+          width: 80px;
+          height: 60px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .table-thumbnail {
+          width: 80px;
+          height: 60px;
+          object-fit: cover;
+          border-radius: 4px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .table-thumbnail-placeholder {
+          width: 80px;
+          height: 60px;
+          background: #f3f4f6;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.7rem;
+          color: #9ca3af;
+          text-align: center;
+          padding: 0.25rem;
         }
 
         .badge-full {
@@ -394,6 +611,10 @@ const EventManagement = () => {
             flex-direction: column;
             gap: 1rem;
             align-items: flex-start;
+          }
+
+          .event-image-preview {
+            max-width: 100%;
           }
         }
       `}</style>

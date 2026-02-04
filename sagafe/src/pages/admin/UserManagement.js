@@ -97,7 +97,6 @@ const UserManagement = () => {
             <th>Phone</th>
             <th>Handicap</th>
             <th>Role</th>
-            <th>Member Since</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -122,7 +121,6 @@ const UserManagement = () => {
                   </span>
                 </label>
               </td>
-              <td>{new Date(user.created_at).toLocaleDateString()}</td>
               <td>
                 <button
                   onClick={() => handleDeleteUser(user.id, `${user.first_name} ${user.last_name}`)}

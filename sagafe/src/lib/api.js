@@ -239,7 +239,8 @@ export const usersApi = {
    * @param {number} eventId
    */
   getEventRegistrations: async (eventId) => {
-    return api.get(`/api/admin/events/${eventId}/registrations`);
+    const response = await api.get(`/api/admin/events/${eventId}/registrations`);
+    return response.registrations;
   },
 };
 
