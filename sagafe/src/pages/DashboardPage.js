@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { formatTime } from '../lib/dateUtils';
 
 export default function DashboardPage() {
   const { user, updateUser} = useAuth();
@@ -268,7 +269,7 @@ export default function DashboardPage() {
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="16" height="16">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          {event.date}
+                          {event.date} at {formatTime(event.start_time)}
                         </p>
                       </div>
                       <div className="event-status">
@@ -296,7 +297,7 @@ export default function DashboardPage() {
                   {pastEvents.map(event => (
                     <div key={event.id} className="event-card-dashboard past">
                       <div className="event-date-badge">
-                        <span className="badge-month">{new Date(event.date).toLocaleDateString('en-US', { month: 'short' })}</span>
+                        <span className="badge-month">{new Date(event.date).toLocaleDateString('en-US', { month: 'short' })} at {event.starttime}</span>
                         <span className="badge-day">{new Date(event.date).getDate()}</span>
                       </div>
                       <div className="event-info">
@@ -307,6 +308,12 @@ export default function DashboardPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                           </svg>
                           {event.township}, {event.state}
+                        </p>
+                        <p className="event-time">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="16" height="16">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          {event.date} at {formatTime(event.start_time)}
                         </p>
                       </div>
                       <div className="event-status">

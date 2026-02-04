@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { eventsApi, api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import { getEventImage } from '../lib/eventImages';
+import { formatTime } from '../lib/dateUtils';
 
 // Fallback mock events data - used when API is unavailable
 // const MOCK_EVENTS = [
@@ -322,7 +324,7 @@ export default function EventsPage() {
           ) : (
             filteredEvents.map(event => (
               <div key={event.id} className="event-card">
-                <div className="event-image" style={{ backgroundImage: `url("https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=800")` }}></div>
+                <div className="event-image" style={{ backgroundImage: `url("${getEventImage(event)}")` }}></div>
                 <div className="event-content">
                   <div className="event-date-badge">
                     <span className="event-month">{MONTHS[new Date(event.date).getMonth()].slice(0, 3)}</span>
@@ -455,7 +457,7 @@ export default function EventsPage() {
               </div>
               <div className="info-row">
                 <span className="info-label">Time:</span>
-                <span>{selectedEvent.start_time}</span>
+                <span>{formatTime(selectedEvent.start_time)}</span>
               </div>
               <div className="info-row">
                 <span className="info-label">Location:</span>
