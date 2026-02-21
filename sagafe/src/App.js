@@ -13,6 +13,8 @@ import DashboardPage from "./pages/DashboardPage.js";
 import GuestRegistrationPage from "./pages/GuestRegistrationPage.js";
 import MembershipPage from "./pages/MembershipPage.js";
 import PaymentHistoryPage from "./pages/PaymentHistoryPage.js";
+import AdminMembershipTiersPage from "./pages/AdminMembershipTiersPage.js";
+import AdminPaymentsPage from "./pages/AdminPaymentsPage.js";
 import EventRegistrationModal from "./components/EventRegistrationModal.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser } from "@fortawesome/free-solid-svg-icons";
@@ -69,6 +71,14 @@ export function App() {
         <Route
           path="/payments"
           element={<ProtectedRoute><PaymentHistoryPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/admin/tiers"
+          element={<ProtectedRoute><AdminMembershipTiersPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/admin/payments"
+          element={<ProtectedRoute><AdminPaymentsPage /></ProtectedRoute>}
         />
       </Routes>
 
@@ -168,6 +178,13 @@ function Header() {
                 <button onClick={() => { navigate("/dashboard"); setMenuOpen(false); }}>Dashboard</button>
                 <button onClick={() => { navigate("/membership"); setMenuOpen(false); }}>Membership</button>
                 <button onClick={() => { navigate("/payments"); setMenuOpen(false); }}>Payment History</button>
+                {user.role === 'admin' && (
+                  <>
+                    <div className="user-menu-divider" />
+                    <button onClick={() => { navigate("/admin/tiers"); setMenuOpen(false); }}>Manage Tiers</button>
+                    <button onClick={() => { navigate("/admin/payments"); setMenuOpen(false); }}>Payment Admin</button>
+                  </>
+                )}
                 <button onClick={handleLogout}>Logout</button>
               </div>
             )}
