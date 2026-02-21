@@ -10,6 +10,7 @@ import EventsPage from "./pages/EventsPage.js";
 import PhotosPage from "./pages/PhotosPage.js";
 import ContactPage from "./pages/ContactPage.js";
 import DashboardPage from "./pages/DashboardPage.js";
+import GuestRegistrationPage from "./pages/GuestRegistrationPage.js";
 import EventRegistrationModal from "./components/EventRegistrationModal.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser } from "@fortawesome/free-solid-svg-icons";
@@ -54,6 +55,10 @@ export function App() {
         <Route
           path="/reset-password"
           element={<ResetPasswordPage />}
+        />
+        <Route
+          path="/guest-registration"
+          element={<GuestRegistrationPage />}
         />
       </Routes>
 

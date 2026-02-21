@@ -41,6 +41,11 @@
       "last 1 safari version"
     ]
   },
+  "jest": {
+    "moduleNameMapper": {
+      "^react-router-dom$": "<rootDir>/node_modules/react-router-dom/dist/index.js"
+    }
+  },
   "devDependencies": {
     "baseline-browser-mapping": "^2.9.17"
   }
