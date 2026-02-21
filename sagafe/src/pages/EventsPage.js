@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { eventsApi, api } from '../lib/api';
+import { eventsApi } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import EventRegistrationModal from '../components/EventRegistrationModal';
 
 // Fallback mock events data - used when API is unavailable
 // const MOCK_EVENTS = [
@@ -95,12 +96,6 @@ export default function EventsPage() {
   const [selectedYear, setSelectedYear] = useState(2026);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar'
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [registrationForm, setRegistrationForm] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    handicap: ''
-  });
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   // eslint-disable-next-line no-unused-vars
   const [apiEvents, setApiEvents] = useState([]);
@@ -171,46 +166,12 @@ export default function EventsPage() {
 
   const openRegistration = (event) => {
     setSelectedEvent(event);
-    // Auto-populate form if user is logged in
-    if (user) {
-      setRegistrationForm({
-        name: `${user.first_name} ${user.last_name}`,
-        email: user.email,
-        phone: user.phone_number || '',
-        handicap: user.handicap || ''
-      });
-    }
     setShowRegistrationModal(true);
   };
 
-  const handleRegistrationSubmit = async (e) => {
-    e.preventDefault();
-
-    try {
-      // Prepare registration data
-      const registrationData = {
-        event_id: selectedEvent.id,
-        name: registrationForm.name,
-        email: registrationForm.email,
-        phone: registrationForm.phone,
-        handicap: registrationForm.handicap
-      };
-
-      // If user is logged in, include user_id
-      if (user) {
-        registrationData.user_id = user.id;
-      }
-
-      // Submit registration to backend
-      await api.post('/api/event-registrations', registrationData);
-
-      alert(`Registration submitted for ${selectedEvent.golf_course}!`);
-      setShowRegistrationModal(false);
-      setRegistrationForm({ name: '', email: '', phone: '', handicap: '' });
-      setSelectedEvent(null);
-    } catch (error) {
-      alert(`Registration failed: ${error.message}.`);
-    }
+  const closeRegistration = () => {
+    setShowRegistrationModal(false);
+    setSelectedEvent(null);
   };
 
   const renderCalendar = () => {
@@ -437,87 +398,11 @@ export default function EventsPage() {
 
       {/* Registration Modal */}
       {showRegistrationModal && selectedEvent && (
-        <div className="modal-overlay" onClick={() => setShowRegistrationModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowRegistrationModal(false)}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="24" height="24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <div className="modal-header">
-              <h2>Register for Event</h2>
-              <p>{selectedEvent.golf_course}</p>
-            </div>
-            <div className="modal-event-info">
-              <div className="info-row">
-                <span className="info-label">Date:</span>
-                <span>{new Date(selectedEvent.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-              </div>
-              <div className="info-row">
-                <span className="info-label">Time:</span>
-                <span>{selectedEvent.start_time}</span>
-              </div>
-              <div className="info-row">
-                <span className="info-label">Location:</span>
-                <span>{selectedEvent.township}, {selectedEvent.state}</span>
-              </div>
-              <div className="info-row">
-                <span className="info-label">Price:</span>
-                <span className="price-highlight">${selectedEvent.price}</span>
-              </div>
-            </div>
-            <form onSubmit={handleRegistrationSubmit} className="registration-form">
-              <div className="form-group">
-                <label htmlFor="name">Full Name</label>
-                <input
-                  type="text"
-                  id="name"
-                  value={registrationForm.name}
-                  onChange={(e) => setRegistrationForm({...registrationForm, name: e.target.value})}
-                  required
-                  placeholder="Enter your full name"
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="email">Email Address</label>
-                <input
-                  type="email"
-                  id="email"
-                  value={registrationForm.email}
-                  onChange={(e) => setRegistrationForm({...registrationForm, email: e.target.value})}
-                  required
-                  placeholder="Enter your email"
-                />
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="phone">Phone Number</label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    value={registrationForm.phone}
-                    onChange={(e) => setRegistrationForm({...registrationForm, phone: e.target.value})}
-                    required
-                    placeholder="(555) 555-5555"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="handicap">Golf Handicap</label>
-                  <input
-                    type="text"
-                    id="handicap"
-                    value={registrationForm.handicap}
-                    onChange={(e) => setRegistrationForm({...registrationForm, handicap: e.target.value})}
-                    placeholder="e.g., 12"
-                  />
-                </div>
-              </div>
-              <button type="submit" className="submit-registration">
-                Complete Registration - ${selectedEvent.price}
-              </button>
-            </form>
-          </div>
-        </div>
+        <EventRegistrationModal
+          event={selectedEvent}
+          onClose={closeRegistration}
+          onSuccess={closeRegistration}
+        />
       )}
     </div>
   );
