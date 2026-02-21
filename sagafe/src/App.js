@@ -11,6 +11,8 @@ import PhotosPage from "./pages/PhotosPage.js";
 import ContactPage from "./pages/ContactPage.js";
 import DashboardPage from "./pages/DashboardPage.js";
 import GuestRegistrationPage from "./pages/GuestRegistrationPage.js";
+import MembershipPage from "./pages/MembershipPage.js";
+import PaymentHistoryPage from "./pages/PaymentHistoryPage.js";
 import EventRegistrationModal from "./components/EventRegistrationModal.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser } from "@fortawesome/free-solid-svg-icons";
@@ -59,6 +61,14 @@ export function App() {
         <Route
           path="/guest-registration"
           element={<GuestRegistrationPage />}
+        />
+        <Route
+          path="/membership"
+          element={<ProtectedRoute><MembershipPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/payments"
+          element={<ProtectedRoute><PaymentHistoryPage /></ProtectedRoute>}
         />
       </Routes>
 
@@ -156,6 +166,8 @@ function Header() {
                   <small>{user.role}</small>
                 </div>
                 <button onClick={() => { navigate("/dashboard"); setMenuOpen(false); }}>Dashboard</button>
+                <button onClick={() => { navigate("/membership"); setMenuOpen(false); }}>Membership</button>
+                <button onClick={() => { navigate("/payments"); setMenuOpen(false); }}>Payment History</button>
                 <button onClick={handleLogout}>Logout</button>
               </div>
             )}
