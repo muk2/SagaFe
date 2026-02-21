@@ -1,0 +1,215 @@
+/* ========================================
+   PAYMENT FORM - North iFrame Integration
+   ======================================== */
+
+.payment-form {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  background: var(--border-light);
+  margin-top: 1rem;
+}
+
+.payment-form-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.payment-form-header svg {
+  color: var(--primary);
+}
+
+/* Error message */
+.payment-error-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: var(--radius);
+  color: #991b1b;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.payment-error-message svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.payment-form-error {
+  padding: 2rem;
+  text-align: center;
+  color: #991b1b;
+  background: #fee2e2;
+  border-radius: var(--radius-lg);
+  border: 1px solid #fca5a5;
+}
+
+/* Field groups */
+.payment-field-group {
+  margin-bottom: 1rem;
+}
+
+.payment-field-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 0.375rem;
+}
+
+.payment-field-container {
+  min-height: 44px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.payment-field-container.invalid {
+  border: 1px solid #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  border-radius: var(--radius);
+}
+
+.payment-field-container iframe {
+  width: 100% !important;
+  min-height: 44px !important;
+}
+
+.payment-field-error {
+  display: block;
+  font-size: 0.75rem;
+  color: #ef4444;
+  margin-top: 0.25rem;
+}
+
+/* Two-column row for expiry + CVV */
+.payment-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Submit button */
+.payment-submit-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-top: 0.5rem;
+}
+
+.payment-submit-btn:hover:not(:disabled) {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.payment-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Button spinner */
+.payment-btn-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: payment-spin 0.6s linear infinite;
+}
+
+/* Loading state */
+.payment-form-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2.5rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.payment-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: payment-spin 0.7s linear infinite;
+}
+
+@keyframes payment-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Footer with card brands */
+.payment-form-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.payment-form-footer > span {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.card-brands {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.card-brand {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-secondary);
+  background: var(--surface);
+  letter-spacing: 0.02em;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .payment-field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-form {
+    padding: 1rem;
+  }
+
+  .payment-form-footer {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

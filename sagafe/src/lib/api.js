@@ -206,6 +206,161 @@ export const bannerApi = {
 };
 
 /**
+ * Payments API methods
+ */
+export const paymentsApi = {
+  /**
+   * Get payment history for the authenticated user
+   * @param {object} params - { payment_type, status, limit, offset }
+   * @returns {Promise<{payments: Array, total: number}>}
+   */
+  getHistory: async (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.payment_type) query.set('payment_type', params.payment_type);
+    if (params.status) query.set('status', params.status);
+    if (params.limit) query.set('limit', params.limit);
+    if (params.offset) query.set('offset', params.offset);
+    const qs = query.toString();
+    return api.get(`/api/payments/history${qs ? `?${qs}` : ''}`);
+  },
+};
+
+/**
+ * Registrations API methods (with payment)
+ */
+export const registrationsApi = {
+  /**
+   * Register an authenticated member for an event (with payment)
+   * @param {object} data - { event_id, handicap, price_tier_id, payment_token, idempotency_key }
+   */
+  register: async (data) => {
+    return api.post('/api/registrations', data);
+  },
+
+  /**
+   * Retry a failed payment for an existing registration
+   * @param {number} registrationId
+   * @param {object} data - { payment_token, idempotency_key }
+   */
+  retryPayment: async (registrationId, data) => {
+    return api.post(`/api/registrations/${registrationId}/retry-payment`, data);
+  },
+
+  /**
+   * Register a guest for an event (no auth required)
+   * @param {object} data - { event_id, first_name, last_name, email, phone, handicap, referral_source, payment_token, idempotency_key }
+   */
+  registerGuest: async (data) => {
+    return api.post('/api/registrations/guest', data);
+  },
+};
+
+/**
+ * Memberships API methods
+ */
+export const membershipsApi = {
+  /**
+   * Get available membership tiers (active only)
+   */
+  getTiers: async () => {
+    return api.get('/api/memberships/tiers');
+  },
+
+  /**
+   * Get current user's membership status
+   */
+  getStatus: async () => {
+    return api.get('/api/memberships/status');
+  },
+
+  /**
+   * Pay for a membership
+   * @param {object} data - { tier_id, payment_token, idempotency_key }
+   */
+  pay: async (data) => {
+    return api.post('/api/memberships/pay', data);
+  },
+};
+
+/**
+ * Admin API methods
+ */
+export const adminApi = {
+  /**
+   * Get guest event rate
+   */
+  getGuestRate: async () => {
+    return api.get('/api/admin/settings/guest-event-rate');
+  },
+
+  /**
+   * Update guest event rate
+   * @param {number} rate
+   */
+  updateGuestRate: async (rate) => {
+    return api.put('/api/admin/settings/guest-event-rate', { rate });
+  },
+
+  /**
+   * Process a refund
+   * @param {number} paymentId
+   */
+  refundPayment: async (paymentId) => {
+    return api.post(`/api/payments/${paymentId}/refund`);
+  },
+
+  /**
+   * Mark an event registration as paid
+   * @param {number} registrationId
+   * @param {object} data - { amount, note }
+   */
+  markRegistrationPaid: async (registrationId, data) => {
+    return api.post(`/api/registrations/${registrationId}/mark-paid`, data);
+  },
+
+  /**
+   * Mark a membership as paid
+   * @param {number} userId
+   * @param {object} data - { tier_id, note }
+   */
+  markMembershipPaid: async (userId, data) => {
+    return api.post(`/api/memberships/${userId}/mark-paid`, data);
+  },
+
+  /**
+   * Get all membership tiers (including inactive)
+   */
+  getMembershipTiers: async () => {
+    return api.get('/api/admin/membership-tiers');
+  },
+
+  /**
+   * Create a membership tier
+   * @param {object} data - { name, amount, description, sort_order }
+   */
+  createMembershipTier: async (data) => {
+    return api.post('/api/admin/membership-tiers', data);
+  },
+
+  /**
+   * Update a membership tier
+   * @param {number} tierId
+   * @param {object} data - { name, amount, description, sort_order, is_active }
+   */
+  updateMembershipTier: async (tierId, data) => {
+    return api.put(`/api/admin/membership-tiers/${tierId}`, data);
+  },
+
+  /**
+   * Deactivate a membership tier
+   * @param {number} tierId
+   */
+  deactivateMembershipTier: async (tierId) => {
+    return api.delete(`/api/admin/membership-tiers/${tierId}`);
+  },
+};
+
+/**
  * Health check
  */
 export const healthCheck = async () => {
