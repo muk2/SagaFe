@@ -31,15 +31,19 @@ async function apiRequest(endpoint, options = {}) {
   if (response.status === 401) {
     const error = await response.json().catch(() => ({ detail: 'Unauthorized' }));
     
-    if (token && headers['Authorization']) {
+    // ✅ Check if this is a login attempt
+    const isLoginAttempt = endpoint === '/auth/login';
+
+    if (token && headers['Authorization'] && !isLoginAttempt) {
+      // This was an authenticated request that failed - session expired
       localStorage.removeItem('access_token');
       localStorage.removeItem('user');
       window.dispatchEvent(new CustomEvent('auth-expired'));
       throw new Error('Session expired. Please log in again.');
     }
     
-    // For login failures, throw the actual error message
-    throw new Error(error.detail || 'Unauthorized');
+    // ✅ For login failures, throw the actual error message
+    throw new Error(error.detail || 'Invalid email or password');
   }
 
   if (!response.ok) {
@@ -184,7 +188,7 @@ export const authApi = {
 export const eventsApi = {
   /**
    * Get all events
-   * @returns {Promise<Array<{id: number, township: string, golf_course: string, date: date}>>}
+   * @returns {Promise<Array<{id: number, township: string, golf_course: string, date: date, capacity: number}>>}
    */
   getAll: async () => {
     return api.get('/api/events/');
@@ -234,6 +238,10 @@ export const usersApi = {
     return api.delete(`/api/admin/users/${userId}`);
   },
 
+  deleteEventRegistration: async (registrationId) => {
+    return api.delete(`/api/admin/event-registrations/${registrationId}`);
+  },
+
   /**
    * Get event registrations for a specific event (admin only)
    * @param {number} eventId
@@ -272,6 +280,10 @@ export const adminEventsApi = {
   delete: async (eventId) => {
     return api.delete(`/api/admin/events/${eventId}`);
   },
+
+  getAll: async (orderBy = 'date', order = 'asc') => {
+    return api.get(`/api/admin/events?order_by=${orderBy}&order=${order}`);
+  },
 };
 
 /**
@@ -283,7 +295,7 @@ export const adminBannerApi = {
    * @param {Array<{id?: number, message: string}>} messages
    */
   updateMessages: async (messages) => {
-    return api.put('/api/admin/banner-messages', { messages });
+    return api.put('/api/banner_messages/messages', { messages });
   },
 
   /**
@@ -291,7 +303,7 @@ export const adminBannerApi = {
    * @param {number} count
    */
   updateDisplayCount: async (count) => {
-    return api.put('/api/admin/banner-settings', { display_count: count });
+    return api.put(`/api/banner_messages/display-count?count=${count}`);
   },
 };
 
@@ -333,6 +345,19 @@ export const adminPhotosApi = {
 };
 
 /**
+ * Photos API methods (public)
+ */
+export const photosApi = {
+  /**
+   * Get all photo albums
+   * @returns {Promise<Array<PhotoAlbum>>}
+   */
+  getAll: async () => {
+    return api.get('/api/photo-albums');
+  },
+};
+
+/**
  * Admin Content API methods
  */
 export const adminContentApi = {
@@ -358,7 +383,7 @@ export const adminContentApi = {
 export const adminMediaApi = {
   /**
    * Upload image (admin only)
-   * @param {FormData} formData - Must contain 'file' and 'type' (e.g., 'hero', 'carousel', 'logo')
+   * @param {FormData} formData - Must contain 'file'
    */
   uploadImage: async (formData) => {
     const token = localStorage.getItem('access_token');
@@ -390,7 +415,131 @@ export const adminMediaApi = {
    * @param {Array<string>} imageUrls
    */
   updateCarousel: async (imageUrls) => {
-    return api.put('/api/admin/media/carousel', { images: imageUrls });
+    const cleanUrls = imageUrls.map(url => 
+      typeof url === 'string' ? url : url.url || url.image_url || String(url)
+    );
+    return api.put('/api/admin/media/carousel', { images: cleanUrls });
+  },
+};
+
+/**
+ * Carousel API (public)
+ */
+export const carouselApi = {
+  getImages: async () => {
+    const response = await api.get('/api/carousel');
+    return response.images || [];
+  },
+};
+
+/**
+ * Partners API (public)
+ */
+export const partnersApi = {
+  getAll: async () => {
+    return api.get('/api/partners');
+  },
+};
+
+/**
+ * Admin Partners API
+ */
+export const adminPartnersApi = {
+  getAll: async () => {
+    return api.get('/api/admin/partners');
+  },
+  
+  create: async (partnerData) => {
+    return api.post('/api/admin/partners', partnerData);
+  },
+  
+  update: async (partnerId, partnerData) => {
+    return api.put(`/api/admin/partners/${partnerId}`, partnerData);
+  },
+  
+  delete: async (partnerId) => {
+    return api.delete(`/api/admin/partners/${partnerId}`);
+  },
+};
+
+export const faqApi = {
+  /**
+   * Get all active FAQs (public endpoint)
+   */
+  getAll: async () => {
+    return api.get('/api/faqs');
+  },
+
+  /**
+   * Get all FAQs including inactive (admin only)
+   */
+  getAllAdmin: async () => {
+    return api.get('/api/admin/faqs');
+  },
+
+  /**
+   * Create a new FAQ (admin only)
+   */
+  create: async (faqData) => {
+    return api.post('/api/admin/faqs', faqData);
+  },
+
+  /**
+   * Update an existing FAQ (admin only)
+   */
+  update: async (id, faqData) => {
+    return api.put(`/api/admin/faqs/${id}`, faqData);
+  },
+
+  /**
+   * Delete an FAQ (admin only)
+   */
+  delete: async (id) => {
+    return api.delete(`/api/admin/faqs/${id}`);
+  },
+};
+
+export const scholarshipRecipientsApi = {
+  /**
+   * Get all scholarship recipients (public endpoint)
+   */
+  getAll: async () => {
+    return api.get('/api/scholarship-recipients');
+  },
+
+  /**
+   * Get scholarship recipients by year (public endpoint)
+   */
+  getByYear: async (year) => {
+    return api.get(`/api/scholarship-recipients/by-year/${year}`);
+  },
+
+  /**
+   * Get all recipients including admin data (admin only)
+   */
+  getAllAdmin: async () => {
+    return api.get('/api/admin/scholarship-recipients');
+  },
+
+  /**
+   * Create a new scholarship recipient (admin only)
+   */
+  create: async (recipientData) => {
+    return api.post('/api/admin/scholarship-recipients', recipientData);
+  },
+
+  /**
+   * Update an existing scholarship recipient (admin only)
+   */
+  update: async (id, recipientData) => {
+    return api.put(`/api/admin/scholarship-recipients/${id}`, recipientData);
+  },
+
+  /**
+   * Delete a scholarship recipient (admin only)
+   */
+  delete: async (id) => {
+    return api.delete(`/api/admin/scholarship-recipients/${id}`);
   },
 };
 

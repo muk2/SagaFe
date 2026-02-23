@@ -96,6 +96,7 @@ const UserManagement = () => {
             <th>Email</th>
             <th>Phone</th>
             <th>Handicap</th>
+            <th>Membership</th>
             <th>Role</th>
             <th>Actions</th>
           </tr>
@@ -109,6 +110,7 @@ const UserManagement = () => {
               <td>{user.email}</td>
               <td>{user.phone_number || 'N/A'}</td>
               <td>{user.handicap || user.golf_handicap || 'N/A'}</td>
+              <td>{user.membership || 'N/A'}</td>
               <td>
                 <label className="role-toggle">
                   <input

@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { eventsApi, adminEventsApi } from '../../lib/api';
+import React, { useState, useEffect, useRef} from 'react';
+import {adminEventsApi, adminMediaApi } from '../../lib/api';
 import { formatTime, toDateInputFormat} from '../../lib/dateUtils';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 const EventManagement = () => {
   const [events, setEvents] = useState([]);
@@ -9,37 +11,41 @@ const EventManagement = () => {
   const [success, setSuccess] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [sortOrder, setSortOrder] = useState('asc');
   const [formData, setFormData] = useState({
     golf_course: '',
     township: '',
     state: '',
+    zipcode:'',
     date: '',
     start_time: '',
     guest_price: '',
     member_price: '',
-    spots: '',
-    image_url: '',
+    capacity:'',
+    image_url: ''
   });
+
+  const formRef = useRef(null);
 
   useEffect(() => {
     fetchEvents();
   }, []);
 
+  // ✅ Helper to get full image URL
+  const getFullImageUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('/')) return `${API_URL}${url}`;
+    return `${API_URL}/${url}`;
+  };
+
   const fetchEvents = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await eventsApi.getAll();
-
-      // Load images from localStorage
-      const eventsWithImages = data.map(event => ({
-        ...event,
-        image_url: localStorage.getItem(`event_image_${event.id}`) || event.image_url || ''
-      }));
-      
-      setEvents(eventsWithImages);
+      const data = await adminEventsApi.getAll('date', sortOrder);
+      setEvents(data);
     } catch (err) {
       setError(err.message || 'Failed to load events');
     } finally {
@@ -52,50 +58,49 @@ const EventManagement = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const sortEventsByDate = (eventsArray, order = 'desc') => {
-    return [...eventsArray].sort((a, b) => {
-      const dateA = new Date(a.date);
-      const dateB = new Date(b.date);
-      
-      if (order === 'desc') {
-        return dateB - dateA; // Newest first
-      } else {
-        return dateA - dateB; // Oldest first
-      }
-    });
+  const handleCapacityChange = (e) => {
+    const value = e.target.value;
+    
+    // Only allow digits
+    if (value === '' || /^\d+$/.test(value)) {
+      setFormData({ ...formData, capacity: value });
+    }
   };
 
-  const handleImageUpload = (e) => {
+  // ✅ Updated image upload to use proper file upload
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       setError('Please select a valid image file');
       return;
     }
 
-    // Validate file size (max 2MB for localStorage)
-    if (file.size > 2 * 1024 * 1024) {
-      setError('Image size must be less than 2MB');
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image size must be less than 5MB');
       return;
     }
 
-    // Read and convert to base64
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64Image = event.target.result;
-      setImagePreview(base64Image);
-      setFormData({ ...formData, image_url: base64Image });
-    };
-    reader.onerror = () => {
-      setError('Failed to read image file');
-    };
-    reader.readAsDataURL(file);
+    try {
+      setUploadingImage(true);
+      setError(null);
+
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+
+      const response = await adminMediaApi.uploadImage(formDataUpload);
+      setFormData(prev => ({ ...prev, image_url: response.url }));
+      setSuccess('Image uploaded successfully');
+      setTimeout(() => setSuccess(null), 2000);
+    } catch (err) {
+      setError(err.message || 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleRemoveImage = () => {
-    setImagePreview(null);
     setFormData({ ...formData, image_url: '' });
   };
 
@@ -105,36 +110,41 @@ const EventManagement = () => {
       setError(null);
       setSuccess(null);
 
+      // Validate zipcode
+      const zipcodeRegex = /^\d{5}$/;
+      if (!zipcodeRegex.test(formData.zipcode)) {
+        setError('Zipcode must be exactly 5 digits');
+        return;
+      }
+
       const dataToSend = {
-        ...formData,
-        date: formData.date, // Already in YYYY-MM-DD from the input
+        golf_course: formData.golf_course,
+        township: formData.township,
+        state: formData.state,
+        zipcode: formData.zipcode,
+        date: formData.date,
+        start_time: formData.start_time,
+        guest_price: parseFloat(formData.guest_price),
+        member_price: parseFloat(formData.member_price),
+        capacity: parseInt(formData.capacity),
+        image_url: formData.image_url || null
       };
 
-      let eventId;
+      
+
       if (editingEvent) {
         await adminEventsApi.update(editingEvent.id, dataToSend);
-        eventId = editingEvent.id;
+        
         setSuccess('Event updated successfully');
       } else {
-        const response = await adminEventsApi.create(dataToSend);
-        eventId = response.id;
+        await adminEventsApi.create(dataToSend);
         setSuccess('Event created successfully');
       }
 
-      // Save image to localStorage if exists
-      if (formData.image_url && formData.image_url.startsWith('data:image')) {
-        localStorage.setItem(`event_image_${eventId}`, formData.image_url);
-      }
-
-      // Refresh events list
       await fetchEvents();
-
-      // Reset form
       handleCancel();
-
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      console.error('Full error:', err);
       setError(err.message || 'Failed to save event');
     }
   };
@@ -145,37 +155,30 @@ const EventManagement = () => {
       golf_course: event.golf_course,
       township: event.township,
       state: event.state,
+      zipcode: event.zipcode,
       date: toDateInputFormat(event.date),
       start_time: event.start_time,
       guest_price: event.guest_price,
       member_price: event.member_price,
-      spots: event.spots,
-      description: event.description || '',
-      image_url: event.image_url || '',
+      capacity: event.capacity,
+      image_url: event.image_url || ''
     });
-    
-    // Set preview if image exists
-    if (event.image_url) {
-      setImagePreview(event.image_url);
-    }
-    
     setShowForm(true);
+
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   const handleDelete = async (eventId, eventName) => {
-    if (!window.confirm(`Are you sure you want to delete "${eventName}"? This will also delete all registrations.`)) {
+    if (!window.confirm(`Are you sure you want to delete "${eventName}"?`)) {
       return;
     }
 
     try {
       setError(null);
-      setSuccess(null);
       await adminEventsApi.delete(eventId);
-
-      // Remove image from localStorage
-      localStorage.removeItem(`event_image_${eventId}`);
-
-      setEvents(events.filter(event => event.id !== eventId));
+      setEvents(events.filter(e => e.id !== eventId));
       setSuccess('Event deleted successfully');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -186,25 +189,30 @@ const EventManagement = () => {
   const handleCancel = () => {
     setShowForm(false);
     setEditingEvent(null);
-    setImagePreview(null);
     setFormData({
       golf_course: '',
       township: '',
       state: '',
+      zipcode: '',
       date: '',
       start_time: '',
       guest_price: '',
       member_price: '',
-      spots: '',
-      description: '',
-      image_url: '',
+      capacity: '',
+      image_url: ''
     });
   };
 
-  const sortedEvents = sortEventsByDate(events, sortOrder);
-
-  const toggleSortOrder = () => {
-    setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
+  const handleSortToggle = async () => {
+    const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+    setSortOrder(newOrder);
+    
+    try {
+      const data = await adminEventsApi.getAll('date', newOrder);
+      setEvents(data);
+    } catch (err) {
+      setError(err.message || 'Failed to sort events');
+    }
   };
 
   if (loading) {
@@ -215,46 +223,25 @@ const EventManagement = () => {
     <div className="event-management">
       <div className="section-header">
         <h2 className="admin-section-title">Event Management</h2>
-        {!showForm && (
-          <button onClick={() => setShowForm(true)} className="btn-primary">
-            + Add New Event
+        <div className="header-actions">
+          <button onClick={handleSortToggle} className="btn-secondary">
+            Sort by Date: {sortOrder === 'asc' ? '↑ Oldest First' : '↓ Newest First'}
           </button>
-        )}
+          {!showForm && (
+            <button onClick={() => setShowForm(true)} className="btn-primary">
+              + Add New Event
+            </button>
+          )}
+        </div>
       </div>
 
       {error && <div className="error">{error}</div>}
       {success && <div className="success">{success}</div>}
 
       {showForm && (
-        <div className="event-form-card">
+        <div className="event-form-card" ref={formRef}>
           <h3>{editingEvent ? 'Edit Event' : 'Create New Event'}</h3>
           <form onSubmit={handleSubmit} className="admin-form">
-            {/* Image Upload Section */}
-            <div className="image-upload-section">
-              <label className="upload-label">Event Thumbnail Image</label>
-              <p className="help-text">Recommended size: 800x600px. Max 2MB. All event thumbnails will be displayed at the same size.</p>
-              
-              {imagePreview ? (
-                <div className="image-preview-container">
-                  <img src={imagePreview} alt="Event preview" className="event-image-preview" />
-                  <button type="button" onClick={handleRemoveImage} className="btn-remove-image">
-                    Remove Image
-                  </button>
-                </div>
-              ) : (
-                <label className="file-upload-button">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    style={{ display: 'none' }}
-                  />
-                  <span className="upload-icon">📷</span>
-                  <span>Choose Image File</span>
-                </label>
-              )}
-            </div>
-
             <div className="form-row">
               <div className="form-group">
                 <label>Golf Course *</label>
@@ -264,6 +251,7 @@ const EventManagement = () => {
                   value={formData.golf_course}
                   onChange={handleInputChange}
                   required
+                  placeholder="e.g., Pebble Beach Golf Links"
                 />
               </div>
               <div className="form-group">
@@ -274,6 +262,7 @@ const EventManagement = () => {
                   value={formData.township}
                   onChange={handleInputChange}
                   required
+                  placeholder="e.g., Pebble Beach"
                 />
               </div>
             </div>
@@ -286,24 +275,37 @@ const EventManagement = () => {
                   name="state"
                   value={formData.state}
                   onChange={handleInputChange}
-                  placeholder="e.g., MI"
-                  maxLength="2"
                   required
+                  maxLength="2"
+                  placeholder="e.g., CA"
                 />
               </div>
+              <div className="form-group">
+                <label>Zipcode *</label>
+                <input
+                  type="text"
+                  name="zipcode"
+                  value={formData.zipcode}
+                  onChange={handleInputChange}
+                  required
+                  pattern="\d{5}"
+                  placeholder="e.g., 93953"
+                />
+                <small className="help-text">Must be 5 digits</small>
+              </div>
+            </div>
+
+            <div className="form-row">
               <div className="form-group">
                 <label>Date *</label>
                 <input
                   type="date"
                   name="date"
-                  value={toDateInputFormat(formData.date)}
+                  value={formData.date}
                   onChange={handleInputChange}
                   required
                 />
               </div>
-            </div>
-
-            <div className="form-row">
               <div className="form-group">
                 <label>Start Time *</label>
                 <input
@@ -314,49 +316,92 @@ const EventManagement = () => {
                   required
                 />
               </div>
-              <div className="form-group">
-                <label>Spots *</label>
-                <input
-                  type="number"
-                  name="spots"
-                  value={formData.spots}
-                  onChange={handleInputChange}
-                  min="1"
-                  required
-                />
-              </div>
             </div>
 
             <div className="form-row">
               <div className="form-group">
-                <label>Guest Price ($) *</label>
+                <label>Guest Price *</label>
                 <input
                   type="number"
-                  name="price"
-                  value={parseFloat(formData.guest_price).toFixed(2) || 0}
+                  name="guest_price"
+                  value={formData.guest_price}
                   onChange={handleInputChange}
-                  min="0"
-                  step="0.01"
                   required
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
                 />
               </div>
               <div className="form-group">
-                <label>Member Price ($) *</label>
+                <label>Member Price *</label>
                 <input
                   type="number"
                   name="member_price"
-                  value={parseFloat(formData.member_price).toFixed(2) || 0}
+                  value={formData.member_price}
                   onChange={handleInputChange}
-                  min="0"
-                  step="0.01"
                   required
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
                 />
               </div>
             </div>
 
+            <div className="form-group">
+              <label>Capacity *</label>
+              <input
+                type="text"
+                name="capacity"
+                value={formData.capacity}
+                onChange={handleCapacityChange}
+                required
+                placeholder="e.g., 50"
+                inputMode="numeric"
+              />
+            </div>
 
-            <div className="form-actions">
-              <button type="submit" className="btn-primary">
+            <div className="form-group">
+              <label>Event Image</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                disabled={uploadingImage}
+              />
+              {uploadingImage && (
+                <p style={{ color: '#3b82f6', marginTop: '0.5rem' }}>
+                  Uploading image...
+                </p>
+              )}
+              {formData.image_url && (
+                <div className="image-preview-container">
+                  <img
+                    src={getFullImageUrl(formData.image_url)}
+                    alt="Event preview"
+                    className="image-preview"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://via.placeholder.com/400x200?text=Image+Error';
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="btn-danger btn-sm"
+                  >
+                    Remove Image
+                  </button>
+                </div>
+              )}
+              <small className="help-text">
+                Upload an image for the event (max 5MB). Recommended: 800x400px
+              </small>
+            </div>
+
+         
+
+            <div className="form-actions" style={{display:"flex", gap: '1rem' }}>
+              <button type="submit" className="btn-primary" disabled={uploadingImage}>
                 {editingEvent ? 'Update Event' : 'Create Event'}
               </button>
               <button type="button" onClick={handleCancel} className="btn-secondary">
@@ -367,75 +412,63 @@ const EventManagement = () => {
         </div>
       )}
 
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Image</th>
-            <th>Course</th>
-            <th>Location</th>
-            <th 
-              onClick={toggleSortOrder} 
-              style={{ cursor: 'pointer', userSelect: 'none' }}
-            >
-              Date {sortOrder === 'desc' ? '↓' : '↑'} 
-            </th>
-            <th>Time</th>
-            <th>Price (Guest/Member)</th>
-            <th>Capacity</th>
-            <th>Registered</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedEvents.map((event) => (
-            <tr key={event.id}>
-              <td>
-                <div className="table-image-container">
-                  {event.image_url ? (
-                    <img 
-                      src={event.image_url} 
-                      alt={event.golf_course}
-                      className="table-thumbnail"
-                    />
-                  ) : (
-                    <div className="table-thumbnail-placeholder">No Image</div>
-                  )}
-                </div>
-              </td>
-              <td><strong>{event.golf_course}</strong></td>
-              <td>{event.township}, {event.state}</td>
-              <td>{new Date(event.date).toLocaleDateString()}</td>
-              <td>{formatTime(event.start_time)}</td>
-              <td>${parseFloat(event.guest_price).toFixed(2)} / ${parseFloat(event.member_price).toFixed(2)}</td>
-              <td>{event.spots}</td>
-              <td>
-                <span className={event.registered >= event.spots ? 'badge-full' : 'badge-available'}>
-                  {event.registered || 0} / {event.spots}
-                </span>
-              </td>
-              <td>
-                <div className="action-buttons">
-                  <button onClick={() => handleEdit(event)} className="btn-secondary btn-sm">
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(event.id, event.golf_course)}
-                    className="btn-danger btn-sm"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </td>
+      <div className="events-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Golf Course</th>
+              <th>Location</th>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Capacity</th>
+              <th>Registered</th>
+              <th>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {events.length === 0 && !showForm && (
-        <div className="empty-state">
-          No events created yet. Click "Add New Event" to get started.
-        </div>
-      )}
+          </thead>
+          <tbody>
+            {events.map((event) => (
+              <tr key={event.id}>
+                <td>
+                  <div className="event-cell-with-image">
+                    {event.image_url && (
+                      <img
+                        src={getFullImageUrl(event.image_url)}
+                        alt={event.golf_course}
+                        className="event-thumbnail"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    )}
+                    <strong>{event.golf_course}</strong>
+                  </div>
+                </td>
+                <td>{event.township}, {event.state}</td>
+                <td>{new Date(event.date).toLocaleDateString()}</td>
+                <td>{formatTime(event.start_time)}</td>
+                <td>{event.capacity}</td>
+                <td>{event.registered || 0}</td>
+                <td>
+                  <div className="action-buttons">
+                    <button
+                      onClick={() => handleEdit(event)}
+                      className="btn-secondary btn-sm"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(event.id, event.golf_course)}
+                      className="btn-danger btn-sm"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <style jsx>{`
         .section-header {
@@ -443,6 +476,14 @@ const EventManagement = () => {
           justify-content: space-between;
           align-items: center;
           margin-bottom: 1.5rem;
+          flex-wrap: wrap;
+          gap: 1rem;
+        }
+
+        .header-actions {
+          display: flex;
+          gap: 0.75rem;
+          align-items: center;
         }
 
         .event-form-card {
@@ -455,82 +496,6 @@ const EventManagement = () => {
 
         .event-form-card h3 {
           margin: 0 0 1.5rem 0;
-          color: #1f2937;
-        }
-
-        .image-upload-section {
-          background: white;
-          padding: 1.5rem;
-          border-radius: 8px;
-          border: 2px dashed #d1d5db;
-          margin-bottom: 2rem;
-          text-align: center;
-        }
-
-        .upload-label {
-          display: block;
-          font-weight: 600;
-          color: #374151;
-          margin-bottom: 0.5rem;
-        }
-
-        .help-text {
-          color: #6b7280;
-          font-size: 0.85rem;
-          margin-bottom: 1rem;
-        }
-
-        .file-upload-button {
-          display: inline-flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 2rem 3rem;
-          background: #f9fafb;
-          border: 2px dashed #9ca3af;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .file-upload-button:hover {
-          background: #eff6ff;
-          border-color: #3b82f6;
-        }
-
-        .upload-icon {
-          font-size: 3rem;
-        }
-
-        .image-preview-container {
-          position: relative;
-          display: inline-block;
-        }
-
-        .event-image-preview {
-          max-width: 400px;
-          max-height: 300px;
-          width: 100%;
-          height: auto;
-          border-radius: 8px;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .btn-remove-image {
-          display: block;
-          margin: 1rem auto 0;
-          padding: 0.5rem 1rem;
-          background: #ef4444;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          font-weight: 500;
-          transition: background 0.2s;
-        }
-
-        .btn-remove-image:hover {
-          background: #dc2626;
         }
 
         .form-row {
@@ -539,10 +504,65 @@ const EventManagement = () => {
           gap: 1rem;
         }
 
-        .form-actions {
+        .image-preview-container {
+          margin-top: 0.75rem;
+          padding: 1rem;
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+        }
+
+        .image-preview {
+          max-width: 400px;
+          max-height: 200px;
+          object-fit: cover;
+          border-radius: 4px;
+          display: block;
+          margin-bottom: 0.75rem;
+        }
+
+        .events-table {
+          background: white;
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .events-table table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+
+        .events-table th {
+          background: #f9fafb;
+          padding: 0.75rem 1rem;
+          text-align: left;
+          font-weight: 600;
+          color: #374151;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .events-table td {
+          padding: 0.75rem 1rem;
+          border-bottom: 1px solid #f3f4f6;
+        }
+
+        .events-table tr:hover {
+          background: #f9fafb;
+        }
+
+        .event-cell-with-image {
           display: flex;
-          gap: 1rem;
-          margin-top: 1.5rem;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .event-thumbnail {
+          width: 60px;
+          height: 40px;
+          object-fit: cover;
+          border-radius: 4px;
+          border: 1px solid #e5e7eb;
         }
 
         .action-buttons {
@@ -551,55 +571,8 @@ const EventManagement = () => {
         }
 
         .btn-sm {
-          padding: 0.25rem 0.75rem;
+          padding: 0.4rem 0.8rem;
           font-size: 0.85rem;
-        }
-
-        .table-image-container {
-          width: 80px;
-          height: 60px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .table-thumbnail {
-          width: 80px;
-          height: 60px;
-          object-fit: cover;
-          border-radius: 4px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .table-thumbnail-placeholder {
-          width: 80px;
-          height: 60px;
-          background: #f3f4f6;
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 0.7rem;
-          color: #9ca3af;
-          text-align: center;
-          padding: 0.25rem;
-        }
-
-        .badge-full {
-          color: #dc2626;
-          font-weight: 600;
-        }
-
-        .badge-available {
-          color: #059669;
-          font-weight: 600;
-        }
-
-        .empty-state {
-          text-align: center;
-          padding: 3rem;
-          color: #6b7280;
-          font-size: 1.1rem;
         }
 
         @media (max-width: 768px) {
@@ -607,14 +580,21 @@ const EventManagement = () => {
             grid-template-columns: 1fr;
           }
 
-          .section-header {
+          .header-actions {
+            width: 100%;
             flex-direction: column;
-            gap: 1rem;
-            align-items: flex-start;
           }
 
-          .event-image-preview {
-            max-width: 100%;
+          .header-actions button {
+            width: 100%;
+          }
+
+          .events-table {
+            overflow-x: auto;
+          }
+
+          .events-table table {
+            min-width: 800px;
           }
         }
       `}</style>

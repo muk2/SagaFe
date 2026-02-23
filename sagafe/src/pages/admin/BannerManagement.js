@@ -17,7 +17,13 @@ const BannerManagement = () => {
       setLoading(true);
       setError(null);
       const data = await bannerApi.getAll();
-      setMessages(data.map(msg => ({ id: msg.id, message: msg.message })));
+      if (data.messages) {
+        setMessages(data.messages.map(msg => ({ id: msg.id, message: msg.message })));
+        setDisplayCount(data.display_count || 3);  // ✅ Load display count from backend
+      } else {
+        // Fallback for old format
+        setMessages(data.map(msg => ({ id: msg.id, message: msg.message })));
+      }
     } catch (err) {
       setError(err.message || 'Failed to load banner messages');
     } finally {
@@ -54,12 +60,13 @@ const BannerManagement = () => {
       }
 
       await adminBannerApi.updateMessages(validMessages);
-      setSuccess('Banner messages updated successfully');
+      setSuccess('Banner messages updated successfully - refreshing...');
 
       // Refresh messages
       await fetchBannerMessages();
 
-      setTimeout(() => setSuccess(null), 3000);
+      setTimeout(() => {window.location.reload();
+    }, 1500);
     } catch (err) {
       setError(err.message || 'Failed to update banner messages');
     }
@@ -67,10 +74,13 @@ const BannerManagement = () => {
 
   const handleDisplayCountChange = async (newCount) => {
     try {
+      
       setDisplayCount(newCount);
+      
       await adminBannerApi.updateDisplayCount(newCount);
-      setSuccess('Display count updated');
-      setTimeout(() => setSuccess(null), 2000);
+
+      setSuccess('Display count updated - changes will appear shortly');
+      setTimeout(() => {window.location.reload();}, 2000);
     } catch (err) {
       setError(err.message || 'Failed to update display count');
     }

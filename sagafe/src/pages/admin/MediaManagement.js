@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { adminMediaApi } from '../../lib/api';
 
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const MediaManagement = () => {
   const [carouselImages, setCarouselImages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,15 +21,23 @@ const MediaManagement = () => {
       setLoading(true);
       setError(null);
       const data = await adminMediaApi.getCarouselImages();
+     
       setCarouselImages(data.images || []);
     } catch (err) {
       setError(err.message || 'Failed to load carousel images');
-      // Default to empty array if API not implemented
       setCarouselImages([]);
     } finally {
       setLoading(false);
     }
   };
+
+  const getFullImageUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('/')) return `${API_URL}${url}`;
+    return `${API_URL}/${url}`;
+  };
+
 
   const handleFileUpload = async (e, imageType = 'carousel') => {
     const file = e.target.files[0];
@@ -55,10 +66,12 @@ const MediaManagement = () => {
 
       const response = await adminMediaApi.uploadImage(formData);
 
+      console.log('Upload response:', response);
+
       if (imageType === 'carousel') {
-        setCarouselImages([...carouselImages, response.url]);
-        setSuccess('Image uploaded successfully! Remember to save changes.');
-      }
+      setCarouselImages(prev => [...prev, response.url]);
+      setSuccess('Image uploaded successfully! Remember to save changes.');
+    }
 
       // Reset file input
       e.target.value = '';
@@ -122,6 +135,11 @@ const MediaManagement = () => {
     [newImages[index], newImages[newIndex]] = [newImages[newIndex], newImages[index]];
     setCarouselImages(newImages);
   };
+
+
+  
+  
+ 
 
   if (loading) {
     return <div className="loading">Loading media settings...</div>;
@@ -188,9 +206,12 @@ const MediaManagement = () => {
                 <div key={index} className="image-card">
                   <div className="image-preview">
                     <img
-                      src={imageUrl}
+                      src={getFullImageUrl(imageUrl)}
                       alt={`Carousel ${index + 1}`}
                       onError={(e) => {
+                        e.target.onerror = null;
+                        console.error('Failed to load image:', getFullImageUrl(imageUrl));
+                        e.target.style.display = 'none';
                         e.target.src = 'https://via.placeholder.com/400x200?text=Image+Not+Found';
                       }}
                     />
@@ -240,25 +261,7 @@ const MediaManagement = () => {
         )}
       </div>
 
-      <div className="additional-info">
-        <h3>Other Site Images</h3>
-        <div className="info-card">
-          <p>
-            To update other site images (logo, background images, event covers, etc.),
-            upload them to your server or hosting service and update the image URLs
-            in the relevant sections (Events, Photos, Content).
-          </p>
-          <p>
-            For best performance, use optimized images:
-          </p>
-          <ul>
-            <li>Hero/Carousel: 1920x800px (16:9 ratio)</li>
-            <li>Event covers: 800x600px</li>
-            <li>Photo album covers: 600x400px</li>
-            <li>Logo: 200x80px (transparent PNG)</li>
-          </ul>
-        </div>
-      </div>
+    
 
       <style jsx>{`
         .info-banner {
@@ -470,17 +473,6 @@ const MediaManagement = () => {
           font-size: 1rem;
         }
 
-        .additional-info {
-          background: #fefce8;
-          border: 1px solid #fde047;
-          padding: 1.5rem;
-          border-radius: 8px;
-        }
-
-        .additional-info h3 {
-          margin: 0 0 1rem 0;
-          color: #854d0e;
-        }
 
         .info-card {
           color: #713f12;

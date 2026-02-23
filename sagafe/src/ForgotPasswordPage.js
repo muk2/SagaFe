@@ -33,7 +33,7 @@ export default function ForgotPasswordPage() {
             We've sent password reset instructions to <strong>{email}</strong>.
             Please check your email and follow the link to reset your password.
           </p>
-          <button onClick={() => navigate("/login")}>
+          <button type="submit" onClick={() => navigate("/login")}>
             Back to Login
           </button>
         </div>
