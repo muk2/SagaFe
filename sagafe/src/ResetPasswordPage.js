@@ -21,10 +21,6 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long");
-      return;
-    }
 
     if (!token) {
       setError("Invalid or missing reset token");
@@ -51,7 +47,7 @@ export default function ResetPasswordPage() {
           <p style={{ textAlign: "center", marginBottom: "1.5rem" }}>
             Your password has been successfully reset. You can now log in with your new password.
           </p>
-          <button onClick={() => navigate("/login")}>
+          <button type="submit" onClick={() => navigate("/login")}>
             Go to Login
           </button>
         </div>
@@ -67,7 +63,7 @@ export default function ResetPasswordPage() {
           <p style={{ textAlign: "center", marginBottom: "1.5rem", color: "#ef4444" }}>
             This password reset link is invalid or has expired.
           </p>
-          <button onClick={() => navigate("/forgot-password")}>
+          <button type="submit" onClick={() => navigate("/forgot-password")}>
             Request New Reset Link
           </button>
         </div>
