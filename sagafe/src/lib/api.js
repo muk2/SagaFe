@@ -543,6 +543,43 @@ export const scholarshipRecipientsApi = {
   },
 };
 
+export const membershipOptionsApi = {
+  /**
+   * Get all active membership options (public endpoint)
+   */
+  getAll: async () => {
+    return api.get('/api/membership-options');
+  },
+
+  /**
+   * Get all membership options including inactive (admin only)
+   */
+  getAllAdmin: async () => {
+    return api.get('/api/admin/membership-options');
+  },
+
+  /**
+   * Create a new membership option (admin only)
+   */
+  create: async (optionData) => {
+    return api.post('/api/admin/membership-options', optionData);
+  },
+
+  /**
+   * Update an existing membership option (admin only)
+   */
+  update: async (id, optionData) => {
+    return api.put(`/api/admin/membership-options/${id}`, optionData);
+  },
+
+  /**
+   * Delete a membership option (admin only)
+   */
+  delete: async (id) => {
+    return api.delete(`/api/admin/membership-options/${id}`);
+  },
+};
+
 /**
  * Health check
  */

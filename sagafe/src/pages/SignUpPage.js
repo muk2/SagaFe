@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "./context/AuthContext";
+import { useAuth } from "../context/AuthContext";
+import { membershipOptionsApi } from '../lib/api';
 
 export default function SignUpPage() {
   const [form, setForm] = useState({
@@ -18,13 +19,19 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false); 
   const navigate = useNavigate();
   const { signup } = useAuth();
+  const [membershipOptions, setMembershipOptions] = useState([]);
 
-  // ✅ Membership options
-  const membershipOptions = [
-    { value: "individual", label: "Individual", subtitle: null, price: 375.00 },
-    { value: "junior", label: "Junior", subtitle: "(Under 26)", price: 150.00 },
-    { value: "brunswick", label: "SAGA", subtitle: "Brunswick Member", price: 275.00 }
-  ];
+  useEffect(() => {
+    fetchMembershipOptions();
+    }, []);
+    const fetchMembershipOptions = async () => {
+    try {
+    const options = await membershipOptionsApi.getAll();
+    setMembershipOptions(options);
+    } catch (err) {
+    console.error('Failed to load membership options:', err);
+    }
+    };
 
   const handleSignUp = async (e) => {
     e.preventDefault();
@@ -176,42 +183,52 @@ export default function SignUpPage() {
           </div>
         </div>
 
-        {/* ✅ Membership Options */}
+        {/* ✅ Membership Options - Original Styling */}
         <div className={`form-group membership-section ${membershipError ? 'has-error' : ''}`}>
           <label className="section-label">
             Select Membership Type *
             {membershipError && <span className="error-indicator"> - Required</span>}
           </label>
           <div className="membership-options">
-            {membershipOptions.map((option) => (
-              <label 
-                key={option.value} 
-                className={`membership-option ${form.membership === option.value ? 'selected' : ''}`}
+            {membershipOptions.map(option => (
+              <div
+                key={option.id}
+                className={`membership-option ${form.membership === option.name ? 'selected' : ''}`}
+                onClick={() => {
+                  setForm({
+                    ...form,
+                    membership: option.name,
+                    membershipPrice: option.price
+                  });
+                  setMembershipError(false);
+                }}
               >
                 <input
                   type="radio"
                   name="membership"
-                  value={option.value}
-                  checked={form.membership === option.value}
+                  value={option.name}
+                  checked={form.membership === option.name}
                   onChange={(e) => {
-                    setForm({ ...form, membership: e.target.value });
-                    setMembershipError(false); // ✅ Clear error when selection is made
-                    setError(""); // ✅ Clear general error too
+                    setForm({
+                      ...form,
+                      membership: e.target.value,
+                      membershipPrice: option.price
+                    });
+                    setMembershipError(false);
                   }}
-                  disabled={loading}
+                  required
                 />
                 <div className="option-content">
                   <div className="option-text">
-                    <span className="option-label">{option.label}</span>
-                    {option.subtitle && <span className="option-subtitle">{option.subtitle}</span>}
+                    <span className="option-label">{option.name}</span>
+                    {option.description && <span className="option-subtitle">{option.description}</span>}
                   </div>
-                  <span className="option-price">${option.price.toFixed(2)}/year</span>
+                  <span className="option-price">${Number(option.price).toFixed(2)}</span>
+                  <div className="radio-indicator"></div>
                 </div>
-                <div className="radio-indicator"></div>
-              </label>
+              </div>
             ))}
           </div>
-        
         </div>
 
         <button type="submit" disabled={loading}>
@@ -314,7 +331,7 @@ export default function SignUpPage() {
           color: var(--primary);
         }
 
-        
+        /* Membership Section - Original Styling */
         .membership-section {
           margin: 1.5rem 0;
           padding: 1.5rem;
@@ -378,7 +395,7 @@ export default function SignUpPage() {
         .option-text {
           display: flex;
           flex-direction: column;
-          gap: 0.125rem;
+          gap: 0.25rem;
         }
 
         .option-label {
@@ -390,7 +407,7 @@ export default function SignUpPage() {
         .option-subtitle {
           font-weight: 400;
           color: var(--text-secondary);
-          font-size: 0.743rem;
+          font-size: 0.771rem;
         }
 
         .option-price {
@@ -429,8 +446,6 @@ export default function SignUpPage() {
           border-radius: 50%;
           background: white;
         }
-
-    
 
         @media (max-width: 768px) {
           .membership-section {

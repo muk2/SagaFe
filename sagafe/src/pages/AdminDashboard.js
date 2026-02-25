@@ -11,6 +11,7 @@ import MediaManagement from './admin/MediaManagement';
 import PartnerManagement from './admin/PartnerManagement';
 import FAQManagement from './admin/FAQManagement';
 import ScholarshipRecipientsManagement from './admin/ScholarshipRecipientsManagement';
+import MembershipOptionsManagement from './admin/membershipoptionsmanagement';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -32,7 +33,8 @@ const AdminDashboard = () => {
     { id: 'media', label: 'Media', icon: '🖼️' },
     { id: 'partners', label: 'Partners', icon: '🤝' },
     { id: 'faq', label: 'FAQ', icon: '❓' },
-    { id: 'scholarship', label: 'Scholarships', icon: '🎓' }
+    { id: 'scholarship', label: 'Scholarships', icon: '🎓' },
+    { id: 'membership', label: 'Membership', icon: '⭐️' }
   ];
 
   const renderTabContent = () => {
@@ -53,8 +55,10 @@ const AdminDashboard = () => {
         return <PartnerManagement />;  
       case 'faq':
         return <FAQManagement />; 
-        case 'scholarship':
-          return <ScholarshipRecipientsManagement />;  
+      case 'scholarship':
+        return <ScholarshipRecipientsManagement />;  
+      case 'membership':
+        return <MembershipOptionsManagement />;    
       default:
         return <UserManagement />;
     }

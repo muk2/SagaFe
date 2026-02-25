@@ -2,7 +2,7 @@ import './App.css';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Routes, Route, useNavigate, NavLink, Link, Navigate } from "react-router-dom";
 import LoginPage from "./LoginPage.js";
-import SignUpPage from "./SignUpPage.js";
+import SignUpPage from "./pages/SignUpPage.js";
 import ForgotPasswordPage from "./ForgotPasswordPage.js";
 import ResetPasswordPage from "./ResetPasswordPage.js";
 import AboutPage from "./pages/AboutPage.js";
