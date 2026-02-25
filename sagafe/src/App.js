@@ -11,13 +11,14 @@ import PhotosPage from "./pages/PhotosPage.js";
 import ContactPage from "./pages/ContactPage.js";
 import SagaTourPage from "./pages/SagatourPage.js";
 import DashboardPage from "./pages/DashboardPage.js";
+import EventRegistrationModal from "./components/EventRegistrationModal.js";
 import AdminDashboard from "./pages/AdminDashboard.js";
 import ScholarshipsPage from "./pages/ScholarshipPage.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser } from "@fortawesome/free-solid-svg-icons";
 import Banner from "./Banner";
 import { useAuth } from "./context/AuthContext";
-import { eventsApi, api, carouselApi, partnersApi} from "./lib/api";
+import { eventsApi, api, carouselApi, partnersApi, authApi} from "./lib/api";
 import { isAdmin } from "./lib/auth";
 import { formatTime } from './lib/dateUtils';
 
@@ -373,6 +374,16 @@ export function ItemList() {
   const REGULAR_ITEMS_PER_SLIDE = 3; // ✅ Changed from 4 to 3
 
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+
+  const openRegistration = (event) => {
+    setSelectedEvent(event);
+    setShowRegistrationModal(true);
+  };
+
+  const closeRegistration = () => {
+    setShowRegistrationModal(false);
+    setSelectedEvent(null);
   const [registrationForm, setRegistrationForm] = useState({
     name: '',
     email: '',
@@ -685,7 +696,17 @@ export function ItemList() {
     </div>
   )}
 </div>
-
+//Merge with the below  form
+{showRegistrationModal && selectedEvent && (
+            <EventRegistrationModal
+              event={selectedEvent}
+              onClose={closeRegistration}
+              onSuccess={closeRegistration}
+            />
+          )}
+          
+          
+          
           {showRegistrationModal && selectedEvent && (
   <div className="modal-overlay" onClick={() => setShowRegistrationModal(false)}>
     <div className="modal" onClick={e => e.stopPropagation()}>

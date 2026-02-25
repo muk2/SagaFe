@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { eventsApi, api } from '../lib/api';
+import { eventsApi } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import EventRegistrationModal from '../components/EventRegistrationModal';
 import { getEventImage } from '../lib/eventImages';
 import { formatTime } from '../lib/dateUtils';
 
@@ -26,12 +27,6 @@ export default function EventsPage() {
   const [selectedYear, setSelectedYear] = useState(2026);
   const [viewMode, setViewMode] = useState('list');
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [registrationForm, setRegistrationForm] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    handicap: ''
-  });
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
 
   const [loading, setLoading] = useState(true);
@@ -606,6 +601,12 @@ export default function EventsPage() {
       )}
 
       {/* Registration Modal */}
+      {showRegistrationModal && selectedEvent && (
+        <EventRegistrationModal
+          event={selectedEvent}
+          onClose={closeRegistration}
+          onSuccess={closeRegistration}
+        />
        {showRegistrationModal && selectedEvent && (
         <div className="modal-overlay" onClick={closeRegistration}>
           <div className="modal" onClick={e => e.stopPropagation()}>

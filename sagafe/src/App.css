@@ -2981,6 +2981,53 @@ body {
   font-size: 0.875rem;
 }
 
+/* ========================================
+   REGISTRATION CONFIRMATION / DECLINED
+   ======================================== */
+
+.registration-confirmation,
+.registration-declined {
+  padding: 2rem;
+  text-align: center;
+}
+
+.confirmation-icon {
+  color: #059669;
+  margin-bottom: 1rem;
+}
+
+.declined-icon {
+  color: #dc2626;
+  margin-bottom: 1rem;
+}
+
+.registration-confirmation h2,
+.registration-declined h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+}
+
+.registration-declined p {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.confirmation-details {
+  background: var(--border-light);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  text-align: left;
+}
+
+.confirmation-message {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
 /* Responsive Dashboard */
 @media (max-width: 768px) {
   .dashboard-tabs {
