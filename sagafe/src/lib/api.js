@@ -31,15 +31,19 @@ async function apiRequest(endpoint, options = {}) {
   if (response.status === 401) {
     const error = await response.json().catch(() => ({ detail: 'Unauthorized' }));
     
-    if (token && headers['Authorization']) {
+    // ✅ Check if this is a login attempt
+    const isLoginAttempt = endpoint === '/auth/login';
+
+    if (token && headers['Authorization'] && !isLoginAttempt) {
+      // This was an authenticated request that failed - session expired
       localStorage.removeItem('access_token');
       localStorage.removeItem('user');
       window.dispatchEvent(new CustomEvent('auth-expired'));
       throw new Error('Session expired. Please log in again.');
     }
     
-    // For login failures, throw the actual error message
-    throw new Error(error.detail || 'Unauthorized');
+    // ✅ For login failures, throw the actual error message
+    throw new Error(error.detail || 'Invalid email or password');
   }
 
   if (!response.ok) {
@@ -184,7 +188,7 @@ export const authApi = {
 export const eventsApi = {
   /**
    * Get all events
-   * @returns {Promise<Array<{id: number, township: string, golf_course: string, date: date}>>}
+   * @returns {Promise<Array<{id: number, township: string, golf_course: string, date: date, capacity: number}>>}
    */
   getAll: async () => {
     return api.get('/api/events/');
@@ -357,6 +361,377 @@ export const adminApi = {
    */
   deactivateMembershipTier: async (tierId) => {
     return api.delete(`/api/admin/membership-tiers/${tierId}`);
+  },
+};
+
+/**
+ * Users API methods (for admin)
+ */
+export const usersApi = {
+  /**
+   * Get all users (admin only)
+   * @returns {Promise<Array<User>>}
+   */
+  getAll: async () => {
+    return api.get('/api/admin/users');
+  },
+
+  /**
+   * Update user role (admin only)
+   * @param {number} userId
+   * @param {string} role
+   */
+  updateRole: async (userId, role) => {
+    return api.put(`/api/admin/users/${userId}/role`, { role });
+  },
+
+  /**
+   * Delete user (admin only)
+   * @param {number} userId
+   */
+  delete: async (userId) => {
+    return api.delete(`/api/admin/users/${userId}`);
+  },
+
+  deleteEventRegistration: async (registrationId) => {
+    return api.delete(`/api/admin/event-registrations/${registrationId}`);
+  },
+
+  /**
+   * Get event registrations for a specific event (admin only)
+   * @param {number} eventId
+   */
+  getEventRegistrations: async (eventId) => {
+    const response = await api.get(`/api/admin/events/${eventId}/registrations`);
+    return response.registrations;
+  },
+};
+
+/**
+ * Admin Events API methods
+ */
+export const adminEventsApi = {
+  /**
+   * Create new event (admin only)
+   * @param {object} eventData
+   */
+  create: async (eventData) => {
+    return api.post('/api/admin/events', eventData);
+  },
+
+  /**
+   * Update event (admin only)
+   * @param {number} eventId
+   * @param {object} eventData
+   */
+  update: async (eventId, eventData) => {
+    return api.put(`/api/admin/events/${eventId}`, eventData);
+  },
+
+  /**
+   * Delete event (admin only)
+   * @param {number} eventId
+   */
+  delete: async (eventId) => {
+    return api.delete(`/api/admin/events/${eventId}`);
+  },
+
+  getAll: async (orderBy = 'date', order = 'asc') => {
+    return api.get(`/api/admin/events?order_by=${orderBy}&order=${order}`);
+  },
+};
+
+/**
+ * Admin Banner API methods
+ */
+export const adminBannerApi = {
+  /**
+   * Update banner messages (admin only)
+   * @param {Array<{id?: number, message: string}>} messages
+   */
+  updateMessages: async (messages) => {
+    return api.put('/api/banner_messages/messages', { messages });
+  },
+
+  /**
+   * Update banner display count (admin only)
+   * @param {number} count
+   */
+  updateDisplayCount: async (count) => {
+    return api.put(`/api/banner_messages/display-count?count=${count}`);
+  },
+};
+
+/**
+ * Admin Photos API methods
+ */
+export const adminPhotosApi = {
+  /**
+   * Get all photo albums (admin only)
+   */
+  getAll: async () => {
+    return api.get('/api/admin/photo-albums');
+  },
+
+  /**
+   * Create photo album (admin only)
+   * @param {object} albumData
+   */
+  create: async (albumData) => {
+    return api.post('/api/admin/photo-albums', albumData);
+  },
+
+  /**
+   * Update photo album (admin only)
+   * @param {number} albumId
+   * @param {object} albumData
+   */
+  update: async (albumId, albumData) => {
+    return api.put(`/api/admin/photo-albums/${albumId}`, albumData);
+  },
+
+  /**
+   * Delete photo album (admin only)
+   * @param {number} albumId
+   */
+  delete: async (albumId) => {
+    return api.delete(`/api/admin/photo-albums/${albumId}`);
+  },
+};
+
+/**
+ * Photos API methods (public)
+ */
+export const photosApi = {
+  /**
+   * Get all photo albums
+   * @returns {Promise<Array<PhotoAlbum>>}
+   */
+  getAll: async () => {
+    return api.get('/api/photo-albums');
+  },
+};
+
+/**
+ * Admin Content API methods
+ */
+export const adminContentApi = {
+  /**
+   * Get site content/prompts (admin only)
+   */
+  getContent: async () => {
+    return api.get('/api/admin/content');
+  },
+
+  /**
+   * Update site content/prompts (admin only)
+   * @param {object} content
+   */
+  updateContent: async (content) => {
+    return api.put('/api/admin/content', content);
+  },
+};
+
+/**
+ * Admin Media API methods
+ */
+export const adminMediaApi = {
+  /**
+   * Upload image (admin only)
+   * @param {FormData} formData - Must contain 'file'
+   */
+  uploadImage: async (formData) => {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_URL}/api/admin/media/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData, // Don't set Content-Type for FormData
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
+      throw new Error(error.detail || 'Upload failed');
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Get carousel images (admin only)
+   */
+  getCarouselImages: async () => {
+    return api.get('/api/admin/media/carousel');
+  },
+
+  /**
+   * Update carousel images (admin only)
+   * @param {Array<string>} imageUrls
+   */
+  updateCarousel: async (imageUrls) => {
+    const cleanUrls = imageUrls.map(url => 
+      typeof url === 'string' ? url : url.url || url.image_url || String(url)
+    );
+    return api.put('/api/admin/media/carousel', { images: cleanUrls });
+  },
+};
+
+/**
+ * Carousel API (public)
+ */
+export const carouselApi = {
+  getImages: async () => {
+    const response = await api.get('/api/carousel');
+    return response.images || [];
+  },
+};
+
+/**
+ * Partners API (public)
+ */
+export const partnersApi = {
+  getAll: async () => {
+    return api.get('/api/partners');
+  },
+};
+
+/**
+ * Admin Partners API
+ */
+export const adminPartnersApi = {
+  getAll: async () => {
+    return api.get('/api/admin/partners');
+  },
+  
+  create: async (partnerData) => {
+    return api.post('/api/admin/partners', partnerData);
+  },
+  
+  update: async (partnerId, partnerData) => {
+    return api.put(`/api/admin/partners/${partnerId}`, partnerData);
+  },
+  
+  delete: async (partnerId) => {
+    return api.delete(`/api/admin/partners/${partnerId}`);
+  },
+};
+
+export const faqApi = {
+  /**
+   * Get all active FAQs (public endpoint)
+   */
+  getAll: async () => {
+    return api.get('/api/faqs');
+  },
+
+  /**
+   * Get all FAQs including inactive (admin only)
+   */
+  getAllAdmin: async () => {
+    return api.get('/api/admin/faqs');
+  },
+
+  /**
+   * Create a new FAQ (admin only)
+   */
+  create: async (faqData) => {
+    return api.post('/api/admin/faqs', faqData);
+  },
+
+  /**
+   * Update an existing FAQ (admin only)
+   */
+  update: async (id, faqData) => {
+    return api.put(`/api/admin/faqs/${id}`, faqData);
+  },
+
+  /**
+   * Delete an FAQ (admin only)
+   */
+  delete: async (id) => {
+    return api.delete(`/api/admin/faqs/${id}`);
+  },
+};
+
+export const scholarshipRecipientsApi = {
+  /**
+   * Get all scholarship recipients (public endpoint)
+   */
+  getAll: async () => {
+    return api.get('/api/scholarship-recipients');
+  },
+
+  /**
+   * Get scholarship recipients by year (public endpoint)
+   */
+  getByYear: async (year) => {
+    return api.get(`/api/scholarship-recipients/by-year/${year}`);
+  },
+
+  /**
+   * Get all recipients including admin data (admin only)
+   */
+  getAllAdmin: async () => {
+    return api.get('/api/admin/scholarship-recipients');
+  },
+
+  /**
+   * Create a new scholarship recipient (admin only)
+   */
+  create: async (recipientData) => {
+    return api.post('/api/admin/scholarship-recipients', recipientData);
+  },
+
+  /**
+   * Update an existing scholarship recipient (admin only)
+   */
+  update: async (id, recipientData) => {
+    return api.put(`/api/admin/scholarship-recipients/${id}`, recipientData);
+  },
+
+  /**
+   * Delete a scholarship recipient (admin only)
+   */
+  delete: async (id) => {
+    return api.delete(`/api/admin/scholarship-recipients/${id}`);
+  },
+};
+
+export const membershipOptionsApi = {
+  /**
+   * Get all active membership options (public endpoint)
+   */
+  getAll: async () => {
+    return api.get('/api/membership-options');
+  },
+
+  /**
+   * Get all membership options including inactive (admin only)
+   */
+  getAllAdmin: async () => {
+    return api.get('/api/admin/membership-options');
+  },
+
+  /**
+   * Create a new membership option (admin only)
+   */
+  create: async (optionData) => {
+    return api.post('/api/admin/membership-options', optionData);
+  },
+
+  /**
+   * Update an existing membership option (admin only)
+   */
+  update: async (id, optionData) => {
+    return api.put(`/api/admin/membership-options/${id}`, optionData);
+  },
+
+  /**
+   * Delete a membership option (admin only)
+   */
+  delete: async (id) => {
+    return api.delete(`/api/admin/membership-options/${id}`);
   },
 };
 

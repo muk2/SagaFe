@@ -2,104 +2,33 @@ import React, { useState, useEffect } from 'react';
 import { eventsApi } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import EventRegistrationModal from '../components/EventRegistrationModal';
+import { getEventImage } from '../lib/eventImages';
+import { formatTime } from '../lib/dateUtils';
 
-// Fallback mock events data - used when API is unavailable
-// const MOCK_EVENTS = [
-//   {
-//     id: 1,
-//     title: "Spring Championship",
-//     date: "2026-03-15",
-//     time: "8:00 AM",
-//     course: "Royce Brook Golf Club",
-//     location: "Hillsborough, NJ",
-//     description: "Kick off the season with our annual Spring Championship. 18-hole stroke play with flights for all handicap levels.",
-//     spots: 72,
-//     registered: 45,
-//     price: 125,
-//     image: "https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=800"
-//   },
-//   {
-//     id: 2,
-//     title: "Monthly Mixer - April",
-//     date: "2026-04-12",
-//     time: "7:30 AM",
-//     course: "Knob Hill Golf Club",
-//     location: "Manalapan, NJ",
-//     description: "Casual scramble format perfect for meeting new members and enjoying a relaxed round of golf.",
-//     spots: 48,
-//     registered: 32,
-//     price: 85,
-//     image: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=800"
-//   },
-//   {
-//     id: 3,
-//     title: "Charity Classic",
-//     date: "2026-05-24",
-//     time: "8:30 AM",
-//     course: "Neshanic Valley Golf Course",
-//     location: "Neshanic Station, NJ",
-//     description: "Annual charity event benefiting local youth golf programs. Includes lunch, prizes, and silent auction.",
-//     spots: 120,
-//     registered: 89,
-//     price: 150,
-//     image: "https://images.unsplash.com/photo-1593111774240-d529f12cf4bb?w=800"
-//   },
-//   {
-//     id: 4,
-//     title: "Summer Invitational",
-//     date: "2026-06-21",
-//     time: "7:00 AM",
-//     course: "Fiddler's Elbow Country Club",
-//     location: "Bedminster, NJ",
-//     description: "Premier summer event featuring best ball format. Post-round dinner and awards ceremony included.",
-//     spots: 80,
-//     registered: 56,
-//     price: 175,
-//     image: "https://images.unsplash.com/photo-1600569436985-b50f3882e8ed?w=800"
-//   },
-//   {
-//     id: 5,
-//     title: "Monthly Mixer - July",
-//     date: "2026-07-19",
-//     time: "6:30 AM",
-//     course: "Jumping Brook Country Club",
-//     location: "Neptune, NJ",
-//     description: "Beat the summer heat with an early tee time. Individual stroke play with net scoring.",
-//     spots: 48,
-//     registered: 18,
-//     price: 95,
-//     image: "https://images.unsplash.com/photo-1592919505780-303950717480?w=800"
-//   },
-//   {
-//     id: 6,
-//     title: "Fall Championship",
-//     date: "2026-09-27",
-//     time: "8:00 AM",
-//     course: "Gambler Ridge Golf Club",
-//     location: "Cream Ridge, NJ",
-//     description: "Season finale championship. Points leaders compete for the annual SAGA Cup trophy.",
-//     spots: 72,
-//     registered: 12,
-//     price: 135,
-//     image: "https://images.unsplash.com/photo-1596727362302-b8d891c42ab8?w=800"
-//   }
-// ];
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+const getFullImageUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('/')) return `${API_URL}${url}`;
+  return `${API_URL}/${url}`;
+};
+
 export default function EventsPage() {
   const { user } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(2026);
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar'
+  const [viewMode, setViewMode] = useState('list');
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
-  // eslint-disable-next-line no-unused-vars
-  const [apiEvents, setApiEvents] = useState([]);
-  // eslint-disable-next-line no-unused-vars
+
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
   const [error, setError] = useState(null);
@@ -110,6 +39,10 @@ export default function EventsPage() {
         try {
           setLoading(true);
           const data = await eventsApi.getAll();
+          console.log('API Events Data:', data); // ✅ Debug log
+          if (data.length > 0) {
+            console.log('First event date format:', data[0].date); // ✅ Check date format
+          }
           setItems(data);
           setError(null);
         } catch (err) {
@@ -124,8 +57,45 @@ export default function EventsPage() {
       fetchEvents();
     }, []);
 
-  // // Use mock events for display (API events could be merged in future)
-  // const events = MOCK_EVENTS;
+  // ✅ Fix date format for calendar - handles both YYYY-MM-DD and MM/DD/YYYY
+  function formatDateForComparison(dateStr) {
+    if (!dateStr) return new Date();
+    
+    // If it's already a Date object, return it
+    if (dateStr instanceof Date) return dateStr;
+    
+    // If it's a string, parse it
+    if (typeof dateStr === 'string') {
+      // Check if it's YYYY-MM-DD format (from API)
+      if (dateStr.includes('-')) {
+        const [year, month, day] = dateStr.split('-');
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      }
+      
+      // Check if it's MM/DD/YYYY format
+      if (dateStr.includes('/')) {
+        const [month, day, year] = dateStr.split('/');
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      }
+      
+      console.warn('Invalid date format:', dateStr);
+      return new Date();
+    }
+    
+    return new Date();
+  }
+
+  // ✅ Separate championship event (last event chronologically)
+  const sortedEvents = [...items].sort((a, b) => {
+    const dateA = formatDateForComparison(a.date);
+    const dateB = formatDateForComparison(b.date);
+    return dateA - dateB;
+  });
+  const championshipEvent = sortedEvents.length > 0 ? sortedEvents[sortedEvents.length - 1] : null;
+  const regularEvents = sortedEvents.slice(0, -1);
+
+  // ✅ Check if event is championship
+  const isChampionship = (eventId) => championshipEvent && championshipEvent.id === eventId;
 
   const getDaysInMonth = (month, year) => {
     return new Date(year, month + 1, 0).getDate();
@@ -136,14 +106,16 @@ export default function EventsPage() {
   };
 
   const getEventsForDate = (day) => {
-    const backendDateStr = `${String(selectedMonth + 1).padStart(2, "0")}/${String(day).padStart(2, "0")}/${selectedYear}`;
-    return items.filter((event) => event.date === backendDateStr);
+    // Format: YYYY-MM-DD to match API format
+    const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    return items.filter((event) => event.date === dateStr);
   };
   
 
   const filteredEvents = items.filter(event => {
-    const eventDate = new Date(event.date);
-    return eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear;
+    const eventDate = formatDateForComparison(event.date);
+    const matchesMonth = eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear;
+    return matchesMonth; // ✅ Include championship in list view (with highlighting)
   });
 
   const handlePrevMonth = () => {
@@ -197,10 +169,11 @@ export default function EventsPage() {
           {events.map(event => (
             <div
               key={event.id}
-              className="calendar-event-dot"
+              className={`calendar-event-dot ${isChampionship(event.id) ? 'championship-event' : ''}`}
               onClick={() => openRegistration(event)}
               title={event.golf_course}
             >
+              {isChampionship(event.id) && <span className="trophy-small">🏆 </span>}
               {event.golf_course}
             </div>
           ))}
@@ -212,12 +185,16 @@ export default function EventsPage() {
   };
 
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <h1>Events & Calendar</h1>
-        <p className="page-subtitle">Browse upcoming tournaments and register for events</p>
+    <div className="events-page">
+      <div className="contact-hero">
+      <div className="hero-content-wrapper">
+        <div className="hero-overlay"></div>
+        <div className="hero-content-wrapper"></div>
+        <h1 className="contact-title">Events & Calendar</h1>
+        <p className="contact-subtitle">Browse upcoming tournaments and register for events</p>
+        </div>
       </div>
-
+      <div className="page-container">
       <div className="events-controls">
         <div className="view-toggle">
           <button
@@ -281,13 +258,26 @@ export default function EventsPage() {
               <p className="hint">Try browsing other months using the navigation above</p>
             </div>
           ) : (
+            // ✅ Show all events in list view (including championship with highlighting)
             filteredEvents.map(event => (
-              <div key={event.id} className="event-card">
-                <div className="event-image" style={{ backgroundImage: `url("https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=800")` }}></div>
+              <div 
+                key={event.id} 
+                className={`event-card ${isChampionship(event.id) ? 'championship-highlight' : ''}`}
+              >
+                {isChampionship(event.id) && (
+                  <div className="championship-badge-small">
+                    🏆 Championship Event
+                  </div>
+                )}
+                <div className="event-image" style={{
+                  backgroundImage: event.image_url 
+                    ? `url(${getFullImageUrl(event.image_url)})` 
+                    : 'url(https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=800)'
+                }}></div>
                 <div className="event-content">
                   <div className="event-date-badge">
-                    <span className="event-month">{MONTHS[new Date(event.date).getMonth()].slice(0, 3)}</span>
-                    <span className="event-day">{new Date(event.date).getDate()}</span>
+                    <span className="event-month">{MONTHS[formatDateForComparison(event.date).getMonth()].slice(0, 3)}</span>
+                    <span className="event-day">{formatDateForComparison(event.date).getDate()}</span>
                   </div>
                   <div className="event-details">
                     <h3>{event.golf_course}</h3>
@@ -296,14 +286,14 @@ export default function EventsPage() {
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="16" height="16">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        {event.start_time}
+                        {formatTime(event.start_time)}
                       </span>
                       <span className="event-location">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="16" height="16">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                         </svg>
-                        {event.township}
+                        {event.township}, {event.state}
                       </span>
                     </div>
                     <div className="event-footer">
@@ -311,18 +301,24 @@ export default function EventsPage() {
                         <div className="spots-bar">
                           <div
                             className="spots-filled"
-                            style={{ width: `${(event.registered / event.spots) * 100}%` }}
+                            style={{ width: `${(event.registered / event.capacity) * 100}%` }}
                           ></div>
                         </div>
-                        <span>{event.spots - event.registered} spots remaining</span>
+                        <span>{event.capacity - (event.registered || 0)} spots remaining</span>
                       </div>
                       <div className="event-actions">
-                        <span className="event-price">${event.price}</span>
+                      <div className="event-price">
+                          ${user 
+                            ? parseFloat(event.member_price).toFixed(2)
+                            : parseFloat(event.guest_price).toFixed(2)
+                          }
+                         
+                        </div>
                         <button
-                          className="register-btn"
+                          className={`register-btn ${isChampionship(event.id) ? 'championship-btn' : ''}`}
                           onClick={() => openRegistration(event)}
                         >
-                          Register Now
+                          {isChampionship(event.id) ? 'Register for Championship' : 'Register Now'}
                         </button>
                       </div>
                     </div>
@@ -345,13 +341,13 @@ export default function EventsPage() {
         <div className="empty-state">
           <p>{error}</p>
         </div>
-      ) : items.length > 0 ?  ( <>
+      ) : regularEvents.length > 0 ?  ( <>
           <div className="events-grid">
-          {items.map(event => (
+          {regularEvents.map(event => (
             <div key={event.id} className="event-card-compact">
               <div className="compact-date">
-                <span className="compact-month">{MONTHS[new Date(event.date).getMonth()].slice(0, 3)}</span>
-                <span className="compact-day">{new Date(event.date).getDate()}</span>
+                <span className="compact-month">{MONTHS[formatDateForComparison(event.date).getMonth()].slice(0, 3)}</span>
+                <span className="compact-day">{formatDateForComparison(event.date).getDate()}</span>
               </div>
               <div className="compact-info">
                 <h4>{event.golf_course}</h4>
@@ -396,6 +392,54 @@ export default function EventsPage() {
       )}
       </section>
 
+      {/* Championship Event Section */}
+      {championshipEvent && (
+        <section className="all-events-section">
+          <h2>🏆 Championship Event</h2>
+          <p className="section-subtitle">The final event of the season - compete for the championship title!</p>
+          <div className="events-grid">
+            <div className="event-card-compact championship-card-compact">
+              <div className="compact-date championship-date">
+                <span className="compact-month">{MONTHS[formatDateForComparison(championshipEvent.date).getMonth()].slice(0, 3)}</span>
+                <span className="compact-day">{formatDateForComparison(championshipEvent.date).getDate()}</span>
+              </div>
+              <div className="compact-info">
+                <h4>{championshipEvent.golf_course}</h4>
+                <p className="card-location">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    width="16"
+                    height="16"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+                    />
+                  </svg>
+                  {championshipEvent.township}, {championshipEvent.state}
+                </p>
+              </div>
+              <button
+                className="compact-register championship-register-btn"
+                onClick={() => openRegistration(championshipEvent)}
+              >
+                Register
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Registration Modal */}
       {showRegistrationModal && selectedEvent && (
         <EventRegistrationModal
@@ -404,6 +448,118 @@ export default function EventsPage() {
           onSuccess={closeRegistration}
         />
       )}
+   
+<style jsx>{`
+  /* Championship Highlights in List View */
+  .championship-highlight {
+    border: 2px solid #f59e0b;
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
+  }
+
+  .championship-badge-small {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    z-index: 2;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+  }
+
+  .championship-btn {
+    background: linear-gradient(135deg, #f59e0b, #f97316) !important;
+  }
+
+  .championship-btn:hover {
+    background: linear-gradient(135deg, #d97706, #ea580c) !important;
+  }
+
+  /* Championship Section at Bottom */
+  .section-subtitle {
+    color: var(--text-secondary);
+    margin: -0.5rem 0 1.5rem 0;
+    font-size: 1rem;
+  }
+
+  .championship-card-compact {
+    border: 2px solid #f59e0b;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(249, 115, 22, 0.05));
+    width: 470px;
+  }
+
+  .championship-date {
+    background: linear-gradient(135deg, #f59e0b, #fffcc6);
+  }
+
+  .championship-register-btn {
+    background: linear-gradient(135deg, #f59e0b, #fffcc6);
+  }
+
+  .championship-register-btn:hover {
+    background: linear-gradient(135deg, #d97706, #ea580c);
+  }
+
+  /* Championship in Calendar */
+  .championship-event {
+    background: linear-gradient(90deg, #fef3c7, #fed7aa);
+    border-left-color: #f59e0b;
+    color: #92400e;
+    font-weight: 600;
+  }
+
+  .trophy-small {
+    margin-right: 0.25rem;
+    font-size: 0.85rem;
+  }
+   
+  .message-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    animation: slideIn 0.3s ease-out;
+  }
+
+  .message-banner.error {
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+    color: #991b1b;
+  }
+
+  .message-banner.success {
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    color: #166534;
+  }
+
+  .message-banner svg {
+    flex-shrink: 0;
+  }
+
+  .message-banner span {
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`}</style>
+    </div>
     </div>
   );
+ 
 }

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { faqApi } from '../lib/api';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -8,20 +9,79 @@ export default function ContactPage() {
     message: ''
   });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Will be connected to backend later
-    alert('Thank you for your message! We will get back to you soon.');
-    setFormData({ name: '', email: '', subject: '', message: '' });
+  const [faqs, setFaqs] = useState([]);
+  const [loadingFaqs, setLoadingFaqs] = useState(true);
+
+  const [submitting, setSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState(null);
+  const [openFaq, setOpenFaq] = useState(null);
+
+  useEffect(() => {
+    fetchFaqs();
+  }, []);
+
+  const fetchFaqs = async () => {
+    try {
+      setLoadingFaqs(true);
+      const data = await faqApi.getAll();
+      console.log('Fetched FAQs:', data);
+      setFaqs(data);
+    } catch (err) {
+      console.error('Failed to load FAQs:', err);
+      setFaqs([]);
+    } finally {
+      setLoadingFaqs(false);
+    }
   };
 
-  return (
-    <div className="page-container">
-      <div className="page-header">
-        <h1>Contact Us</h1>
-        <p className="page-subtitle">Get in touch with the SAGA team</p>
-      </div>
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setSubmitStatus(null);
 
+    try {
+      // ✅ Send email via backend API
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/contact`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+
+      setSubmitStatus('success');
+      setFormData({ name: '', email: '', subject: '', message: '' });
+      
+      setTimeout(() => setSubmitStatus(null), 5000);
+    } catch (error) {
+      console.error('Contact form error:', error);
+      setSubmitStatus('error');
+      setTimeout(() => setSubmitStatus(null), 5000);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const toggleFaq = (index) => {
+    setOpenFaq(openFaq === index ? null : index);
+  };
+
+  
+  return (
+    <div className="contact-page">
+    <div className="events-hero">
+      <div className="hero-content-wrapper">
+        <div className="hero-overlay"></div>
+        <div className="hero-content-wrapper"></div>
+        <h1 className="events-title">Contact Us</h1>
+        <p className="events-subtitle">Get in touch with the SAGA team</p>
+        </div>
+      </div>
+    <div className="page-container">
       <div className="contact-layout">
         <div className="contact-info">
           <div className="info-card">
@@ -31,8 +91,10 @@ export default function ContactPage() {
               </svg>
             </div>
             <h3>Email</h3>
-            <p>info@sagagolf.org</p>
-            <p>membership@sagagolf.org</p>
+       
+            <a href="mailto:sagagolfevents@gmail.com" className="contact-link">
+              sagaevents@sagagolf.com
+            </a>
           </div>
 
           <div className="info-card">
@@ -42,8 +104,9 @@ export default function ContactPage() {
               </svg>
             </div>
             <h3>Phone</h3>
-            <p>(732) 555-SAGA</p>
-            <p>Mon - Fri: 9am - 5pm</p>
+            <a href="tel:+16095585079" className="contact-link">
+              (609) 558-5079
+            </a>
           </div>
 
           <div className="info-card">
@@ -54,35 +117,36 @@ export default function ContactPage() {
               </svg>
             </div>
             <h3>Location</h3>
-            <p>Central New Jersey</p>
             <p>Serving all of NJ</p>
           </div>
 
           <div className="social-links">
             <h3>Follow Us</h3>
             <div className="social-icons">
-              <button type="button" className="social-icon" aria-label="Facebook">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/>
-                </svg>
-              </button>
-              <button type="button" className="social-icon" aria-label="Instagram">
+            <a href="https://www.instagram.com/sagagolfofficial/" target="_blank" rel="noopener noreferrer" className="social-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
                   <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/>
                   <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
                 </svg>
-              </button>
-              <button type="button" className="social-icon" aria-label="Twitter">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/>
-                </svg>
-              </button>
+              </a>
             </div>
           </div>
         </div>
 
         <div className="contact-form-container">
+          {submitStatus === 'success' && (
+            <div className="form-message success-message">
+              ✅ Thank you for your message! We'll get back to you soon.
+            </div>
+          )}
+          
+          {submitStatus === 'error' && (
+            <div className="form-message error-message">
+              ❌ Failed to send message. Please try again or email us directly.
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="contact-form">
             <div className="form-group">
               <label htmlFor="name">Your Name</label>
@@ -93,6 +157,7 @@ export default function ContactPage() {
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
                 required
                 placeholder="John Doe"
+                disabled={submitting}
               />
             </div>
 
@@ -105,6 +170,7 @@ export default function ContactPage() {
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                 required
                 placeholder="john@example.com"
+                disabled={submitting}
               />
             </div>
 
@@ -115,12 +181,13 @@ export default function ContactPage() {
                 value={formData.subject}
                 onChange={(e) => setFormData({...formData, subject: e.target.value})}
                 required
+                disabled={submitting}
               >
                 <option value="">Select a subject...</option>
-                <option value="membership">Membership Inquiry</option>
-                <option value="events">Event Information</option>
-                <option value="sponsorship">Sponsorship Opportunities</option>
-                <option value="general">General Question</option>
+                <option value="membership inquiry">Membership Inquiry</option>
+                <option value="event information">Event Information</option>
+                <option value="sponsorship opportunities">Sponsorship Opportunities</option>
+                <option value="general question">General Question</option>
                 <option value="feedback">Feedback</option>
               </select>
             </div>
@@ -134,11 +201,12 @@ export default function ContactPage() {
                 required
                 placeholder="How can we help you?"
                 rows="5"
+                disabled={submitting}
               />
             </div>
 
-            <button type="submit" className="submit-btn">
-              Send Message
+            <button type="submit" className="submit-btn" disabled={submitting}>
+              {submitting ? 'Sending...' : 'Send Message'}
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="20" height="20">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
               </svg>
@@ -147,27 +215,183 @@ export default function ContactPage() {
         </div>
       </div>
 
+      
       <section className="faq-section">
         <h2>Frequently Asked Questions</h2>
-        <div className="faq-grid">
-          <div className="faq-item">
-            <h4>How do I become a SAGA member?</h4>
-            <p>Simply sign up on our website and join any of our events. Annual membership is available after participating in your first tournament.</p>
+        
+        {loadingFaqs ? (
+          <div className="faq-loading">
+            <div className="spinner"></div>
+            <p>Loading FAQs...</p>
           </div>
-          <div className="faq-item">
-            <h4>What is the skill level required?</h4>
-            <p>All skill levels are welcome! We have flights for every handicap level, from beginners to scratch golfers.</p>
+        ) : faqs.length === 0 ? (
+          <div className="faq-empty">
+            <p>No FAQs available at this time.</p>
           </div>
-          <div className="faq-item">
-            <h4>How are events priced?</h4>
-            <p>Event fees typically range from $85-$175 and include green fees, cart, prizes, and often meals.</p>
+        ) : (
+          <div className="faq-accordion">
+            {faqs.map((faq) => (
+              <div 
+                key={faq.id} 
+                className={`faq-item ${openFaq === faq.id ? 'open' : ''}`}
+              >
+                <button
+                  className="faq-question"
+                  onClick={() => toggleFaq(faq.id)}
+                  aria-expanded={openFaq === faq.id}
+                >
+                  <h4>{faq.question}</h4>
+                  <svg 
+                    className="faq-icon"
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="20" 
+                    height="20" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2"
+                  >
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+                <div className="faq-answer">
+                  <p>{faq.answer}</p>
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="faq-item">
-            <h4>Can I bring guests to events?</h4>
-            <p>Guests are welcome at most events, subject to availability.</p>
-          </div>
-        </div>
+        )}
       </section>
+
+      <style jsx>{`
+        /* Contact Link Styles */
+        .contact-link {
+          color: var(--primary);
+          text-decoration: none;
+          font-weight: 500;
+          transition: all 0.2s ease;
+        }
+
+        .contact-link:hover {
+          color: var(--primary-dark);
+          text-decoration: underline;
+        }
+
+        /* Form Messages */
+        .form-message {
+          padding: 1rem 1.5rem;
+          border-radius: var(--radius);
+          margin-bottom: 1.5rem;
+          font-weight: 500;
+        }
+
+        .success-message {
+          background: #d1fae5;
+          color: #065f46;
+          border: 1px solid #6ee7b7;
+        }
+
+        .error-message {
+          background: #fee2e2;
+          color: #991b1b;
+          border: 1px solid #fca5a5;
+        }
+
+        .submit-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        /* Collapsible FAQ Styles */
+        .faq-loading,
+        .faq-empty {
+          text-align: center;
+          padding: 2rem;
+          color: #6b7280;
+          font-size: 1rem;
+        }
+
+        .faq-list {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .faq-item {
+          background: white;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          overflow: hidden;
+          transition: all 0.3s ease;
+        }
+
+        .faq-item:hover {
+          box-shadow: var(--shadow-md);
+        }
+
+        .faq-question {
+          width: 100%;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1.25rem 1.5rem;
+          background: white;
+          border: none;
+          cursor: pointer;
+          text-align: left;
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          transition: all 0.2s ease;
+        }
+
+        .faq-question:hover {
+          background: var(--border-light);
+        }
+
+        .faq-icon {
+          flex-shrink: 0;
+          transition: transform 0.3s ease;
+          color: var(--primary);
+        }
+
+        .faq-item.open .faq-icon {
+          transform: rotate(180deg);
+        }
+
+        .faq-answer {
+          max-height: 0;
+          overflow: hidden;
+          transition: max-height 0.3s ease, padding 0.3s ease;
+        }
+
+        .faq-item.open .faq-answer {
+          max-height: 500px;
+          padding: 1rem 1.5rem 1.25rem 1.5rem;
+        }
+
+        .faq-answer p {
+          margin: 0;
+          color: var(--text-secondary);
+          line-height: 1.7;
+        }
+
+       
+
+        @media (max-width: 768px) {
+          .faq-question {
+            font-size: 0.95rem;
+            padding: 1rem 1.25rem;
+          }
+
+          .faq-item.open .faq-answer {
+            padding: 0 1.25rem 1rem 1.25rem;
+          }
+
+        }
+
+      `}</style>
+    </div>
     </div>
   );
 }
