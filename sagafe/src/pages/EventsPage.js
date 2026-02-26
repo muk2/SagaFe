@@ -33,8 +33,6 @@ export default function EventsPage() {
   const [items, setItems] = useState([]);
   const [error, setError] = useState(null);
 
-  const [errorModal, setErrorModal] = useState({ show: false, message: '', type: 'error' });
-
   // Fetch events from API on mount
   useEffect(() => {
       const fetchEvents = async () => {
@@ -96,25 +94,6 @@ export default function EventsPage() {
   const championshipEvent = sortedEvents.length > 0 ? sortedEvents[sortedEvents.length - 1] : null;
   const regularEvents = sortedEvents.slice(0, -1);
 
-  const formatPhoneNumber = (value) => {
-    // Remove all non-digits
-    const phoneNumber = value.replace(/\D/g, '');
-    
-    // Format as (555) 555-5555
-    if (phoneNumber.length <= 3) {
-      return phoneNumber;
-    } else if (phoneNumber.length <= 6) {
-      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
-    } else {
-      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
-    }
-  };
-  
-  const handlePhoneChange = (e) => {
-    const formatted = formatPhoneNumber(e.target.value);
-    setRegistrationForm({ ...registrationForm, phone: formatted });
-  };
-
   // ✅ Check if event is championship
   const isChampionship = (eventId) => championshipEvent && championshipEvent.id === eventId;
 
@@ -159,151 +138,12 @@ export default function EventsPage() {
 
   const openRegistration = (event) => {
     setSelectedEvent(event);
-    // Auto-populate form if user is logged in
-    if (user) {
-      setRegistrationForm({
-        name: `${user.first_name} ${user.last_name}`,
-        email: user.email,
-        phone: user.phone_number || '',
-        handicap: user.handicap || ''
-      });
-    } else {
-      // Reset form for guests
-      setRegistrationForm({
-        name: '',
-        email: '',
-        phone: '',
-        handicap: ''
-      });
-    }
     setShowRegistrationModal(true);
   };
 
   const closeRegistration = () => {
     setShowRegistrationModal(false);
     setSelectedEvent(null);
-    setRegistrationForm({ name: '', email: '', phone: '', handicap: '' });
-  };
-
-  const handleHandicapChange = (e) => {
-    const value = e.target.value;
-    
-    if (value === '') {
-      setRegistrationForm({ ...registrationForm, handicap: value });
-      return;
-    }
-    
-    const regex = /^-?\d*\.?\d{0,1}$/;
-    
-    if (regex.test(value)) {
-      const numValue = parseFloat(value);
-      
-      // Allow partial inputs while typing
-      if (value === '-' || value === '.' || value.endsWith('.')) {
-        setRegistrationForm({ ...registrationForm, handicap: value });
-      }
-      // Check range for complete numbers
-      else if (!isNaN(numValue) && numValue >= -10 && numValue <= 30) {
-        setRegistrationForm({ ...registrationForm, handicap: value });
-      }
-    }
-  };
-
-  const handleRegistrationSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!selectedEvent) return;
-
-    let cleanHandicap = registrationForm.handicap?.trim() || "0";
-
-    // Remove trailing dot: "12." becomes "12"
-    if (cleanHandicap.endsWith('.')) {
-      cleanHandicap = cleanHandicap.slice(0, -1);
-    }
-
-    // Handle edge cases
-    if (cleanHandicap === '' || cleanHandicap === '.' || cleanHandicap === '-') {
-      cleanHandicap = "0";
-    }
-
-    // Validate range
-    const numValue = parseFloat(cleanHandicap);
-    if (numValue < -10 || numValue > 30) {
-      setErrorModal({
-        show: true,
-        type: 'error',
-        message: 'Handicap must be between -10 and 30'
-      });
-
-      return;  // Stop submission
-
-    }
-
-
-    try {
-      // Prepare registration data
-      const registrationData = {
-        event_id: selectedEvent.id,
-        name: registrationForm.name,
-        email: registrationForm.email,
-        phone: registrationForm.phone,
-        handicap: cleanHandicap
-      };
-
-      if (!user) {
-        const nameParts = registrationForm.name.trim().split(' ');
-        const firstName = nameParts[0];
-        const lastName = nameParts.slice(1).join(' ') || firstName; // Use first name as last if no last name
-        
-        registrationData.first_name = firstName;
-        registrationData.last_name = lastName;
-      }
-
-      // Submit registration to backend
-      await api.post('/api/events/register', registrationData);
-      setErrorModal({
-        show: true,
-        type: 'success',
-        message: 'Registration successful!'
-      });
-      
-      setRegistrationForm({ name: '', email: '', phone: '', handicap: '' });
-
-      setTimeout(() => {
-        closeRegistration();
-        setErrorModal({ show: false, message: '', type: 'error' });
-        eventsApi.getAll().then(data => setItems(data));
-      }, 4500);
-
-     
-      const data = await eventsApi.getAll();
-      setItems(data);
-    } catch (err) {
-      let errorMessage = 'Failed to register for event. Please try again.';
-    
-    if (err.response?.data?.detail) {
-      const detail = err.response.data.detail;
-      
-      if (detail.includes('already registered')) {
-        errorMessage = 'You are already registered for this event. Please check your email for confirmation.';
-      } else if (detail.includes('full capacity')) {
-        errorMessage = 'Sorry, this event is at full capacity. Registration is closed.';
-      } else if (detail.includes('First name and last name')) {
-        errorMessage = 'Please enter your full name to register.';
-      } else {
-        errorMessage = detail;
-      }
-    } else if (err.message) {
-      errorMessage = err.message;
-    }
-    
-    
-    setErrorModal({
-      show: true,
-      type: 'error',
-      message: errorMessage
-    });
-  }
   };
 
   const renderCalendar = () => {
@@ -607,134 +447,6 @@ export default function EventsPage() {
           onClose={closeRegistration}
           onSuccess={closeRegistration}
         />
-       {showRegistrationModal && selectedEvent && (
-        <div className="modal-overlay" onClick={closeRegistration}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={closeRegistration}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="24" height="24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <div className="modal-header">
-              <h2>Register for Event</h2>
-              <p>{selectedEvent.golf_course}</p>
-            </div>
-            <div className="modal-event-info">
-              <div className="info-row">
-                <span className="info-label">Date:</span>
-                <span>{formatDateForComparison(selectedEvent.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-              </div>
-              <div className="info-row">
-                <span className="info-label">Time:</span>
-                <span>{formatTime(selectedEvent.start_time)}</span>
-              </div>
-              <div className="info-row">
-                <span className="info-label">Location:</span>
-                <span>{selectedEvent.township}, {selectedEvent.state}</span>
-              </div>
-              <div className="info-row">
-                <span className="info-label">Price:</span>
-                <span className="price-highlight">
-                  ${user 
-                    ? parseFloat(selectedEvent.member_price || selectedEvent.guest_price).toFixed(2)
-                    : parseFloat(selectedEvent.guest_price).toFixed(2)
-                  }
-                  {user && <span style={{ fontSize: '0.8rem', color: '#0d9488', marginLeft: '0.5rem' }}>(Member Price)</span>}
-                  {!user && <span style={{ fontSize: '0.8rem', color: '#0366b0', marginLeft: '0.5rem' }}>(Guest Price)</span>}
-                </span>
-              </div>
-            </div>
-            <form onSubmit={handleRegistrationSubmit} className="registration-form">
-              <div className="form-group">
-                <label htmlFor="name">Full Name *</label>
-                <input
-                  type="text"
-                  id="name"
-                  value={registrationForm.name}
-                  onChange={(e) => setRegistrationForm({...registrationForm, name: e.target.value})}
-                  required
-                  disabled={!!user}
-                  placeholder="Enter your full name"
-                />
-                {!user && (
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem', display: 'block' }}>
-                    Enter your first and last name
-                  </span>
-                )}
-              </div>
-              <div className="form-group">
-                <label htmlFor="email">Email Address *</label>
-                <input
-                  type="email"
-                  id="email"
-                  value={registrationForm.email}
-                  onChange={(e) => setRegistrationForm({...registrationForm, email: e.target.value})}
-                  required
-                  disabled={!!user}
-                  placeholder="Enter your email"
-                />
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="phone">Phone Number *</label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    value={registrationForm.phone}
-                    onChange= {handlePhoneChange}
-                    
-                    required
-                    placeholder="(555) 555-5555"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="handicap">Golf Handicap</label>
-                  <input
-                    type="text"
-                    id="handicap"
-                    value={registrationForm.handicap}
-                    onChange={handleHandicapChange}
-                    placeholder="e.g., 12"
-                    inputMode="decimal"
-                  />
-                </div>
-              </div>
-              
-              {!user && (
-                <div style={{ 
-                  background: '#fef3c7', 
-                  padding: '0.75rem', 
-                  borderRadius: '6px', 
-                  fontSize: '0.875rem', 
-                  color: '#92400e',
-                  marginBottom: '1rem'
-                }}>
-                  <strong>Note:</strong> Members receive discounted pricing. <a href="/signup" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Sign up here</a>
-                </div>
-              )}
-               {errorModal.show && (
-  <div className={`message-banner ${errorModal.type}`}>
-    {errorModal.type === 'error' ? (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="20" height="20">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-      </svg>
-    ) : (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="20" height="20">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    )}
-    <span>{errorModal.message}</span>
-  </div>
-)}
-              <button type="submit" className="submit-registration">
-                Complete Registration - ${user 
-                  ? parseFloat(selectedEvent.member_price || selectedEvent.guest_price).toFixed(2)
-                  : parseFloat(selectedEvent.guest_price).toFixed(2)
-                }
-              </button>
-            </form>
-          </div>
-        </div>
       )}
    
 <style jsx>{`

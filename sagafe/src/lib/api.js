@@ -361,6 +361,10 @@ export const adminApi = {
    */
   deactivateMembershipTier: async (tierId) => {
     return api.delete(`/api/admin/membership-tiers/${tierId}`);
+  },
+};
+
+/**
  * Users API methods (for admin)
  */
 export const usersApi = {
