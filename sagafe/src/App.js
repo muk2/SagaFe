@@ -12,6 +12,8 @@ import ContactPage from "./pages/ContactPage.js";
 import SagaTourPage from "./pages/SagatourPage.js";
 import DashboardPage from "./pages/DashboardPage.js";
 import GuestRegistrationPage from "./pages/GuestRegistrationPage.js";
+import MembershipPage from "./pages/MembershipPage.js";
+import PaymentHistoryPage from "./pages/PaymentHistoryPage.js";
 import EventRegistrationModal from "./components/EventRegistrationModal.js";
 import AdminDashboard from "./pages/AdminDashboard.js";
 import ScholarshipsPage from "./pages/ScholarshipPage.js";
@@ -75,6 +77,14 @@ export function App() {
         <Route
           path="/guest-registration"
           element={<GuestRegistrationPage />}
+        />
+        <Route
+          path="/membership"
+          element={<ProtectedRoute><MembershipPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/payments"
+          element={<ProtectedRoute><PaymentHistoryPage /></ProtectedRoute>}
         />
       </Routes>
 
@@ -172,6 +182,8 @@ function Header() {
                   <small>{user.role}</small>
                 </div>
                 <button onClick={() => { navigate("/dashboard"); setMenuOpen(false); }}>Dashboard</button>
+                <button onClick={() => { navigate("/membership"); setMenuOpen(false); }}>Membership</button>
+                <button onClick={() => { navigate("/payments"); setMenuOpen(false); }}>Payment History</button>
                 {isAdmin() && (
                   <button onClick={() => { navigate("/admin"); setMenuOpen(false); }} className="admin-menu-item">
                     Admin Dashboard
