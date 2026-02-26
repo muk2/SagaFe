@@ -11,6 +11,7 @@ import PhotosPage from "./pages/PhotosPage.js";
 import ContactPage from "./pages/ContactPage.js";
 import SagaTourPage from "./pages/SagatourPage.js";
 import DashboardPage from "./pages/DashboardPage.js";
+import GuestRegistrationPage from "./pages/GuestRegistrationPage.js";
 import EventRegistrationModal from "./components/EventRegistrationModal.js";
 import AdminDashboard from "./pages/AdminDashboard.js";
 import ScholarshipsPage from "./pages/ScholarshipPage.js";
@@ -70,6 +71,10 @@ export function App() {
         <Route
           path="/reset-password"
           element={<ResetPasswordPage />}
+        />
+        <Route
+          path="/guest-registration"
+          element={<GuestRegistrationPage />}
         />
       </Routes>
 
