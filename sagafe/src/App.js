@@ -374,16 +374,6 @@ export function ItemList() {
   const REGULAR_ITEMS_PER_SLIDE = 3; // ✅ Changed from 4 to 3
 
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
-
-  const openRegistration = (event) => {
-    setSelectedEvent(event);
-    setShowRegistrationModal(true);
-  };
-
-  const closeRegistration = () => {
-    setShowRegistrationModal(false);
-    setSelectedEvent(null);
   const [registrationForm, setRegistrationForm] = useState({
     name: '',
     email: '',
