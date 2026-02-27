@@ -25,12 +25,15 @@ export default function AboutPage() {
               has evolved into a global network built on competition, connection, and respect for the sport.
             </p>
             <p>
-              SAGA is also part of the <strong>SAGA Foundation</strong>: a 501(c)(3) nonprofit organization 
+              SAGA is also part of the <strong>SAGA Foundation*</strong>: a 501(c)(3) nonprofit organization 
               dedicated to promoting health, life skills, and inclusion through golf, with a special focus 
               on youth and women. Our work includes organizing tournaments and leagues, hosting training 
               clinics and camps, and awarding college scholarships to support the next generation of 
               student golfers.
             </p>
+            <p className="footnote">
+  * SAGA Foundation formed as a 501(c)(3) and all the proceeds will now benefit the foundation.
+</p>
           </div>
 
           <div className="core-values">
@@ -263,6 +266,15 @@ export default function AboutPage() {
           border-radius: 12px;
           border-left: 4px solid var(--primary);
         }
+
+        .footnote {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-style: italic;
+}
 
         @media (max-width: 1024px) {
           .values-grid {

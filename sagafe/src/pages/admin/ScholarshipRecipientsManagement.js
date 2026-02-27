@@ -12,7 +12,6 @@ const ScholarshipRecipientsManagement = () => {
   const [formData, setFormData] = useState({
     full_name: '',
     year: new Date().getFullYear(),
-    bio: '',
     display_order: 0,
   });
 
@@ -47,7 +46,6 @@ const ScholarshipRecipientsManagement = () => {
       const dataToSend = {
         full_name: formData.full_name,
         year: parseInt(formData.year),
-        bio: formData.bio || null,
         display_order: parseInt(formData.display_order) || 0,
       };
 
@@ -72,7 +70,6 @@ const ScholarshipRecipientsManagement = () => {
     setFormData({
       full_name: recipient.full_name,
       year: recipient.year,
-      bio: recipient.bio || '',
       display_order: recipient.display_order || 0,
     });
     setShowForm(true);
@@ -143,7 +140,6 @@ const ScholarshipRecipientsManagement = () => {
     setFormData({
       full_name: '',
       year: new Date().getFullYear(),
-      bio: '',
       display_order: 0,
     });
   };
@@ -211,17 +207,6 @@ const ScholarshipRecipientsManagement = () => {
               </div>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="bio">Bio (optional)</label>
-              <textarea
-                id="bio"
-                name="bio"
-                value={formData.bio}
-                onChange={handleInputChange}
-                rows="4"
-                placeholder="Brief background about the recipient, their achievements, and future plans..."
-              />
-            </div>
 
             <div className="form-actions">
               <button type="submit" className="btn-primary">
@@ -281,7 +266,6 @@ const ScholarshipRecipientsManagement = () => {
                         <div className="recipient-info">
                           <h4>{recipient.full_name}</h4>
                           <p className="recipient-year">Class of {recipient.year}</p>
-                          {recipient.bio && <p className="recipient-bio">{recipient.bio}</p>}
                         </div>
 
                         <div className="recipient-actions">
@@ -521,11 +505,6 @@ const ScholarshipRecipientsManagement = () => {
           margin: 0 0 0.75rem 0;
         }
 
-        .recipient-bio {
-          margin: 0;
-          color: var(--text-secondary);
-          line-height: 1.6;
-        }
 
         .recipient-actions {
           display: flex;

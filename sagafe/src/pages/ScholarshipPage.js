@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { scholarshipRecipientsApi } from '../lib/api';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export default function ScholarshipsPage() {
   const [activeSection, setActiveSection] = useState('overview');
@@ -400,7 +399,6 @@ export default function ScholarshipsPage() {
                       <div key={recipient.id} className="winner-card">
                         <h4>{recipient.full_name}</h4>
                         <p className="winner-year-label">Class of {recipient.year}</p>
-                        {recipient.bio && <p className="winner-bio">{recipient.bio}</p>}
                       </div>
                     ))}
                   </div>
@@ -745,12 +743,7 @@ export default function ScholarshipsPage() {
           margin: 0 0 0.5rem 0;
         }
 
-        .winner-bio {
-          margin: 0;
-          color: var(--text-secondary);
-          line-height: 1.4;
-          font-size: 0.8rem;
-        }
+        
 
         .winners-year-title {
           font-size: 1.75rem;

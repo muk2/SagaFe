@@ -9,6 +9,11 @@ export default function SagaTourPage() {
       const sections = [
         'overview',
         'teams',
+        'captains',
+        'eligibility',
+        'scoring',
+        'reset-points',
+        'handicaps',
         'season-play',
         'makeup-rounds',
         'awards',
@@ -51,6 +56,11 @@ export default function SagaTourPage() {
   const tocItems = [
     { id: 'overview', label: 'Overview' },
     { id: 'teams', label: 'Teams' },
+    { id: 'captains', label: 'Captain Responsibilities' },
+    { id: 'eligibility', label: 'Signing Up & Eligibility' },
+    { id: 'scoring', label: 'Scoring - Regular Season' },
+    { id: 'reset-points', label: 'Reset Points' },
+    { id: 'handicaps', label: 'Handicaps' },
     { id: 'season-play', label: 'Season Play & Rounds' },
     { id: 'makeup-rounds', label: 'Makeup Rounds' },
     { id: 'awards', label: 'Awards Overview' },
@@ -113,6 +123,7 @@ export default function SagaTourPage() {
                     <h3>Linksmen</h3>
                     <div className="team-color-circle"></div>
                   </div>
+                  <p className="captain-name"><strong>Captain:</strong> Niraj Desai</p>
                 </div>
 
                 <div className="team-card brunswick">
@@ -121,7 +132,160 @@ export default function SagaTourPage() {
                     <h3>Brunswick</h3>
                     <div className="team-color-circle"></div>
                   </div>
+                  <p className="captain-name"><strong>Captain:</strong> Sanjay Seth</p>
                 </div>
+              </div>
+            </section>
+
+            {/* Captain Responsibilities */}
+            <section id="captains" className="tour-section">
+              <h2>Captain Responsibilities</h2>
+              
+              <div className="content-card">
+                <h4>Player Signups & Responsibilities</h4>
+                <ul className="info-list">
+                  <li>Promote SAGA within your club and encourage eligible members to sign up</li>
+                  <li>Be able to vouch for all players registering from your club and confirm eligibility</li>
+                  <li>Ensure all players join the SAGA WhatsApp group</li>
+                  <li>Make sure all players understand and agree to abide by SAGA's four cornerstones</li>
+                </ul>
+              </div>
+
+              <div className="content-card">
+                <h4>Working with the SAGA Board & Executive Committee</h4>
+                <ul className="info-list">
+                  <li>Conduct regular round matches in alignment with the SAGA calendar, rules, and formats</li>
+                  <li>Serve as the primary rules official onsite during SAGA rounds</li>
+                  <li>Send regular SAGA communications to your chapter members</li>
+                  <li>Submit scores for all regular round matches that are held</li>
+                  <li>Maintain a chapter-level leaderboard</li>
+                  <li>Select an 8-player team to compete in the UHC Cup</li>
+                </ul>
+              </div>
+
+              <div className="content-card">
+                <h4>Club Eligibility Requirements</h4>
+                <ul className="info-list">
+                  <li>The club must have a minimum of 10 members interested in signing up for SAGA</li>
+                  <li>All players must have an active USGA handicap and meet USGA eligibility requirements, including having played golf for several years</li>
+                  <li>All members must agree to abide by the four cornerstones of SAGA</li>
+                </ul>
+              </div>
+            </section>
+
+            {/* Signing Up & Eligibility */}
+            <section id="eligibility" className="tour-section">
+              <h2>Signing Up & Eligibility</h2>
+              
+              <div className="content-card">
+                <h4>How to Sign Up</h4>
+                <ul className="info-list">
+                  <li>If golfers are not affiliated with any of the member clubs, they should sign up as part of the <strong>Linksmen Chapter</strong></li>
+                  <li>If golfers are members of one of the member clubs, they should sign up for that chapter</li>
+                  <li>Sign up with your team captain (see Teams section above)</li>
+                </ul>
+              </div>
+
+              <div className="content-card">
+                <h4>Membership Fees</h4>
+                <div className="fees-grid">
+                  <div className="fee-item">
+                    <span className="fee-label">Linksmen Chapter</span>
+                    <span className="fee-amount">$350/year</span>
+                  </div>
+                  <div className="fee-item">
+                    <span className="fee-label">Other Clubs</span>
+                    <span className="fee-amount">$250/year</span>
+                  </div>
+                  <div className="fee-item">
+                    <span className="fee-label">Young Golfers (Under 27)</span>
+                    <span className="fee-amount">$200/year</span>
+                  </div>
+                  <div className="fee-item special">
+                    <span className="fee-label">Student of Member Parent<br />(High School/College)</span>
+                    <span className="fee-amount">FREE</span>
+                  </div>
+                </div>
+                
+                <div className="highlight-box">
+                  <p><strong>Monthly Round Fees:</strong> $125 per person</p>
+                  <p><strong>SAGA-Linksmen Round Fee:</strong> $115 per round for the SAGA round</p>
+                </div>
+              </div>
+
+              <div className="content-card">
+                <h4>Eligibility Requirements</h4>
+                <ul className="checklist">
+                  <li>Must have a valid USGA handicap</li>
+                  <li>Must be sponsored by an existing SAGA member or one of the Captains</li>
+                </ul>
+                
+                <div className="note-box">
+                  <p><strong>Note:</strong> The Chairman does have the ability to veto anyone's membership</p>
+                  <p><strong>SAGA Ryder Cup</strong> is only for active SAGA Members</p>
+                </div>
+              </div>
+            </section>
+
+            {/* Scoring - Regular Season */}
+            <section id="scoring" className="tour-section">
+              <h2>Scoring - Regular Season</h2>
+              
+              <div className="content-card">
+                <ul className="info-list">
+                  <li>There will be <strong>7 Regular Season Rounds</strong> held at host club or regular round locations determined by SAGA for Linksmen chapter</li>
+                  <li><strong>1 COMMON Leaderboard</strong> will be maintained</li>
+                  <li>Score of <strong>Best 5 rounds out of 7</strong> Regular Season will determine Regular Season leaderboards</li>
+                  <li>At the end of Regular Season, depending on number of signups – a set number of golfers will advance to the Playoffs / Finals</li>
+                  <li>Flights will be determined, based on player's handicaps, from the common leaderboard and RESET points will be awarded for players advancing (FedEx Cup style)</li>
+                  <li>Each round yardage will be approximately <strong>6,200 yards</strong>. The regular season will be played from one common tee</li>
+                  <li><strong>No minimum rounds are required to qualify</strong></li>
+                </ul>
+              </div>
+            </section>
+
+            {/* Reset Points */}
+            <section id="reset-points" className="tour-section">
+              <h2>Reset Points</h2>
+              
+              <div className="content-card">
+                <p>Upon the conclusion of the Regular Season:</p>
+                <ul className="info-list">
+                  <li>Players will be divided into <strong>3 flights</strong></li>
+                  <li>Reset points (FedEx Cup Style) will be awarded to each player in their flight depending on how they did in their <strong>BEST 5 GAMES</strong> of the regular season</li>
+                </ul>
+                
+                <div className="formula-box">
+                  <p className="formula">
+                    <strong>Points System:</strong> Similar to the FedEx Cup, higher regular season performance earns more reset points entering the playoffs
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Handicaps */}
+            <section id="handicaps" className="tour-section">
+              <h2>Handicaps</h2>
+              
+              <div className="content-card">
+                <h4>GHIN Handicap System</h4>
+                <ul className="info-list">
+                  <li>All SAGA Tour participants will get a <strong>valid GHIN handicap in 2025</strong> as part of the registration fees, ensuring transparency</li>
+                  <li>A <strong>maximum handicap of 26</strong> at the beginning of the tournament is required for all participants</li>
+                  <li>For tournament purposes, Handicaps will be calculated at <strong>90% of the GHIN handicap</strong></li>
+                </ul>
+              </div>
+
+              <div className="content-card">
+                <h4>Posting Requirements</h4>
+                <ul className="info-list">
+                  <li>All scores should be posted <strong>regardless of where and when you played</strong> (not only SAGA Scores)</li>
+                  <li><strong>'NET' double bogey</strong> is the max score per hole under the new WHS (World Handicap System)</li>
+                </ul>
+              </div>
+
+              <div className="highlight-box important">
+                <p><strong>⚠️ Important:</strong> THE EXECUTIVE COMMITTEE WILL REVIEW AND DETERMINE EACH PLAYER'S FINAL HANDICAP FOR TOURNAMENT PLAY</p>
               </div>
             </section>
 
@@ -278,7 +442,7 @@ export default function SagaTourPage() {
                 <div className="note-box">
                   <p>
                     <strong>Note:</strong> This is designed to bring competition to those who 
-                    are not in the hunt on the day of the finals. This can happen for many reasons.
+                    are not in the hunt on the day of the finals.
                   </p>
                 </div>
 
@@ -461,6 +625,7 @@ export default function SagaTourPage() {
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
+        
         .team-card:hover {
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
           transform: translateY(-4px);
@@ -484,6 +649,7 @@ export default function SagaTourPage() {
           color: #111827;
         }
 
+        
         /* Brunswick - Red Team */
         .team-card.brunswick {
           background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
@@ -802,6 +968,50 @@ export default function SagaTourPage() {
         font-size: 1.25rem;
         color: rgba(255, 255, 255, 0.9);
         margin: 0 0 1.5rem 0;
+        }
+
+         /* Fees Grid */
+        .fees-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 1rem;
+          margin: 1.5rem 0;
+        }
+
+        .fee-item {
+          background: white;
+          border: 2px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 1.25rem;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          transition: all 0.2s;
+        }
+
+        .fee-item:hover {
+          border-color: var(--primary);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .fee-item.special {
+          background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+          border-color: #86efac;
+        }
+
+        .fee-label {
+          font-weight: 500;
+          color: var(--text-primary);
+        }
+
+        .fee-amount {
+          font-weight: 700;
+          font-size: 1.25rem;
+          color: var(--primary);
+        }
+
+        .fee-item.special .fee-amount {
+          color: #059669;
         }
 
         @media (max-width: 768px) {

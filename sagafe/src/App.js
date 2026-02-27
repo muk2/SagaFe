@@ -686,14 +686,7 @@ export function ItemList() {
     </div>
   )}
 </div>
-//Merge with the below  form
-{showRegistrationModal && selectedEvent && (
-            <EventRegistrationModal
-              event={selectedEvent}
-              onClose={closeRegistration}
-              onSuccess={closeRegistration}
-            />
-          )}
+
           
           
           
