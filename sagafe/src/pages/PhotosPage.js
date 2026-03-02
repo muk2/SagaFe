@@ -27,7 +27,9 @@ export default function PhotosPage() {
   };
 
   const formatDate = (dateStr) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('T')[0].split('-');
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'

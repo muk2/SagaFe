@@ -35,19 +35,13 @@ const EventRegistrations = () => {
       setError(null);
       const data = await eventsApi.getAll();
       
-      // Sort: upcoming events first (by earliest date), then past events
       const now = new Date();
       const sortedEvents = data.sort((a, b) => {
         const dateA = new Date(a.date);
         const dateB = new Date(b.date);
-        
         const isAUpcoming = dateA >= now;
         const isBUpcoming = dateB >= now;
-        
-        if (isAUpcoming === isBUpcoming) {
-          return dateA - dateB;
-        }
-        
+        if (isAUpcoming === isBUpcoming) return dateA - dateB;
         return isAUpcoming ? -1 : 1;
       });
       
@@ -69,7 +63,6 @@ const EventRegistrations = () => {
       setLoadingRegistrations(true);
       setError(null);
       const data = await usersApi.getEventRegistrations(eventId);
-      console.log('Registrations data:', data); // ✅ Debug log
       setRegistrations(data);
     } catch (err) {
       setError(err.message || 'Failed to load registrations');
@@ -97,12 +90,7 @@ const EventRegistrations = () => {
     try {
       setDeletingId(registration.id);
       await usersApi.deleteEventRegistration(registration.id);
-      
-      // Remove from local state
-      setRegistrations(prevRegs => 
-        prevRegs.filter(reg => reg.id !== registration.id)
-      );
-      
+      setRegistrations(prevRegs => prevRegs.filter(reg => reg.id !== registration.id));
       setSuccessMessage(`Successfully removed ${userName} from the event`);
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
@@ -113,20 +101,20 @@ const EventRegistrations = () => {
     }
   };
 
-  // ✅ Updated CSV export with membership column
   const exportToCSV = () => {
     if (registrations.length === 0) {
       alert('No registrations to export');
       return;
     }
   
-    const headers = ['Name', 'Email', 'Phone', 'Handicap', 'Membership', 'Registration Date'];
+    const headers = ['Name', 'Email', 'Phone', 'Handicap', 'Membership', 'Company', 'Registration Date'];
     const rows = registrations.map(reg => [
       reg.user_name || 'Unknown',
       reg.email,
       reg.phone || reg.phone_number || 'N/A',
       reg.handicap || reg.golf_handicap || 'N/A',
-      (reg.membership || 'guest').toUpperCase(),  
+      (reg.membership || 'guest').toUpperCase(),
+      reg.is_sponsor ? (reg.company_name || 'N/A') : '',
       formatToEastern(reg.created_at),
     ]);
   
@@ -218,28 +206,28 @@ const EventRegistrations = () => {
               </div>
             </div>
           )}
-           {successMessage && (
-        <div className="event-registration-banner event-registration-banner-success">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-            <polyline points="22 4 12 14.01 9 11.01"/>
-          </svg>
-          <span>{successMessage}</span>
-        
-        </div>
-      )}
 
-      {error && (
-        <div className="event-registration-banner event-registration-banner-error">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-          <span>{error}</span>
-          
-        </div>
-      )}
+          {successMessage && (
+            <div className="event-registration-banner event-registration-banner-success">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+              <span>{successMessage}</span>
+            </div>
+          )}
+
+          {error && (
+            <div className="event-registration-banner event-registration-banner-error">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span>{error}</span>
+            </div>
+          )}
+
           {loadingRegistrations ? (
             <div className="loading">Loading registrations...</div>
           ) : registrations.length === 0 ? (
@@ -247,7 +235,6 @@ const EventRegistrations = () => {
               No registrations yet for this event.
             </div>
           ) : (
-
             <table className="admin-table">
               <thead>
                 <tr>
@@ -256,7 +243,7 @@ const EventRegistrations = () => {
                   <th>Email</th>
                   <th>Phone</th>
                   <th>Handicap</th>
-                  <th>Membership</th>  
+                  <th>Membership</th>
                   <th>Registered At</th>
                   <th>Actions</th>
                 </tr>
@@ -271,23 +258,30 @@ const EventRegistrations = () => {
                     <td>{reg.email}</td>
                     <td>{reg.phone || reg.phone_number || 'N/A'}</td>
                     <td>{reg.handicap || reg.golf_handicap || 'N/A'}</td>
-                    {/* ✅ Add membership badge */}
                     <td>
                       <span className={`membership-badge ${reg.membership || 'guest'}`}>
                         {(reg.membership || 'guest').toUpperCase()}
                       </span>
+                      {reg.is_sponsor && (
+                        <span
+                          className="membership-badge sponsor"
+                          title={reg.company_name ? `Sponsor: ${reg.company_name}` : 'Sponsor'}
+                        >
+                          SPONSOR
+                        </span>
+                      )}
                     </td>
                     <td>{formatToEastern(reg.created_at)}</td>
                     <td>
-                    <button
-                      onClick={() => handleDeleteRegistration(reg)}
-                      disabled={deletingId === reg.id}
-                      className="btn-delete"
-                      title="Remove from event"
-                    >
-                      {deletingId === reg.id ? '⏳' : '✕'}
-                    </button>
-                  </td>
+                      <button
+                        onClick={() => handleDeleteRegistration(reg)}
+                        disabled={deletingId === reg.id}
+                        className="btn-delete"
+                        title="Remove from event"
+                      >
+                        {deletingId === reg.id ? '⏳' : '✕'}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -298,59 +292,43 @@ const EventRegistrations = () => {
 
       <style jsx>{`
 
-          /* Banner Styles */
-          .event-registration-banner {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 1rem 1.25rem;
-            border-radius: 8px;
-            margin-bottom: 1.5rem;
-            animation: slideDown 0.3s ease-out;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-          }
+        .event-registration-banner {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 1rem 1.25rem;
+          border-radius: 8px;
+          margin-bottom: 1.5rem;
+          animation: slideDown 0.3s ease-out;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
 
-          .event-registration-banner svg {
-            flex-shrink: 0;
-          }
+        .event-registration-banner svg {
+          flex-shrink: 0;
+        }
 
-          .event-registration-banner span {
-            flex: 1;
-            font-size: 0.95rem;
-            font-weight: 500;
-          }
+        .event-registration-banner span {
+          flex: 1;
+          font-size: 0.95rem;
+          font-weight: 500;
+        }
 
+        .event-registration-banner-success {
+          background: #f0fdf4;
+          border: 1px solid #86efac;
+          color: #166534;
+        }
 
-          .event-registration-banner-success {
-            background: #f0fdf4;
-            border: 1px solid #86efac;
-            color: #166534;
-          }
+        .event-registration-banner-error {
+          background: #fef2f2;
+          border: 1px solid #fca5a5;
+          color: #991b1b;
+        }
 
-          .event-registration-banner-success {
-            color: #166534;
-          }
-
-          .event-registration-banner-error {
-            background: #fef2f2;
-            border: 1px solid #fca5a5;
-            color: #991b1b;
-          }
-
-          .event-registration-banner-error {
-            color: #991b1b;
-          }
-
-          @keyframes slideDown {
-            from {
-              opacity: 0;
-              transform: translateY(-10px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-10px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
 
         .registrations-header {
           display: flex;
@@ -405,13 +383,8 @@ const EventRegistrations = () => {
           font-weight: 600;
         }
 
-        .info-item .value.full {
-          color: #fca5a5;
-        }
-
-        .info-item .value.available {
-          color: #86efac;
-        }
+        .info-item .value.full  { color: #fca5a5; }
+        .info-item .value.available { color: #86efac; }
 
         .capacity-bar {
           width: 100%;
@@ -427,7 +400,7 @@ const EventRegistrations = () => {
           transition: width 0.3s ease;
         }
 
-        /* ✅ Membership badges */
+        /* Membership badges */
         .membership-badge {
           display: inline-block;
           padding: 0.25rem 0.75rem;
@@ -456,6 +429,46 @@ const EventRegistrations = () => {
         .membership-badge.guest {
           background: #f3f4f6;
           color: #4b5563;
+        }
+
+        /* Sponsor badge */
+        .membership-badge.sponsor {
+          background: #fdf4ff;
+          color: #6b21a8;
+          border: 1px solid #d8b4fe;
+          margin-left: 0.4rem;
+          cursor: default;
+          position: relative;
+        }
+
+        .membership-badge.sponsor:hover::after {
+          content: attr(title);
+          position: absolute;
+          bottom: calc(100% + 6px);
+          left: 50%;
+          transform: translateX(-50%);
+          background: #1f2937;
+          color: white;
+          font-size: 0.75rem;
+          font-weight: 500;
+          padding: 0.35rem 0.6rem;
+          border-radius: 6px;
+          white-space: nowrap;
+          z-index: 10;
+          pointer-events: none;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .membership-badge.sponsor:hover::before {
+          content: '';
+          position: absolute;
+          bottom: calc(100% + 2px);
+          left: 50%;
+          transform: translateX(-50%);
+          border: 5px solid transparent;
+          border-top-color: #1f2937;
+          z-index: 10;
+          pointer-events: none;
         }
 
         .empty-state {
@@ -494,12 +507,12 @@ const EventRegistrations = () => {
           opacity: 0.5;
           cursor: not-allowed;
         }
+
         @media (max-width: 768px) {
           .registrations-header {
             flex-direction: column;
             align-items: stretch;
           }
-
           .event-selector {
             max-width: 100%;
           }

@@ -22,7 +22,7 @@
   display: flex;
   gap: 0.5rem;
   margin-bottom: 2rem;
-  overflow-x: auto;
+  flex-wrap: wrap;
   padding-bottom: 0.5rem;
   border-bottom: 2px solid #e5e7eb;
 }
@@ -31,7 +31,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
+  padding: 0.6rem 1rem;
   background: white;
   border: 1px solid #d1d5db;
   border-radius: 8px 8px 0 0;
@@ -222,8 +222,7 @@
   }
 
   .admin-tabs {
-    flex-wrap: nowrap;
-    overflow-x: scroll;
+    flex-wrap: wrap;
   }
 
   .admin-tab {

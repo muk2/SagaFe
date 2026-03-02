@@ -44,6 +44,7 @@ export function App() {
             <>
               <Hero />
               <ItemList />
+              <LeaderboardSection />
               <PartnersSection />
             </>
           }
@@ -378,28 +379,31 @@ export function ItemList() {
     name: '',
     email: '',
     phone: '',
-    handicap: ''
+    handicap: '',
+    sponsor: '',
+    sponsorAmount: 350,
+    companyName: ''
   });
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
 
   const openRegistration = (event) => {
     setSelectedEvent(event);
-    // Auto-populate form if user is logged in
-    if (user) {
-      setRegistrationForm({
-        name: `${user.first_name} ${user.last_name}`,
-        email: user.email,
-        phone: user.phone_number || '',
-        handicap: user.handicap || ''
-      });
-    }
+    setRegistrationForm({
+      name: user ? `${user.first_name} ${user.last_name}` : '',
+      email: user ? user.email : '',
+      phone: user ? (user.phone_number || '') : '',
+      handicap: user ? (user.handicap || '') : '',
+      sponsor: '',
+      sponsorAmount: 350,
+      companyName: ''
+    });
     setShowRegistrationModal(true);
   };
 
   const closeRegistration = () => {
     setShowRegistrationModal(false);
     setSelectedEvent(null);
-    setRegistrationForm({ name: '', email: '', phone: '', handicap: '' });
+    setRegistrationForm({ name: '', email: '', phone: '', handicap: '', sponsor: '', sponsorAmount: 350, companyName: '' });
   };
 
   const handleRegistrationSubmit = async (e) => {
@@ -411,7 +415,10 @@ export function ItemList() {
         name: registrationForm.name,
         email: registrationForm.email,
         phone: registrationForm.phone,
-        handicap: registrationForm.handicap
+        handicap: registrationForm.handicap,
+        is_sponsor: registrationForm.sponsor === 'yes',
+        sponsor_amount: registrationForm.sponsor === 'yes' ? parseFloat(registrationForm.sponsorAmount) : null,
+        company_name: registrationForm.sponsor === 'yes' ? registrationForm.companyName : null,
       };
 
       if (!user) {
@@ -432,7 +439,7 @@ export function ItemList() {
               message: 'Registration successful!'
             });
             
-            setRegistrationForm({ name: '', email: '', phone: '', handicap: '' });
+            setRegistrationForm({ name: '', email: '', phone: '', handicap: '', sponsor: '', sponsorAmount: 350, companyName: '' });
       
             setTimeout(() => {
               closeRegistration();
@@ -480,13 +487,13 @@ export function ItemList() {
   
   const handlePhoneChange = (e) => {
     const formatted = formatPhoneNumber(e.target.value);
-    setRegistrationForm({ ...registrationForm, phone: formatted });
+    setRegistrationForm(prev => ({ ...prev, phone: formatted }));
   };
 
   const handleHandicapChange = (e) => {
     const value = e.target.value;
     if (value === '') {
-      setRegistrationForm({ ...registrationForm, handicap: value });
+      setRegistrationForm(prev => ({ ...prev, handicap: value }));
       return;
     }
     
@@ -495,7 +502,7 @@ export function ItemList() {
       const numValue = parseFloat(value);
       if (value === '-' || value === '.' || value.endsWith('.') || 
           (!isNaN(numValue) && numValue >= -10 && numValue <= 30)) {
-        setRegistrationForm({ ...registrationForm, handicap: value });
+        setRegistrationForm(prev => ({ ...prev, handicap: value }));
       }
     }
   };
@@ -612,7 +619,8 @@ export function ItemList() {
           backgroundImage: event.image_url 
           ? `url(${getFullImageUrl(event.image_url)})` 
           : 'url(https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=800)', 
-          backgroundSize: 'cover',
+          backgroundSize: 'contain',
+          backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center',
         }}
       />
@@ -717,45 +725,58 @@ export function ItemList() {
         </div>
         <div className="info-row">
           <span className="info-label">Price:</span>
-          {/* ✅ Show member price if logged in, guest price otherwise */}
+          {/* ✅ Show member price if logged in, guest price otherwise; add sponsor amount if sponsoring */}
           <span className="price-highlight">
-            ${user 
-              ? parseFloat(selectedEvent.member_price || selectedEvent.guest_price).toFixed(2)
-              : parseFloat(selectedEvent.guest_price).toFixed(2)
-            }
-            {user && <span style={{ fontSize: '0.8rem', color: '#0d9488', marginLeft: '0.5rem' }}>(Member Price)</span>}
+            ${(() => {
+              const base = user
+                ? parseFloat(selectedEvent.member_price || selectedEvent.guest_price)
+                : parseFloat(selectedEvent.guest_price);
+              const sponsorAdd = registrationForm.sponsor === 'yes' ? parseFloat(registrationForm.sponsorAmount) || 0 : 0;
+              return (base + sponsorAdd).toFixed(2);
+            })()}
+            {user && registrationForm.sponsor !== 'yes' && <span style={{ fontSize: '0.8rem', color: '#0d9488', marginLeft: '0.5rem' }}>(Member Price)</span>}
+            {registrationForm.sponsor === 'yes' && (
+              <span style={{ fontSize: '0.8rem', color: '#7c3aed', marginLeft: '0.5rem' }}>
+                (${(() => {
+              const base = user
+                ? parseFloat(selectedEvent.member_price || selectedEvent.guest_price)
+                : parseFloat(selectedEvent.guest_price);
+              return (base).toFixed(2);
+            })()} + ${parseFloat(registrationForm.sponsorAmount).toFixed(2) || 0} sponsorship)
+              </span>
+            )}
           </span>
         </div>
       </div>
       <form onSubmit={handleRegistrationSubmit} className="registration-form">
         <div className="form-group">
-          <label htmlFor="name">Full Name</label>
+          <label htmlFor="il-name">Full Name *</label>
           <input
             type="text"
-            id="name"
+            id="il-name"
             value={registrationForm.name}
-            onChange={(e) => setRegistrationForm({...registrationForm, name: e.target.value})}
+            onChange={(e) => setRegistrationForm(prev => ({...prev, name: e.target.value}))}
             required
             placeholder="Enter your full name"
           />
         </div>
         <div className="form-group">
-          <label htmlFor="email">Email Address</label>
+          <label htmlFor="il-email">Email Address *</label>
           <input
             type="email"
-            id="email"
+            id="il-email"
             value={registrationForm.email}
-            onChange={(e) => setRegistrationForm({...registrationForm, email: e.target.value})}
+            onChange={(e) => setRegistrationForm(prev => ({...prev, email: e.target.value}))}
             required
             placeholder="Enter your email"
           />
         </div>
         <div className="form-row">
           <div className="form-group">
-            <label htmlFor="phone">Phone Number</label>
+            <label htmlFor="il-phone">Phone Number *</label>
             <input
               type="tel"
-              id="phone"
+              id="il-phone"
               value={registrationForm.phone}
               onChange={handlePhoneChange}
               required
@@ -763,10 +784,10 @@ export function ItemList() {
             />
           </div>
           <div className="form-group">
-            <label htmlFor="handicap">Golf Handicap</label>
+            <label htmlFor="il-handicap">Golf Handicap</label>
             <input
               type="text"
-              id="handicap"
+              id="il-handicap"
               value={registrationForm.handicap}
               onChange={handleHandicapChange}
               placeholder="e.g., 12"
@@ -774,6 +795,57 @@ export function ItemList() {
             />
           </div>
         </div>
+         {/* Sponsorship Section */}
+         <div className="form-group sponsor-dropdown-group">
+                <label htmlFor="il-sponsor">Would you like to sponsor this event?</label>
+                <select
+                  id="il-sponsor"
+                  value={registrationForm.sponsor}
+                  onChange={(e) => setRegistrationForm(prev => ({...prev, sponsor: e.target.value}))}
+                  className="sponsor-select"
+                >
+                  <option value=""></option>
+                  <option value="yes">Yes</option>
+                </select>
+              </div>
+
+              {registrationForm.sponsor === 'yes' && (
+                <div className="sponsor-fields">
+                  <div className="sponsor-fields-inner">
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="il-sponsorAmount">Sponsorship Amount</label>
+                        <div className="input-prefix-wrap">
+                          <span className="input-prefix">$</span>
+                          <input
+                            type="number"
+                            id="il-sponsorAmount"
+                            value={registrationForm.sponsorAmount}
+                            onChange={(e) => setRegistrationForm(prev => ({...prev, sponsorAmount: e.target.value}))}
+                            min="100"
+                            onBlur={(e) => setRegistrationForm(prev => ({...prev, sponsorAmount: 350}))}
+                            step="1"
+                            required
+                            className="prefix-input"
+                          />
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="il-companyName">Company Name</label>
+                        <input
+                          type="text"
+                          id="il-companyName"
+                          value={registrationForm.companyName}
+                          onChange={(e) => setRegistrationForm(prev => ({...prev, companyName: e.target.value}))}
+                          required
+                          placeholder="Enter company name"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}   
+
         {errorModal.show && (
   <div className={`message-banner ${errorModal.type}`}>
     {errorModal.type === 'error' ? (
@@ -790,10 +862,13 @@ export function ItemList() {
 )}
        
         <button type="submit" className="submit-registration">
-          Complete Registration - ${user 
-            ? parseFloat(selectedEvent.member_price || selectedEvent.guest_price).toFixed(2)
-            : parseFloat(selectedEvent.guest_price).toFixed(2)
-          }
+          Complete Registration - ${(() => {
+            const base = user
+              ? parseFloat(selectedEvent.member_price || selectedEvent.guest_price)
+              : parseFloat(selectedEvent.guest_price);
+            const sponsorAdd = registrationForm.sponsor === 'yes' ? parseFloat(registrationForm.sponsorAmount) || 0 : 0;
+            return (base + sponsorAdd).toFixed(2);
+          })()}
         </button>
       </form>
     </div>
@@ -837,6 +912,393 @@ export function ItemList() {
           <p>No events available at the moment.</p>
         </div>
       )}
+    </section>
+  );
+}
+
+
+export function LeaderboardSection() {
+  const [activeTab, setActiveTab] = useState('leaderboard');
+  const [events, setEvents] = useState([]);
+  const [selectedEventId, setSelectedEventId] = useState('');
+  const [roundWinner, setRoundWinner] = useState(null);
+  const [leaderboardUrl, setLeaderboardUrl] = useState(null);
+  const [loadingWinner, setLoadingWinner] = useState(false);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
+
+  useEffect(() => {
+    fetchEvents();
+    fetchLeaderboardUrl();
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      const data = await eventsApi.getAll();
+      const sorted = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
+      setEvents(sorted);
+      if (sorted.length > 0) {
+        setSelectedEventId(String(sorted[0].id));
+        fetchRoundWinner(sorted[0].id);
+      }
+    } catch (err) {
+      console.error('Failed to fetch events:', err);
+    }
+  };
+
+  const fetchLeaderboardUrl = async () => {
+    setLoadingLeaderboard(true);
+    try {
+      const data = await api.get('/api/leaderboard/pdf');
+      setLeaderboardUrl(data?.url || null);
+    } catch {
+      setLeaderboardUrl(null);
+    } finally {
+      setLoadingLeaderboard(false);
+    }
+  };
+
+  const fetchRoundWinner = async (eventId) => {
+    if (!eventId) return;
+    setLoadingWinner(true);
+    setRoundWinner(null);
+    try {
+      const data = await api.get(`/api/round-winners/${eventId}`);
+      setRoundWinner(data);
+    } catch {
+      setRoundWinner(null);
+    } finally {
+      setLoadingWinner(false);
+    }
+  };
+
+  const handleEventChange = (e) => {
+    const id = e.target.value;
+    setSelectedEventId(id);
+    fetchRoundWinner(id);
+  };
+
+  const selectedEvent = events.find(ev => String(ev.id) === selectedEventId);
+
+  return (
+    
+    <section className="collection">
+        <div className="section-header">
+          <div>
+            <h2>SAGA Standings</h2>
+            <p className="section-subtitle">Track the season leaderboard and celebrate our monthly champions</p>
+            </div>
+        </div>
+
+        <div className="ss-tab-bar">
+          <button
+            className={`ss-tab ${activeTab === 'leaderboard' ? 'active' : ''}`}
+            onClick={() => setActiveTab('leaderboard')}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="17" height="17">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+            </svg>
+            SAGA Leaderboard
+          </button>
+          <button
+            className={`ss-tab ${activeTab === 'winners' ? 'active' : ''}`}
+            onClick={() => setActiveTab('winners')}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="17" height="17">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0" />
+            </svg>
+            Monthly Round Winners
+          </button>
+        </div>
+
+        {/* LEADERBOARD TAB */}
+        {activeTab === 'leaderboard' && (
+          <div className="ss-panel">
+            {loadingLeaderboard ? (
+              <div className="ss-empty"><div className="ss-spinner" /></div>
+            ) : leaderboardUrl ? (
+              <div className="ss-pdf-card">
+                <div className="ss-pdf-left">
+                  <div className="ss-pdf-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="36" height="36">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="ss-pdf-title">SAGA Season Leaderboard</h3>
+                    <p className="ss-pdf-desc">Current standings for all SAGA members this season. Updated by the association.</p>
+                  </div>
+                </div>
+                <a
+                  href={`${API_URL}${leaderboardUrl}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ss-pdf-btn"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="16" height="16">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                  </svg>
+                  View Leaderboard
+                </a>
+              </div>
+            ) : (
+              <div className="ss-empty">
+                <span className="ss-empty-icon">📄</span>
+                <p>The season leaderboard hasn't been uploaded yet.</p>
+                <span>Check back after the first event!</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* WINNERS TAB */}
+        {activeTab === 'winners' && (
+          <div className="ss-panel">
+            {events.length === 0 ? (
+              <div className="ss-empty">
+                <span className="ss-empty-icon">📅</span>
+                <p>No events found.</p>
+              </div>
+            ) : (
+              <>
+                <div className="ss-event-picker">
+                  <label htmlFor="ss-event-select">Select Event</label>
+                  <select
+                    id="ss-event-select"
+                    value={selectedEventId}
+                    onChange={handleEventChange}
+                    className="ss-select"
+                  >
+                    {events.map(ev => (
+                      <option key={ev.id} value={ev.id}>
+                        {ev.golf_course} — {new Date(ev.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {loadingWinner ? (
+                  <div className="ss-empty"><div className="ss-spinner" /></div>
+                ) : !roundWinner ? (
+                  <div className="ss-empty">
+                    <span className="ss-empty-icon">🏌️</span>
+                    <p>No results recorded for this event yet.</p>
+                  </div>
+                ) : (
+                  <div className="ss-winners-card">
+                    {roundWinner.sponsors && roundWinner.sponsors.length > 0 && (
+                      <div className="ss-sponsor-banner">
+                        {roundWinner.sponsors.map((s, i) => (
+                          <div key={i} className="ss-sponsor-line">
+                           
+                            <span className="ss-sponsor-msg">
+                              Big thank you to our Sponsor{' '}
+                              {s.company_name && <strong>{s.company_name}</strong>}
+                              {s.sponsor_name && (
+                                <> (Courtesy <strong>{s.sponsor_name}</strong>)</>
+                              )}!!!
+                            </span>
+                            
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="ss-winners-heading">
+                      <h3>{selectedEvent?.golf_course}</h3>
+                      {selectedEvent && (
+                        <span className="ss-winners-date">
+                          {new Date(selectedEvent.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="ss-table-wrap">
+                      <table className="ss-table">
+                        <thead>
+                          <tr>
+                            <th>Category</th>
+                            <th>Winner</th>
+                            <th>Result</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {roundWinner.lowest_gross_winner && (
+                            <tr>
+                              <td><span className="ss-cat-icon">🏌️</span> Lowest Gross Score</td>
+                              <td><strong>{roundWinner.lowest_gross_winner}</strong></td>
+                              <td className="ss-result">{roundWinner.lowest_gross_score != null ? roundWinner.lowest_gross_score : '—'}</td>
+                            </tr>
+                          )}
+                          {roundWinner.stableford_winner && (
+                            <tr>
+                              <td><span className="ss-cat-icon">📊</span> Highest Stableford Points</td>
+                              <td><strong>{roundWinner.stableford_winner}</strong></td>
+                              <td className="ss-result">{roundWinner.stableford_points != null ? `${roundWinner.stableford_points} pts` : '—'}</td>
+                            </tr>
+                          )}
+                          {roundWinner.straightest_drive_winner && (
+                            <tr>
+                              <td><span className="ss-cat-icon">🎯</span> Straightest Drive
+                              {roundWinner.straightest_drive_hole && <span className="ss-hole-badge">Hole {roundWinner.straightest_drive_hole}</span>}</td>
+                              <td><strong>{roundWinner.straightest_drive_winner}</strong></td>
+                              <td className="ss-result">
+                                {roundWinner.straightest_drive_distance ? `${roundWinner.straightest_drive_distance}` : '—'}
+                              </td>
+                            </tr>
+                          )}
+                          {roundWinner.close_to_pin && roundWinner.close_to_pin.map((ctp, i) => (
+                            <tr key={i}>
+                              <td>
+                                <span className="ss-cat-icon">📍</span> Close to Pin
+                                {ctp.hole && <span className="ss-hole-badge">Hole {ctp.hole}</span>}
+                              </td>
+                              <td><strong>{ctp.winner}</strong></td>
+                              <td className="ss-result">{ctp.distance ? `${ctp.distance}` : '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+     
+
+      <style>{`
+        .saga-standings-section {
+          background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
+          padding: 5rem 2rem;
+          position: relative;
+          overflow: hidden;
+        }
+        .saga-standings-section::before {
+          content: '';
+          position: absolute;
+          top: -80px; right: -80px;
+          width: 400px; height: 400px;
+          background: radial-gradient(circle, rgba(16,185,129,0.06) 0%, transparent 70%);
+          pointer-events: none;
+        }
+        .saga-standings-inner { max-width: 860px; margin: 0 auto; }
+        .ss-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2.25rem; }
+        .ss-title { font-size: 2rem; font-weight: 800; color: #111827; letter-spacing: -0.03em; margin: 0 0 0.4rem; }
+        .ss-subtitle { color: #6b7280; font-size: 1rem; margin: 0; }
+        .ss-header-icon { font-size: 3rem; opacity: 0.15; }
+        .ss-tab-bar {
+          display: flex; gap: 0;
+          background: #f3f4f6; border-radius: 12px; padding: 4px;
+          margin-bottom: 1.75rem; width: fit-content;
+        }
+        .ss-tab {
+          display: flex; align-items: center; gap: 0.5rem;
+          padding: 0.6rem 1.25rem; border: none; border-radius: 9px;
+          background: transparent; color: #6b7280;
+          font-size: 0.9rem; font-weight: 600; cursor: pointer;
+          transition: all 0.2s ease; white-space: nowrap;
+        }
+        .ss-tab.active { background: white; color: #065f46; box-shadow: 0 1px 6px rgba(0,0,0,0.1); }
+        .ss-tab:hover:not(.active) { color: #374151; }
+        .ss-panel {
+          background: white; border: 1px solid #e5e7eb;
+          border-radius: 16px; overflow: hidden;
+          box-shadow: 0 2px 16px rgba(0,0,0,0.06); min-height: 200px;
+        }
+        .ss-pdf-card {
+          display: flex; align-items: center; justify-content: space-between;
+          gap: 1.5rem; padding: 2rem 2.5rem; flex-wrap: wrap;
+        }
+        .ss-pdf-left { display: flex; align-items: center; gap: 1.25rem; }
+        .ss-pdf-icon {
+          width: 64px; height: 64px;
+          background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+          border-radius: 14px; display: flex; align-items: center; justify-content: center;
+          color: #065f46; flex-shrink: 0;
+        }
+        .ss-pdf-title { font-size: 1.1rem; font-weight: 700; color: #111827; margin: 0 0 0.35rem; }
+        .ss-pdf-desc { font-size: 0.875rem; color: #6b7280; margin: 0; max-width: 380px; }
+        .ss-pdf-btn {
+          display: inline-flex; align-items: center; gap: 0.5rem;
+          padding: 0.65rem 1.5rem;
+          background: linear-gradient(135deg, #059669, #047857);
+          color: white; border-radius: 10px; font-weight: 700;
+          font-size: 0.9rem; text-decoration: none; white-space: nowrap;
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
+          box-shadow: 0 2px 8px rgba(5,150,105,0.3);
+        }
+        .ss-pdf-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(5,150,105,0.4); }
+        .ss-empty {
+          display: flex; flex-direction: column; align-items: center;
+          justify-content: center; padding: 3.5rem 2rem;
+          gap: 0.5rem; color: #9ca3af; text-align: center;
+        }
+        .ss-empty-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .ss-empty p { font-size: 1rem; color: #6b7280; margin: 0; font-weight: 500; }
+        .ss-empty span { font-size: 0.875rem; }
+        .ss-spinner {
+          width: 32px; height: 32px;
+          border: 3px solid #e5e7eb; border-top-color: #059669;
+          border-radius: 50%; animation: ss-spin 0.7s linear infinite;
+        }
+        @keyframes ss-spin { to { transform: rotate(360deg); } }
+        .ss-event-picker {
+          display: flex; align-items: center; gap: 1rem;
+          padding: 1.25rem 1.75rem; border-bottom: 1px solid #f3f4f6;
+          background: #fafafa; flex-wrap: wrap;
+        }
+        .ss-event-picker label { font-size: 0.875rem; font-weight: 600; color: #374151; white-space: nowrap; }
+        .ss-select {
+          flex: 1; min-width: 220px; padding: 0.5rem 0.75rem;
+          border: 1px solid #d1d5db; border-radius: 8px;
+          font-size: 0.9rem; color: #111827; background: white; cursor: pointer;
+        }
+        .ss-select:focus { outline: none; border-color: #059669; }
+        .ss-winners-card { padding: 0 0 1.5rem; }
+        .ss-sponsor-banner {
+          display: flex; flex-direction: column; align-items: center;
+          gap: 0.35rem; padding: 0.875rem 1.5rem;
+          background: linear-gradient(135deg, #fef3c7, #fde68a);
+          border-bottom: 1px solid #fcd34d; text-align: center;
+        }
+        .ss-sponsor-line {
+          display: flex; align-items: center; justify-content: center;
+          gap: 0.75rem; flex-wrap: wrap;
+        }
+        .ss-sponsor-star { font-size: 1.1rem; }
+        .ss-sponsor-msg { font-size: 0.925rem; color: #78350f; font-weight: 500; }
+        .ss-sponsor-msg strong { color: #92400e; }
+        .ss-winners-heading { padding: 1.25rem 1.75rem 0.75rem; border-bottom: 1px solid #f3f4f6; }
+        .ss-winners-heading h3 { font-size: 1.2rem; font-weight: 800; color: #111827; margin: 0 0 0.2rem; }
+        .ss-winners-date { font-size: 0.85rem; color: #6b7280; }
+        .ss-table-wrap { overflow-x: auto; }
+        .ss-table { width: 100%; border-collapse: collapse; font-size: 0.925rem; }
+        .ss-table thead tr { background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+        .ss-table th {
+          padding: 0.75rem 1.75rem; text-align: left;
+          font-size: 0.78rem; font-weight: 700;
+          text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280;
+        }
+        .ss-table td { padding: 1rem 1.75rem; border-bottom: 1px solid #f3f4f6; color: #374151; vertical-align: middle; }
+        .ss-table tbody tr:last-child td { border-bottom: none; }
+        .ss-table tbody tr:hover td { background: #f9fafb; }
+        .ss-cat-icon { margin-right: 0.4rem; }
+        .ss-hole-badge {
+          display: inline-block; margin-left: 0.5rem;
+          padding: 0.1rem 0.5rem; background: #e0f2fe; color: #0369a1;
+          border-radius: 10px; font-size: 0.72rem; font-weight: 700;
+        }
+        .ss-result { font-weight: 700; color: #059669; font-variant-numeric: tabular-nums; }
+        @media (max-width: 640px) {
+          .saga-standings-section { padding: 3rem 1rem; }
+          .ss-tab-bar { width: 100%; }
+          .ss-tab { flex: 1; justify-content: center; font-size: 0.8rem; padding: 0.55rem 0.75rem; }
+          .ss-pdf-card { flex-direction: column; padding: 1.5rem; }
+          .ss-pdf-btn { width: 100%; justify-content: center; }
+          .ss-table th, .ss-table td { padding: 0.75rem 1rem; }
+        }
+      `}</style>
     </section>
   );
 }

@@ -14,8 +14,8 @@ const PhotoManagement = () => {
   const [formData, setFormData] = useState({
     title: '',
     date: '',
-    coverImage: '',
-    googleDriveLink: ''
+    cover_image: '',
+    google_drive_link: ''
   });
 
   useEffect(() => {
@@ -73,7 +73,7 @@ const PhotoManagement = () => {
       
       console.log('Upload response:', response);
 
-      setFormData(prev => ({ ...prev, coverImage: response.url }));
+      setFormData(prev => ({ ...prev, cover_image: response.url }));
       setSuccess('Image uploaded successfully');
       setTimeout(() => setSuccess(null), 2000);
     } catch (err) {
@@ -90,7 +90,7 @@ const PhotoManagement = () => {
       setError(null);
       setSuccess(null);
 
-      if (!formData.coverImage) {
+      if (!formData.cover_image) {
         setError('Please provide a cover image URL');
         return;
       }
@@ -98,8 +98,8 @@ const PhotoManagement = () => {
       const dataToSend = {
         title: formData.title,
         date: formData.date,
-        coverImage: formData.coverImage,
-        googleDriveLink: formData.googleDriveLink,
+        cover_image: formData.cover_image,
+        google_drive_link: formData.google_drive_link,
       };
 
       if (editingAlbum) {
@@ -131,8 +131,8 @@ const PhotoManagement = () => {
     setFormData({
       title: album.title,
       date: dateValue,
-      coverImage: album.coverImage || album.cover_image || '',
-      googleDriveLink: album.googleDriveLink || album.google_drive_link || '',
+      cover_image: album.coverImage || album.cover_image || '',
+      google_drive_link: album.googleDriveLink || album.google_drive_link || '',
     });
     setShowForm(true);
   };
@@ -160,8 +160,8 @@ const PhotoManagement = () => {
     setFormData({
       title: '',
       date: '',
-      coverImage: '',
-      googleDriveLink: ''
+      cover_image: '',
+      google_drive_link: ''
     });
   };
 
@@ -223,8 +223,8 @@ const PhotoManagement = () => {
               <label>Google Photos or Drive Link *</label>
               <input
                 type="url"
-                name="googleDriveLink"
-                value={formData.googleDriveLink}
+                name="google_drive_link"
+                value={formData.google_drive_link}
                 onChange={handleInputChange}
                 placeholder="https://photos.app.goo.gl/... or https://drive.google.com/..."
                 required
@@ -248,12 +248,12 @@ const PhotoManagement = () => {
                   Uploading image...
                 </p>
               )}
-              {formData.coverImage && (
+              {formData.cover_image && (
                 <div className="cover-preview">
                   <img 
-                    src={formData.coverImage.startsWith('/') 
-                      ? `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}${formData.coverImage}`
-                      : formData.coverImage
+                    src={formData.cover_image.startsWith('/') 
+                      ? `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}${formData.cover_image}`
+                      : formData.cover_image
                     }
                     alt="Cover preview"
                     onError={(e) => {
@@ -271,7 +271,7 @@ const PhotoManagement = () => {
                   />
                   <button
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, coverImage: '' }))}
+                    onClick={() => setFormData(prev => ({ ...prev, cover_image: '' }))}
                     className="btn-secondary btn-sm"
                     style={{ marginTop: '0.5rem' }}
                   >
@@ -289,7 +289,7 @@ const PhotoManagement = () => {
               <button 
                 type="submit" 
                 className="btn-primary"
-                disabled={!formData.coverImage || uploadingImage}
+                disabled={!formData.cover_image || uploadingImage}
               >
                 {editingAlbum ? 'Update Album' : 'Create Album'}
               </button>
@@ -325,7 +325,10 @@ const PhotoManagement = () => {
               </div>
               <div className="album-info">
                 <h3>{album.title}</h3>
-                <p className="album-date">{new Date(album.date).toLocaleDateString()}</p>
+                <p className="album-date">{(() => {
+                  const [y, m, d] = album.date.split('T')[0].split('-');
+                  return new Date(y, m - 1, d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                })()}</p>
                 {album.googleDriveLink || album.google_drive_link ? (
                   
                     <a href={album.googleDriveLink || album.google_drive_link}

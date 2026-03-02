@@ -69,4 +69,32 @@ export const toDateInputFormat = (dateStr) => {
     return '';
   };
 
- 
+ /**
+ * Format an event start time to Eastern time (12-hour)
+ * @param {string} timeString - "HH:MM:SS" from backend
+ * @param {string} dateString - event date "YYYY-MM-DD" or "MM/DD/YYYY"
+ * @returns {string} e.g. "9:00 AM ET"
+ */
+export const formatTimeEastern = (timeString, dateString) => {
+  if (!timeString) return 'N/A';
+
+  // Normalize date to YYYY-MM-DD
+  let isoDate = dateString;
+  if (dateString && dateString.includes('/')) {
+    const [month, day, year] = dateString.split('/');
+    isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+
+  // Build a full ISO string so the Date object has a real point in time
+  const isoString = `${isoDate}T${timeString}`;
+  const date = new Date(isoString);
+
+  if (isNaN(date.getTime())) return formatTime(timeString); // fallback
+
+  return date.toLocaleString('en-US', {
+    timeZone: 'America/New_York',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+};

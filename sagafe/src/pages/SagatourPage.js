@@ -132,7 +132,7 @@ export default function SagaTourPage() {
                     <h3>Brunswick</h3>
                     <div className="team-color-circle"></div>
                   </div>
-                  <p className="captain-name"><strong>Captain:</strong> Sanjay Seth</p>
+                  <p className="captain-name"><strong>Captain:</strong> Amit Parekh</p>
                 </div>
               </div>
             </section>

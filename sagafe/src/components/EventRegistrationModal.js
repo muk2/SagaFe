@@ -2,6 +2,8 @@ import React, { useState, useCallback } from 'react';
 import PaymentForm from './PaymentForm';
 import { registrationsApi } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import { formatTime } from '../lib/dateUtils';
+
 
 /**
  * Generates a UUID v4 for idempotency keys
@@ -13,6 +15,7 @@ function generateIdempotencyKey() {
     return v.toString(16);
   });
 }
+
 
 /**
  * Event Registration Modal — handles both member and non-member registration
@@ -32,7 +35,11 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
     email: user ? user.email : '',
     phone: user ? user.phone_number || '' : '',
     handicap: user ? user.handicap || '' : '',
+    sponsor: '',
+    sponsorAmount: 350,
+    companyName: '',
   });
+
 
   // Flow state
   const [step, setStep] = useState('form'); // 'form' | 'confirmation' | 'declined'
@@ -42,9 +49,43 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
   const [confirmationData, setConfirmationData] = useState(null);
   const [failedRegistrationId, setFailedRegistrationId] = useState(null);
 
-  const memberPrice = event.price || event.member_price;
-  const guestPrice = event.guest_price || event.price;
-  const displayPrice = user ? memberPrice : guestPrice;
+  const memberPrice  = event.price || event.member_price;
+  const guestPrice   = event.guest_price || event.price;
+  const basePrice    = user ? memberPrice : guestPrice;
+  const sponsorAdd   = registrationForm.sponsor === 'yes' ? (parseFloat(registrationForm.sponsorAmount) || 0) : 0;
+  const displayPrice = basePrice ? (parseFloat(basePrice) + sponsorAdd) : sponsorAdd || null;
+
+  const handleFormFieldChange = (field, value) => {
+    setRegistrationForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const formatPhoneNumber = (value) => {
+    const phoneNumber = value.replace(/\D/g, '');
+    if (phoneNumber.length <= 3) return phoneNumber;
+    else if (phoneNumber.length <= 6) return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
+    else return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
+  };
+
+  const handlePhoneChange = (e) => {
+    const formatted = formatPhoneNumber(e.target.value);
+    setRegistrationForm((prev) => ({ ...prev, phone: formatted }));
+  };
+
+  const handleHandicapChange = (e) => {
+    const value = e.target.value;
+    if (value === '') {
+      setRegistrationForm((prev) => ({ ...prev, handicap: value }));
+      return;
+    }
+    const regex = /^-?\d*\.?\d{0,1}$/;
+    if (regex.test(value)) {
+      const numValue = parseFloat(value);
+      if (value === '-' || value === '.' || value.endsWith('.') ||
+          (!isNaN(numValue) && numValue >= -10 && numValue <= 30)) {
+        setRegistrationForm((prev) => ({ ...prev, handicap: value }));
+      }
+    }
+  };
 
   const handlePaymentToken = useCallback(
     async (token) => {
@@ -52,35 +93,41 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
       setError('');
       setPaymentError('');
 
+      const isSponsor    = registrationForm.sponsor === 'yes';
+      const sponsorData  = {
+        is_sponsor:     isSponsor,
+        sponsor_amount: isSponsor ? parseFloat(registrationForm.sponsorAmount) : null,
+        company_name:   isSponsor ? registrationForm.companyName : null,
+      };
+
       try {
         const idempotencyKey = generateIdempotencyKey();
 
         let response;
         if (failedRegistrationId) {
-          // Retry a previously failed payment
           response = await registrationsApi.retryPayment(failedRegistrationId, {
             payment_token: token,
             idempotency_key: idempotencyKey,
           });
         } else if (user) {
-          // Authenticated member registration
           response = await registrationsApi.register({
-            event_id: event.id,
-            handicap: registrationForm.handicap,
-            payment_token: token,
+            event_id:        event.id,
+            handicap:        registrationForm.handicap,
+            payment_token:   token,
             idempotency_key: idempotencyKey,
+            ...sponsorData,
           });
         } else {
-          // Guest registration
           response = await registrationsApi.registerGuest({
-            event_id: event.id,
-            first_name: registrationForm.name.split(' ')[0] || registrationForm.name,
-            last_name: registrationForm.name.split(' ').slice(1).join(' ') || '',
-            email: registrationForm.email,
-            phone: registrationForm.phone,
-            handicap: registrationForm.handicap,
-            payment_token: token,
+            event_id:        event.id,
+            first_name:      registrationForm.name.split(' ')[0] || registrationForm.name,
+            last_name:       registrationForm.name.split(' ').slice(1).join(' ') || '',
+            email:           registrationForm.email,
+            phone:           registrationForm.phone,
+            handicap:        registrationForm.handicap,
+            payment_token:   token,
             idempotency_key: idempotencyKey,
+            ...sponsorData,
           });
         }
 
@@ -89,10 +136,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
         if (onSuccess) onSuccess(response);
       } catch (err) {
         const message = err.message || 'Payment failed';
-        // Check if the registration was created but payment declined
-        if (err.registration_id) {
-          setFailedRegistrationId(err.registration_id);
-        }
+        if (err.registration_id) setFailedRegistrationId(err.registration_id);
         setPaymentError(message);
         setStep('declined');
       } finally {
@@ -111,19 +155,17 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
     setStep('form');
   }, []);
 
-  const handleFormFieldChange = (field, value) => {
-    setRegistrationForm((prev) => ({ ...prev, [field]: value }));
+  // Validate all required fields are filled
+  const isFormValid = () => {
+    if (!registrationForm.name.trim() || !registrationForm.email.trim() || !registrationForm.phone.trim()) {
+      return false;
+    }
+    if (registrationForm.sponsor === 'yes' && !registrationForm.companyName.trim()) {
+      return false;
+    }
+    return true;
   };
 
-  // Validate that non-auth users have filled required fields
-  const isFormValid = () => {
-    if (user) return true; // Auth users auto-fill
-    return (
-      registrationForm.name.trim() &&
-      registrationForm.email.trim() &&
-      registrationForm.phone.trim()
-    );
-  };
 
   // --- CONFIRMATION VIEW ---
   if (step === 'confirmation') {
@@ -151,10 +193,10 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
                 <span className="info-label">Date:</span>
                 <span>{event.date}</span>
               </div>
-              {displayPrice && (
+              {displayPrice > 0 && (
                 <div className="info-row">
                   <span className="info-label">Amount:</span>
-                  <span className="price-highlight">${displayPrice}</span>
+                  <span className="price-highlight">${parseFloat(displayPrice).toFixed(2)}</span>
                 </div>
               )}
               {confirmationData?.confirmation_id && (
@@ -226,47 +268,47 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
+
         <div className="modal-header">
           <h2>Register for Event</h2>
           <p>{event.golf_course}</p>
         </div>
+
         <div className="modal-event-info">
           <div className="info-row">
             <span className="info-label">Date:</span>
             <span>
               {new Date(event.date).toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
               })}
             </span>
           </div>
           {event.start_time && (
             <div className="info-row">
               <span className="info-label">Time:</span>
-              <span>{event.start_time}</span>
+              <span>{formatTime(event.start_time)}</span>
             </div>
           )}
           <div className="info-row">
             <span className="info-label">Location:</span>
-            <span>
-              {event.township}, {event.state}
+            <span>{event.township}, {event.state}</span>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Price:</span>
+            <span className="price-highlight">
+              ${displayPrice ? parseFloat(displayPrice).toFixed(2) : '0.00'}
+              {user && guestPrice && memberPrice !== guestPrice && registrationForm.sponsor !== 'yes' && (
+                <span style={{ fontSize: '0.8rem', color: 'rgb(13, 148, 136)', marginLeft: '0.5rem' }}>
+                  (Member price)
+                </span>
+              )}
+              {registrationForm.sponsor === 'yes' && (
+                <span style={{ fontSize: '0.8rem', color: '#7c3aed', marginLeft: '0.5rem' }}>
+                  (${basePrice.toFixed(2)} + ${parseFloat(registrationForm.sponsorAmount).toFixed(2) || 0} sponsorship)
+                </span>
+              )}
             </span>
           </div>
-          {displayPrice && (
-            <div className="info-row">
-              <span className="info-label">Price:</span>
-              <span className="price-highlight">
-                ${displayPrice}
-                {user && guestPrice && memberPrice !== guestPrice && (
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
-                    (Member price)
-                  </span>
-                )}
-              </span>
-            </div>
-          )}
         </div>
 
         <div className="registration-form">
@@ -276,83 +318,127 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
             </div>
           )}
 
-          {/* Registration fields — auto-filled for logged-in users */}
-          {!user && (
-            <>
-              <div className="form-group">
-                <label htmlFor="reg-name">Full Name</label>
-                <input
-                  type="text"
-                  id="reg-name"
-                  value={registrationForm.name}
-                  onChange={(e) => handleFormFieldChange('name', e.target.value)}
-                  required
-                  placeholder="Enter your full name"
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="reg-email">Email Address</label>
-                <input
-                  type="email"
-                  id="reg-email"
-                  value={registrationForm.email}
-                  onChange={(e) => handleFormFieldChange('email', e.target.value)}
-                  required
-                  placeholder="Enter your email"
-                />
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="reg-phone">Phone Number</label>
-                  <input
-                    type="tel"
-                    id="reg-phone"
-                    value={registrationForm.phone}
-                    onChange={(e) => handleFormFieldChange('phone', e.target.value)}
-                    required
-                    placeholder="(555) 555-5555"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="reg-handicap">Golf Handicap</label>
-                  <input
-                    type="text"
-                    id="reg-handicap"
-                    value={registrationForm.handicap}
-                    onChange={(e) => handleFormFieldChange('handicap', e.target.value)}
-                    placeholder="e.g., 12"
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
-          {user && (
+          {/* All fields always shown — pre-filled for logged-in users */}
+          <div className="form-group">
+            <label htmlFor="reg-name">Full Name *</label>
+            <input
+              type="text"
+              id="reg-name"
+              value={registrationForm.name}
+              onChange={(e) => handleFormFieldChange('name', e.target.value)}
+              required
+              placeholder="Enter your full name"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="reg-email">Email Address *</label>
+            <input
+              type="email"
+              id="reg-email"
+              value={registrationForm.email}
+              onChange={(e) => handleFormFieldChange('email', e.target.value)}
+              required
+              placeholder="Enter your email"
+            />
+          </div>
+          <div className="form-row">
             <div className="form-group">
-              <label htmlFor="reg-handicap-member">Golf Handicap</label>
+              <label htmlFor="reg-phone">Phone Number *</label>
+              <input
+                type="tel"
+                id="reg-phone"
+                value={registrationForm.phone}
+                onChange={handlePhoneChange}
+                required
+                placeholder="(555) 555-5555"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="reg-handicap">Golf Handicap</label>
               <input
                 type="text"
-                id="reg-handicap-member"
+                id="reg-handicap"
                 value={registrationForm.handicap}
-                onChange={(e) => handleFormFieldChange('handicap', e.target.value)}
+                onChange={handleHandicapChange}
                 placeholder="e.g., 12"
+                inputMode="decimal"
               />
+            </div>
+          </div>
+
+          {/* Sponsorship section */}
+          <div className="form-group sponsor-dropdown-group">
+            <label htmlFor="reg-sponsor">
+              Would you like to sponsor this event?{' '}
+            </label>
+            <select
+              id="reg-sponsor"
+              value={registrationForm.sponsor}
+              onChange={(e) => handleFormFieldChange('sponsor', e.target.value)}
+              className="sponsor-select"
+            >
+              <option value=""></option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+
+          {registrationForm.sponsor === 'yes' && (
+            <div className="sponsor-fields">
+              <div className="sponsor-fields-inner">
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="reg-sponsorAmount">Sponsorship Amount</label>
+                    <div className="input-prefix-wrap">
+                      <span className="input-prefix">$</span>
+                      <input
+                        type="number"
+                        id="reg-sponsorAmount"
+                        value={registrationForm.sponsorAmount}
+                        onChange={(e) => handleFormFieldChange('sponsorAmount', e.target.value)}
+                        min="100"
+                        step="1"
+                        onBlur={(e) => handleFormFieldChange('sponsorAmount', 350)}
+                        required
+                        className="prefix-input"
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="reg-companyName">Company Name</label>
+                    <input
+                      type="text"
+                      id="reg-companyName"
+                      value={registrationForm.companyName}
+                      onChange={(e) => handleFormFieldChange('companyName', e.target.value)}
+                      required
+                      placeholder="Enter company name"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
           {/* Payment section */}
           {displayPrice > 0 && isFormValid() && (
             <PaymentForm
-              amount={String(displayPrice)}
+              amount={String(parseFloat(displayPrice).toFixed(2))}
               onTokenReceived={handlePaymentToken}
               onError={handlePaymentError}
               loading={loading}
-              submitLabel="Register & Pay"
+              submitLabel={`Register & Pay — $${parseFloat(displayPrice).toFixed(2)}`}
               error={paymentError}
             />
           )}
 
-          {/* If no price (free event), show simple register button */}
+          {/* Prompt user to fill in details before payment appears */}
+          {displayPrice > 0 && !isFormValid() && (
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '0.5rem' }}>
+              Fill in your details above to continue to payment.
+            </p>
+          )}
+
+          {/* Free event button */}
           {(!displayPrice || displayPrice <= 0) && (
             <button
               type="button"

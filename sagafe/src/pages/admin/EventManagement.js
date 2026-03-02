@@ -32,12 +32,18 @@ const EventManagement = () => {
     fetchEvents();
   }, []);
 
-  // ✅ Helper to get full image URL
-  const getFullImageUrl = (url) => {
+  // ✅ Helper to get full image URL with cache-busting for uploaded files
+  const getFullImageUrl = (url, bust = false) => {
     if (!url) return '';
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    if (url.startsWith('/')) return `${API_URL}${url}`;
-    return `${API_URL}/${url}`;
+    let fullUrl;
+    if (url.startsWith('http://') || url.startsWith('https://')) fullUrl = url;
+    else if (url.startsWith('/')) fullUrl = `${API_URL}${url}`;
+    else fullUrl = `${API_URL}/${url}`;
+    // Add cache-busting for locally uploaded images so new uploads always show fresh
+    if (bust && (url.startsWith('/uploads/') || url.includes('/uploads/'))) {
+      fullUrl += `?v=${Date.now()}`;
+    }
+    return fullUrl;
   };
 
   const fetchEvents = async () => {
@@ -376,7 +382,7 @@ const EventManagement = () => {
               {formData.image_url && (
                 <div className="image-preview-container">
                   <img
-                    src={getFullImageUrl(formData.image_url)}
+                    src={getFullImageUrl(formData.image_url, true)}
                     alt="Event preview"
                     className="image-preview"
                     onError={(e) => {
@@ -560,7 +566,7 @@ const EventManagement = () => {
         .event-thumbnail {
           width: 60px;
           height: 40px;
-          object-fit: cover;
+          object-fit: contain;
           border-radius: 4px;
           border: 1px solid #e5e7eb;
         }

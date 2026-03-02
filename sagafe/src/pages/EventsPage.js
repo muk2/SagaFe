@@ -70,7 +70,8 @@ export default function EventsPage() {
         const [year, month, day] = dateStr.split('-');
         return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
       }
-      
+  
+  
       // Check if it's MM/DD/YYYY format
       if (dateStr.includes('/')) {
         const [month, day, year] = dateStr.split('/');
@@ -111,11 +112,13 @@ export default function EventsPage() {
   };
   
 
-  const filteredEvents = items.filter(event => {
-    const eventDate = formatDateForComparison(event.date);
-    const matchesMonth = eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear;
-    return matchesMonth; // ✅ Include championship in list view (with highlighting)
-  });
+  const filteredEvents = items
+    .filter(event => {
+      const eventDate = formatDateForComparison(event.date);
+      const matchesMonth = eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear;
+      return matchesMonth;
+    })
+    .sort((a, b) => formatDateForComparison(a.date) - formatDateForComparison(b.date));
 
   const handlePrevMonth = () => {
     if (selectedMonth === 0) {
