@@ -1,9 +1,4 @@
-// ===================================================================
-// File: pages/admin/MembershipOptionsManagement.js
-// Admin Membership Options Management Component
-// ===================================================================
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { membershipOptionsApi } from '../../lib/api';
 
 const MembershipOptionsManagement = () => {
@@ -13,7 +8,8 @@ const MembershipOptionsManagement = () => {
   const [success, setSuccess] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingOption, setEditingOption] = useState(null);
-  
+  const formRef = useRef(null);
+
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -31,7 +27,7 @@ const MembershipOptionsManagement = () => {
       setLoading(true);
       setError(null);
       const data = await membershipOptionsApi.getAllAdmin();
-      setOptions(data);
+      setOptions([...data].sort((a, b) => a.display_order - b.display_order));
     } catch (err) {
       setError(err.message || 'Failed to load membership options');
     } finally {
@@ -87,6 +83,9 @@ const MembershipOptionsManagement = () => {
       display_order: option.display_order,
     });
     setShowForm(true);
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   const handleDelete = async (optionId, optionName) => {
@@ -105,39 +104,32 @@ const MembershipOptionsManagement = () => {
     }
   };
 
-  const moveUp = async (option, index) => {
-    if (index === 0) return;
+  const reorder = async (index, direction) => {
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= options.length) return;
+
+    // Build new order, swap the two items
+    const reordered = [...options];
+    [reordered[index], reordered[swapIndex]] = [reordered[swapIndex], reordered[index]];
+
+    // Assign clean sequential display_order values
+    const updates = reordered.map((opt, i) => ({ id: opt.id, display_order: i }));
+
+    // Optimistically update UI
+    setOptions(reordered.map((opt, i) => ({ ...opt, display_order: i })));
 
     try {
-      const prevOption = options[index - 1];
-      
-      await membershipOptionsApi.update(option.id, { display_order: prevOption.display_order });
-      await membershipOptionsApi.update(prevOption.id, { display_order: option.display_order });
-      
-      await fetchOptions();
+      await Promise.all(updates.map(u => membershipOptionsApi.update(u.id, { display_order: u.display_order })));
       setSuccess('Order updated');
       setTimeout(() => setSuccess(null), 2000);
     } catch (err) {
       setError('Failed to reorder membership options');
+      await fetchOptions(); // revert on failure
     }
   };
 
-  const moveDown = async (option, index) => {
-    if (index === options.length - 1) return;
-
-    try {
-      const nextOption = options[index + 1];
-      
-      await membershipOptionsApi.update(option.id, { display_order: nextOption.display_order });
-      await membershipOptionsApi.update(nextOption.id, { display_order: option.display_order });
-      
-      await fetchOptions();
-      setSuccess('Order updated');
-      setTimeout(() => setSuccess(null), 2000);
-    } catch (err) {
-      setError('Failed to reorder membership options');
-    }
-  };
+  const moveUp   = (option, index) => reorder(index, 'up');
+  const moveDown = (option, index) => reorder(index, 'down');
 
   const handleCancel = () => {
     setShowForm(false);
@@ -174,7 +166,7 @@ const MembershipOptionsManagement = () => {
       {success && <div className="success-message">{success}</div>}
 
       {showForm && (
-        <div className="form-card">
+        <div className="form-card" ref={formRef}>
           <h3>{editingOption ? 'Edit Membership Option' : 'Add New Membership Option'}</h3>
           <form onSubmit={handleSubmit} className="option-form">
             <div className="form-row">
@@ -227,7 +219,7 @@ const MembershipOptionsManagement = () => {
                   checked={formData.is_active}
                   onChange={handleInputChange}
                 />
-                <span>Active (visible on signup page)</span>
+                <span>  Active (visible on signup page)</span>
               </label>
             </div>
 

@@ -13,6 +13,7 @@ import FAQManagement from './admin/FAQManagement';
 import ScholarshipRecipientsManagement from './admin/ScholarshipRecipientsManagement';
 import MembershipOptionsManagement from './admin/membershipoptionsmanagement';
 import RoundWinnersManagement from './admin/RoundWinnersManagement';
+import PastChampionsManagement from './admin/Pastchampionsmanagement';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -36,7 +37,8 @@ const AdminDashboard = () => {
     { id: 'faq', label: 'FAQ', icon: '❓' },
     { id: 'scholarship', label: 'Scholarships', icon: '🎓' },
     { id: 'membership', label: 'Membership', icon: '⭐️' },
-    { id: 'standings', label: 'Standings', icon: '🏆' }
+    { id: 'standings', label: 'Standings', icon: '🏆' },
+    { id: 'past_champions', label: 'Past Champions', icon: '🥇' }
   ];
 
   const renderTabContent = () => {
@@ -61,8 +63,10 @@ const AdminDashboard = () => {
         return <ScholarshipRecipientsManagement />;  
       case 'membership':
         return <MembershipOptionsManagement />;  
-        case 'standings':
-          return <RoundWinnersManagement />;    
+      case 'standings':
+        return <RoundWinnersManagement />;  
+      case 'past_champions':
+        return <PastChampionsManagement />;    
       default:
         return <UserManagement />;
     }

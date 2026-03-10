@@ -51,7 +51,7 @@ export default function SignUpPage() {
       // Prepare data - convert golf_handicap to number if provided
       const userData = {
         ...form,
-        golf_handicap: form.golf_handicap ? parseInt(form.golf_handicap, 10) : null,
+        handicap: form.golf_handicap ? String(form.golf_handicap).replace(/\.$/, '') : null,
       };
 
       await signup(userData);
@@ -114,12 +114,36 @@ export default function SignUpPage() {
     setForm({ ...form, phone_number: formatted });
   };
 
+  const handleHandicapChange = (e) => {
+    const value = e.target.value;
+    if (value === '') {
+      setForm(prev => ({ ...prev, golf_handicap: value }));
+      return;
+    }
+    
+    const regex = /^-?\d*\.?\d{0,1}$/;
+    if (regex.test(value)) {
+      const numValue = parseFloat(value);
+      if (value === '-' || value === '.' || value.endsWith('.') || 
+          (!isNaN(numValue) && numValue >= -10 && numValue <= 30)) {
+            setForm(prev => ({ ...prev, golf_handicap: value }));
+      }
+    }
+  };
+
+  const handleHandicapBlur = (e) => {
+    const value = e.target.value;
+    if (value.endsWith('.')) {
+      setForm(prev => ({ ...prev, golf_handicap: value.slice(0, -1) }));
+    }
+  };
+
   const fields = [
     { key: "first_name", label: "First Name *", type: "text", placeholder: "John", required: true },
     { key: "last_name", label: "Last Name *", type: "text", placeholder: "Doe", required: true },
     { key: "phone_number", label: "Phone Number *", type: "tel", placeholder: "(555) 555-5555", required: true },
     { key: "email", label: "Email Address *", type: "email", placeholder: "john@example.com", required: true },
-    { key: "golf_handicap", label: "Golf Handicap", type: "number", placeholder: "e.g., 12", required: false }
+    { key: "golf_handicap", label: "Golf Handicap", type: "text", placeholder: "e.g., 12", required: false }
   ];
 
   return (
@@ -144,7 +168,15 @@ export default function SignUpPage() {
               type={field.type}
               placeholder={field.placeholder}
               value={form[field.key]}
-              onChange={field.key === "phone_number" ? handlePhoneChange : (e) => setForm({ ...form, [field.key]: e.target.value })}
+              onChange={
+                field.key === "phone_number" ? handlePhoneChange
+                : field.key === "golf_handicap" ? handleHandicapChange
+                : (e) => setForm({ ...form, [field.key]: e.target.value })
+              }
+              onBlur={
+                field.key === "golf_handicap" ? handleHandicapBlur
+                : (e) => setForm({ ...form, [field.key]: e.target.value })
+              }
               required={field.required}
               disabled={loading}
             />

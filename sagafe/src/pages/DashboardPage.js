@@ -36,6 +36,29 @@ export default function DashboardPage() {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(true);
 
+  const handleHandicapChange = (e) => {
+    const value = e.target.value;
+    if (value === '') {
+      setHandicapForm(prev => ({ ...prev, handicap: value }));
+      return;
+    }
+    
+    const regex = /^-?\d*\.?\d{0,1}$/;
+    if (regex.test(value)) {
+      const numValue = parseFloat(value);
+      if (value === '-' || value === '.' || value.endsWith('.') || 
+          (!isNaN(numValue) && numValue >= -10 && numValue <= 30)) {
+            setHandicapForm(prev => ({ ...prev, handicap: value }));
+      }
+    }
+  };
+
+  const handleHandicapBlur = (e) => {
+    const value = e.target.value;
+    if (value.endsWith('.')) {
+      setHandicapForm(prev => ({ ...prev, handicap: value.slice(0, -1) }));
+    }
+  };
 
   // Fetch user's registered events
   useEffect(() => {
@@ -342,8 +365,10 @@ export default function DashboardPage() {
                     type="text"
                     id="golf_handicap"
                     value={handicapForm.handicap}
-                    onChange={(e) => setHandicapForm({ handicap: e.target.value })}
+                    onChange={handleHandicapChange}
+                    onBlur={handleHandicapBlur}
                     placeholder="Enter your handicap (e.g., 12.5)"
+                    inputMode="decimal"
                     disabled={loading}
                   />
                   <small>Enter your current USGA handicap index</small>

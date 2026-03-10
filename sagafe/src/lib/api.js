@@ -386,6 +386,14 @@ export const usersApi = {
   },
 
   /**
+   * Create a new user (admin only) — sends password setup email to the new user
+   * @param {object} userData
+   */
+  create: async (userData) => {
+    return api.post('/api/admin/users', userData);
+  },
+
+  /**
    * Delete user (admin only)
    * @param {number} userId
    */
@@ -426,6 +434,10 @@ export const adminEventsApi = {
    */
   update: async (eventId, eventData) => {
     return api.put(`/api/admin/events/${eventId}`, eventData);
+  },
+
+  toggleRegistration: async (eventId, registrationOpen) => {
+    return api.put(`/api/admin/events/${eventId}`, { registration_open: registrationOpen });
   },
 
   /**
@@ -732,6 +744,64 @@ export const membershipOptionsApi = {
    */
   delete: async (id) => {
     return api.delete(`/api/admin/membership-options/${id}`);
+  },
+};
+
+/**
+ * Past Champions API methods
+ */
+export const pastChampionsApi = {
+  /**
+   * Get all past champions (public endpoint, ordered by year desc)
+   */
+  getAll: async () => {
+    return api.get('/api/past-champions');
+  },
+
+  /**
+   * Get all past champions with full details (admin only)
+   */
+  getAllAdmin: async () => {
+    return api.get('/api/admin/past-champions');
+  },
+
+  /**
+   * Create a new past champion (admin only)
+   * @param {object} data - { name, year }
+   */
+  create: async (data) => {
+    return api.post('/api/admin/past-champions', data);
+  },
+
+  /**
+   * Update an existing past champion (admin only)
+   * @param {number} id
+   * @param {object} data - { name?, year? }
+   */
+  update: async (id, data) => {
+    return api.put(`/api/admin/past-champions/${id}`, data);
+  },
+
+  /**
+   * Delete a past champion (admin only)
+   * @param {number} id
+   */
+  delete: async (id) => {
+    return api.delete(`/api/admin/past-champions/${id}`);
+  },
+};
+
+/**
+ * Members API methods (for member search)
+ */
+export const membersApi = {
+  /**
+   * Search members by name (requires authentication)
+   * @param {string} query - Search term
+   * @returns {Promise<Array<{user_id, first_name, last_name, email, phone, handicap}>>}
+   */
+  search: async (query) => {
+    return api.get(`/api/users/members/search?q=${encodeURIComponent(query)}`);
   },
 };
 

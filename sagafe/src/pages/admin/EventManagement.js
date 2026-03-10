@@ -23,7 +23,8 @@ const EventManagement = () => {
     guest_price: '',
     member_price: '',
     capacity:'',
-    image_url: ''
+    image_url: '',
+    event_type: 'regular'
   });
 
   const formRef = useRef(null);
@@ -133,7 +134,8 @@ const EventManagement = () => {
         guest_price: parseFloat(formData.guest_price),
         member_price: parseFloat(formData.member_price),
         capacity: parseInt(formData.capacity),
-        image_url: formData.image_url || null
+        image_url: formData.image_url || null,
+        event_type: formData.event_type
       };
 
       
@@ -167,7 +169,8 @@ const EventManagement = () => {
       guest_price: event.guest_price,
       member_price: event.member_price,
       capacity: event.capacity,
-      image_url: event.image_url || ''
+      image_url: event.image_url || '',
+      event_type: event.event_type || 'regular'
     });
     setShowForm(true);
 
@@ -192,6 +195,26 @@ const EventManagement = () => {
     }
   };
 
+  const handleToggleRegistration = async (event) => {
+    const currentState = event.registration_open !== false; // treat undefined/null as true
+    const newState = !currentState;
+    // Optimistic update
+    setEvents(prev =>
+      prev.map(e => e.id === event.id ? { ...e, registration_open: newState } : e)
+    );
+    try {
+      await adminEventsApi.toggleRegistration(event.id, newState);
+      setSuccess(`Registration ${newState ? 'enabled' : 'disabled'} for ${event.golf_course}`);
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      // Revert on failure
+      setEvents(prev =>
+        prev.map(e => e.id === event.id ? { ...e, registration_open: !newState } : e)
+      );
+      setError('Failed to update registration status');
+    }
+  };
+
   const handleCancel = () => {
     setShowForm(false);
     setEditingEvent(null);
@@ -205,7 +228,8 @@ const EventManagement = () => {
       guest_price: '',
       member_price: '',
       capacity: '',
-      image_url: ''
+      image_url: '',
+      event_type: 'regular'
     });
   };
 
@@ -234,7 +258,7 @@ const EventManagement = () => {
             Sort by Date: {sortOrder === 'asc' ? '↑ Oldest First' : '↓ Newest First'}
           </button>
           {!showForm && (
-            <button onClick={() => setShowForm(true)} className="btn-primary">
+            <button onClick={() => { setFormData(prev => ({ ...prev, event_type: 'regular' })); setShowForm(true); }} className="btn-primary">
               + Add New Event
             </button>
           )}
@@ -418,6 +442,8 @@ const EventManagement = () => {
         </div>
       )}
 
+      {/* Regular Events Table */}
+      <h3 style={{ marginBottom: '1rem', color: '#374151' }}>Regular Rounds</h3>
       <div className="events-table">
         <table>
           <thead>
@@ -428,11 +454,15 @@ const EventManagement = () => {
               <th>Time</th>
               <th>Capacity</th>
               <th>Registered</th>
+              <th>Registration</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {events.map((event) => (
+            {events
+              .filter(e => !e.event_type || e.event_type === 'regular')
+              .sort((a, b) => new Date(a.date) - new Date(b.date))
+              .map((event) => (
               <tr key={event.id}>
                 <td>
                   <div className="event-cell-with-image">
@@ -441,9 +471,7 @@ const EventManagement = () => {
                         src={getFullImageUrl(event.image_url)}
                         alt={event.golf_course}
                         className="event-thumbnail"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
+                        onError={(e) => { e.target.style.display = 'none'; }}
                       />
                     )}
                     <strong>{event.golf_course}</strong>
@@ -455,19 +483,20 @@ const EventManagement = () => {
                 <td>{event.capacity}</td>
                 <td>{event.registered || 0}</td>
                 <td>
+                  <span className={`reg-status-badge ${event.registration_open !== false ? 'reg-open' : 'reg-closed'}`}>
+                    {event.registration_open !== false ? 'Open' : 'Closed'}
+                  </span>
+                </td>
+                <td>
                   <div className="action-buttons">
+                    <button onClick={() => handleEdit(event)} className="btn-secondary btn-sm">Edit</button>
                     <button
-                      onClick={() => handleEdit(event)}
-                      className="btn-secondary btn-sm"
+                      onClick={() => handleToggleRegistration(event)}
+                      className={`btn-sm ${event.registration_open !== false ? 'btn-warning' : 'btn-success'}`}
                     >
-                      Edit
+                      {event.registration_open !== false ? 'Disable' : 'Enable'}
                     </button>
-                    <button
-                      onClick={() => handleDelete(event.id, event.golf_course)}
-                      className="btn-danger btn-sm"
-                    >
-                      Delete
-                    </button>
+                    <button onClick={() => handleDelete(event.id, event.golf_course)} className="btn-danger btn-sm">Delete</button>
                   </div>
                 </td>
               </tr>
@@ -475,6 +504,161 @@ const EventManagement = () => {
           </tbody>
         </table>
       </div>
+
+      {/* SAGA Ryder Cup Section */}
+      {(() => {
+        const ryderEvent = events.find(e => e.event_type === 'ryder_cup');
+        const ryderYear = ryderEvent ? new Date(ryderEvent.date).getFullYear() : new Date().getFullYear();
+        const ryderEndDate = ryderEvent ? (() => { const d = new Date(ryderEvent.date); d.setDate(d.getDate() + 1); return d; })() : null;
+        return (
+          <div className="ryder-cup-section">
+            <div className="section-header" style={{ marginTop: '2.5rem' }}>
+              <h3 className="ryder-cup-section-title">SAGA Ryder Cup</h3>
+              {!ryderEvent && !showForm && (
+                <button onClick={() => { setFormData(prev => ({ ...prev, event_type: 'ryder_cup' })); setShowForm(true); setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} className="btn-primary btn-sm">
+                  + Add Ryder Cup Event
+                </button>
+              )}
+            </div>
+            {ryderEvent ? (
+              <div className="ryder-cup-admin-card">
+                <div className="ryder-cup-admin-header">
+                  <div className="ryder-cup-admin-badge">🏆 SAGA Ryder Cup {ryderYear}</div>
+                </div>
+                <div className="events-table" style={{ boxShadow: 'none' }}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Golf Course</th>
+                        <th>Location</th>
+                        <th>Dates</th>
+                        <th>Time</th>
+                        <th>Capacity</th>
+                        <th>Registered</th>
+                        <th>Registration</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>
+                          <div className="event-cell-with-image">
+                            {ryderEvent.image_url && (
+                              <img src={getFullImageUrl(ryderEvent.image_url)} alt={ryderEvent.golf_course} className="event-thumbnail" onError={(e) => { e.target.style.display = 'none'; }} />
+                            )}
+                            <strong>{ryderEvent.golf_course}</strong>
+                          </div>
+                        </td>
+                        <td>{ryderEvent.township}, {ryderEvent.state}</td>
+                        <td>{new Date(ryderEvent.date).toLocaleDateString()} – {ryderEndDate.toLocaleDateString()}</td>
+                        <td>{formatTime(ryderEvent.start_time)}</td>
+                        <td>{ryderEvent.capacity}</td>
+                        <td>{ryderEvent.registered || 0}</td>
+                        <td>
+                          <span className={`reg-status-badge ${ryderEvent.registration_open !== false ? 'reg-open' : 'reg-closed'}`}>
+                            {ryderEvent.registration_open !== false ? 'Open' : 'Closed'}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="action-buttons">
+                            <button onClick={() => handleEdit(ryderEvent)} className="btn-secondary btn-sm">Edit</button>
+                            <button onClick={() => handleToggleRegistration(ryderEvent)} className={`btn-sm ${ryderEvent.registration_open !== false ? 'btn-warning' : 'btn-success'}`}>
+                              {ryderEvent.registration_open !== false ? 'Disable' : 'Enable'}
+                            </button>
+                            <button onClick={() => handleDelete(ryderEvent.id, ryderEvent.golf_course)} className="btn-danger btn-sm">Delete</button>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div style={{ color: '#9ca3af', textAlign: 'center', padding: '2rem', background: '#f9fafb', borderRadius: '8px', border: '1px dashed #e5e7eb' }}>
+                No Ryder Cup event created yet.
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Championship Event Section */}
+      {(() => {
+        const champEvent = events.find(e => e.event_type === 'championship');
+        if (!champEvent) return (
+          <div className="championship-section">
+            <div className="section-header" style={{ marginTop: '2.5rem' }}>
+              <h3 className="championship-section-title">Championship Event</h3>
+              {!showForm && (
+                <button onClick={() => { setFormData(prev => ({ ...prev, event_type: 'championship' })); setShowForm(true); setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} className="btn-primary btn-sm">
+                  + Add Championship Event
+                </button>
+              )}
+            </div>
+            <div style={{ color: '#9ca3af', textAlign: 'center', padding: '2rem', background: '#f9fafb', borderRadius: '8px', border: '1px dashed #e5e7eb' }}>
+              No championship event created yet.
+            </div>
+          </div>
+        );
+        const champYear = new Date(champEvent.date).getFullYear();
+        return (
+          <div className="championship-section">
+            <h3 className="championship-section-title">Championship Event</h3>
+            <div className="championship-admin-card">
+              <div className="championship-admin-header">
+                <div className="championship-admin-badge">🏆 SAGA Open {champYear}</div>
+              </div>
+              <div className="events-table" style={{ boxShadow: 'none' }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Golf Course</th>
+                      <th>Location</th>
+                      <th>Date</th>
+                      <th>Time</th>
+                      <th>Capacity</th>
+                      <th>Registered</th>
+                      <th>Registration</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div className="event-cell-with-image">
+                          {champEvent.image_url && (
+                            <img src={getFullImageUrl(champEvent.image_url)} alt={champEvent.golf_course} className="event-thumbnail" onError={(e) => { e.target.style.display = 'none'; }} />
+                          )}
+                          <strong>{champEvent.golf_course}</strong>
+                        </div>
+                      </td>
+                      <td>{champEvent.township}, {champEvent.state}</td>
+                      <td>{new Date(champEvent.date).toLocaleDateString()}</td>
+                      <td>{formatTime(champEvent.start_time)}</td>
+                      <td>{champEvent.capacity}</td>
+                      <td>{champEvent.registered || 0}</td>
+                      <td>
+                        <span className={`reg-status-badge ${champEvent.registration_open !== false ? 'reg-open' : 'reg-closed'}`}>
+                          {champEvent.registration_open !== false ? 'Open' : 'Closed'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="action-buttons">
+                          <button onClick={() => handleEdit(champEvent)} className="btn-secondary btn-sm">Edit</button>
+                          <button onClick={() => handleToggleRegistration(champEvent)} className={`btn-sm ${champEvent.registration_open !== false ? 'btn-warning' : 'btn-success'}`}>
+                            {champEvent.registration_open !== false ? 'Disable' : 'Enable'}
+                          </button>
+                          <button onClick={() => handleDelete(champEvent.id, champEvent.golf_course)} className="btn-danger btn-sm">Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <style jsx>{`
         .section-header {
@@ -579,6 +763,96 @@ const EventManagement = () => {
         .btn-sm {
           padding: 0.4rem 0.8rem;
           font-size: 0.85rem;
+        }
+
+        .btn-warning {
+          background: #f59e0b;
+          color: #fff;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 500;
+          transition: background 0.2s;
+        }
+        .btn-warning:hover { background: #d97706; }
+
+        .btn-success {
+          background: #10b981;
+          color: #fff;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 500;
+          transition: background 0.2s;
+        }
+        .btn-success:hover { background: #059669; }
+
+        .reg-status-badge {
+          display: inline-block;
+          padding: 0.2rem 0.6rem;
+          border-radius: 999px;
+          font-size: 0.78rem;
+          font-weight: 600;
+        }
+        .reg-open  { background: #d1fae5; color: #065f46; }
+        .reg-closed { background: #fee2e2; color: #991b1b; }
+
+        .ryder-cup-section {
+          margin-top: 0;
+        }
+
+        .ryder-cup-section-title {
+          color: #374151;
+          margin: 0;
+        }
+
+        .ryder-cup-admin-card {
+          border: 2px solid;
+          border-image: linear-gradient(135deg, #dc2626, #2563eb) 1;
+          border-radius: 0;
+          overflow: hidden;
+          background: #fafbff;
+        }
+
+        .ryder-cup-admin-header {
+          padding: 0.75rem 1rem;
+          background: linear-gradient(135deg, #dc2626, #2563eb);
+        }
+
+        .ryder-cup-admin-badge {
+          color: white;
+          font-weight: 700;
+          font-size: 1.1rem;
+        }
+
+        .championship-section {
+          margin-top: 2.5rem;
+        }
+
+        .championship-section-title {
+          color: #374151;
+          margin-bottom: 1rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .championship-admin-card {
+          border: 2px solid #f59e0b;
+          border-radius: 8px;
+          overflow: hidden;
+          background: #fffbeb;
+        }
+
+        .championship-admin-header {
+          padding: 0.75rem 1rem;
+          background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .championship-admin-badge {
+          color: white;
+          font-weight: 700;
+          font-size: 1.1rem;
         }
 
         @media (max-width: 768px) {

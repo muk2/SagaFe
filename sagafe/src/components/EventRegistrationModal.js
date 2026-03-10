@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import PaymentForm from './PaymentForm';
-import { registrationsApi } from '../lib/api';
+import { registrationsApi, membersApi } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { formatTime } from '../lib/dateUtils';
 
@@ -16,17 +16,114 @@ function generateIdempotencyKey() {
   });
 }
 
+function formatPhoneNumber(value) {
+  const phoneNumber = value.replace(/\D/g, '');
+  if (phoneNumber.length <= 3) return phoneNumber;
+  else if (phoneNumber.length <= 6) return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
+  else return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
+}
+
+const EMPTY_GOLFER = { isMember: false, userId: null, name: '', email: '', phone: '', handicap: '', memberSearch: '', searchResults: [], searching: false };
+
+
+/**
+ * Member search input with dropdown results
+ */
+function MemberSearchInput({ golfer, index, onSelect, onChange }) {
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const timerRef = useRef(null);
+  const wrapperRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSearch = (value) => {
+    onChange(index, 'memberSearch', value);
+    clearTimeout(timerRef.current);
+    if (value.trim().length < 2) {
+      setResults([]);
+      setShowDropdown(false);
+      return;
+    }
+    setSearching(true);
+    timerRef.current = setTimeout(async () => {
+      try {
+        const data = await membersApi.search(value);
+        setResults(data);
+        setShowDropdown(true);
+      } catch {
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+  };
+
+  return (
+    <div ref={wrapperRef} style={{ position: 'relative' }}>
+      <label htmlFor={`golfer-search-${index}`}>Search Member Name *</label>
+      <input
+        type="text"
+        id={`golfer-search-${index}`}
+        value={golfer.memberSearch}
+        onChange={(e) => handleSearch(e.target.value)}
+        onFocus={() => results.length > 0 && setShowDropdown(true)}
+        placeholder="Type member name..."
+        autoComplete="off"
+      />
+      {searching && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Searching...</span>}
+      {showDropdown && results.length > 0 && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+          background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)', maxHeight: '200px', overflowY: 'auto',
+        }}>
+          {results.map((m) => (
+            <div
+              key={m.user_id}
+              onClick={() => { onSelect(index, m); setShowDropdown(false); }}
+              style={{
+                padding: '0.6rem 0.75rem', cursor: 'pointer', borderBottom: '1px solid #f3f4f6',
+                fontSize: '0.875rem',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+            >
+              <strong>{m.first_name} {m.last_name}</strong>
+              <span style={{ color: '#6b7280', marginLeft: '0.5rem' }}>{m.email}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {showDropdown && results.length === 0 && !searching && golfer.memberSearch.length >= 2 && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+          background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)', padding: '0.75rem',
+          fontSize: '0.85rem', color: '#6b7280', textAlign: 'center',
+        }}>
+          No members found
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 /**
  * Event Registration Modal — handles both member and non-member registration
- * with integrated payment via PaymentForm.
- *
- * Props:
- * @param {object} event - The event to register for
- * @param {function} onClose - Called to close the modal
- * @param {function} onSuccess - Called after successful registration
+ * with integrated payment via PaymentForm and support for additional golfers.
  */
-export default function EventRegistrationModal({ event, onClose, onSuccess }) {
+export default function EventRegistrationModal({ event, onClose, onSuccess, displayName }) {
   const { user } = useAuth();
 
   // Form state
@@ -40,30 +137,34 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
     companyName: '',
   });
 
+  // Additional golfers
+  const [additionalGolfers, setAdditionalGolfers] = useState([]);
 
   // Flow state
-  const [step, setStep] = useState('form'); // 'form' | 'confirmation' | 'declined'
+  const [step, setStep] = useState('form');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [paymentError, setPaymentError] = useState('');
   const [confirmationData, setConfirmationData] = useState(null);
   const [failedRegistrationId, setFailedRegistrationId] = useState(null);
 
-  const memberPrice  = event.price || event.member_price;
-  const guestPrice   = event.guest_price || event.price;
+  const memberPrice  = parseFloat(event.price || event.member_price) || 0;
+  const guestPrice   = parseFloat(event.guest_price || event.price) || 0;
   const basePrice    = user ? memberPrice : guestPrice;
   const sponsorAdd   = registrationForm.sponsor === 'yes' ? (parseFloat(registrationForm.sponsorAmount) || 0) : 0;
-  const displayPrice = basePrice ? (parseFloat(basePrice) + sponsorAdd) : sponsorAdd || null;
+
+  // Calculate total price including additional golfers
+  const additionalGolfersPrice = additionalGolfers.reduce((sum, g) => {
+    if (user && g.isMember) {
+      return sum + memberPrice;
+    }
+    return sum + guestPrice;
+  }, 0);
+
+  const displayPrice = basePrice + sponsorAdd + additionalGolfersPrice;
 
   const handleFormFieldChange = (field, value) => {
     setRegistrationForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const formatPhoneNumber = (value) => {
-    const phoneNumber = value.replace(/\D/g, '');
-    if (phoneNumber.length <= 3) return phoneNumber;
-    else if (phoneNumber.length <= 6) return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
-    else return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
   };
 
   const handlePhoneChange = (e) => {
@@ -87,6 +188,71 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
     }
   };
 
+  const handleHandicapBlur = (e) => {
+    const value = e.target.value;
+    if (value.endsWith('.')) {
+      setRegistrationForm(prev => ({ ...prev, handicap: value.slice(0, -1) }));
+    }
+  };
+
+  // --- Additional Golfer handlers ---
+  const addGolfer = () => {
+    setAdditionalGolfers(prev => [...prev, { ...EMPTY_GOLFER }]);
+  };
+
+  const removeGolfer = (index) => {
+    setAdditionalGolfers(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateGolfer = (index, field, value) => {
+    setAdditionalGolfers(prev => prev.map((g, i) => i === index ? { ...g, [field]: value } : g));
+  };
+
+  const handleGolferMemberToggle = (index, checked) => {
+    setAdditionalGolfers(prev => prev.map((g, i) => {
+      if (i !== index) return g;
+      if (checked) {
+        return { ...EMPTY_GOLFER, isMember: true };
+      }
+      return { ...EMPTY_GOLFER, isMember: false };
+    }));
+  };
+
+  const handleMemberSelect = (index, member) => {
+    setAdditionalGolfers(prev => prev.map((g, i) => {
+      if (i !== index) return g;
+      return {
+        ...g,
+        userId: member.user_id,
+        name: `${member.first_name} ${member.last_name}`,
+        email: member.email || '',
+        phone: member.phone || '',
+        handicap: member.handicap || '',
+        memberSearch: `${member.first_name} ${member.last_name}`,
+      };
+    }));
+  };
+
+  const handleGolferPhoneChange = (index, value) => {
+    updateGolfer(index, 'phone', formatPhoneNumber(value));
+  };
+
+  const handleGolferHandicapChange = (index, value) => {
+    if (value === '') {
+      updateGolfer(index, 'handicap', value);
+      return;
+    }
+    const regex = /^-?\d*\.?\d{0,1}$/;
+    if (regex.test(value)) {
+      const numValue = parseFloat(value);
+      if (value === '-' || value === '.' || value.endsWith('.') ||
+          (!isNaN(numValue) && numValue >= -10 && numValue <= 30)) {
+        updateGolfer(index, 'handicap', value);
+      }
+    }
+  };
+
+  // --- Payment handler ---
   const handlePaymentToken = useCallback(
     async (token) => {
       setLoading(true);
@@ -100,6 +266,30 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
         company_name:   isSponsor ? registrationForm.companyName : null,
       };
 
+      const cleanHandicap = registrationForm.handicap.endsWith('.')
+        ? registrationForm.handicap.slice(0, -1)
+        : registrationForm.handicap || null;
+
+      // Build additional_golfers payload
+      const golferPayload = additionalGolfers.map(g => {
+        if (g.isMember && g.userId) {
+          return {
+            is_member: true,
+            user_id: g.userId,
+            handicap: g.handicap || null,
+          };
+        }
+        const nameParts = (g.name || '').trim().split(' ');
+        return {
+          is_member: false,
+          first_name: nameParts[0] || '',
+          last_name: nameParts.slice(1).join(' ') || '',
+          email: g.email || null,
+          phone: g.phone || null,
+          handicap: g.handicap || null,
+        };
+      });
+
       try {
         const idempotencyKey = generateIdempotencyKey();
 
@@ -112,9 +302,10 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
         } else if (user) {
           response = await registrationsApi.register({
             event_id:        event.id,
-            handicap:        registrationForm.handicap,
+            handicap:        cleanHandicap,
             payment_token:   token,
             idempotency_key: idempotencyKey,
+            additional_golfers: golferPayload,
             ...sponsorData,
           });
         } else {
@@ -124,9 +315,10 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
             last_name:       registrationForm.name.split(' ').slice(1).join(' ') || '',
             email:           registrationForm.email,
             phone:           registrationForm.phone,
-            handicap:        registrationForm.handicap,
+            handicap:        cleanHandicap,
             payment_token:   token,
             idempotency_key: idempotencyKey,
+            additional_golfers: golferPayload,
             ...sponsorData,
           });
         }
@@ -143,7 +335,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
         setLoading(false);
       }
     },
-    [user, event.id, registrationForm, failedRegistrationId, onSuccess]
+    [user, event.id, registrationForm, additionalGolfers, failedRegistrationId, onSuccess]
   );
 
   const handlePaymentError = useCallback((errorMsg) => {
@@ -163,9 +355,18 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
     if (registrationForm.sponsor === 'yes' && !registrationForm.companyName.trim()) {
       return false;
     }
+    // Validate additional golfers
+    for (const g of additionalGolfers) {
+      if (g.isMember) {
+        if (!g.userId) return false;
+      } else {
+        if (!g.name.trim()) return false;
+      }
+    }
     return true;
   };
 
+  const totalGolfers = 1 + additionalGolfers.length;
 
   // --- CONFIRMATION VIEW ---
   if (step === 'confirmation') {
@@ -187,16 +388,20 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
             <div className="confirmation-details">
               <div className="info-row">
                 <span className="info-label">Event:</span>
-                <span>{event.golf_course}</span>
+                <span>{displayName || event.golf_course}</span>
               </div>
               <div className="info-row">
                 <span className="info-label">Date:</span>
                 <span>{event.date}</span>
               </div>
+              <div className="info-row">
+                <span className="info-label">Golfers:</span>
+                <span>{totalGolfers}</span>
+              </div>
               {displayPrice > 0 && (
                 <div className="info-row">
-                  <span className="info-label">Amount:</span>
-                  <span className="price-highlight">${parseFloat(displayPrice).toFixed(2)}</span>
+                  <span className="info-label">Total Amount:</span>
+                  <span className="price-highlight">${parseFloat(confirmationData?.amount_charged || displayPrice).toFixed(2)}</span>
                 </div>
               )}
               {confirmationData?.confirmation_id && (
@@ -262,7 +467,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
   // --- FORM VIEW (default) ---
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
         <button className="modal-close" onClick={onClose}>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="24" height="24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -271,10 +476,16 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
 
         <div className="modal-header">
           <h2>Register for Event</h2>
-          <p>{event.golf_course}</p>
+          <p>{displayName || event.golf_course}</p>
         </div>
 
         <div className="modal-event-info">
+          {displayName && (
+            <div className="info-row">
+              <span className="info-label">Golf Course:</span>
+              <span>{event.golf_course}</span>
+            </div>
+          )}
           <div className="info-row">
             <span className="info-label">Date:</span>
             <span>
@@ -294,17 +505,12 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
             <span>{event.township}, {event.state}</span>
           </div>
           <div className="info-row">
-            <span className="info-label">Price:</span>
+            <span className="info-label">Total Price:</span>
             <span className="price-highlight">
               ${displayPrice ? parseFloat(displayPrice).toFixed(2) : '0.00'}
-              {user && guestPrice && memberPrice !== guestPrice && registrationForm.sponsor !== 'yes' && (
-                <span style={{ fontSize: '0.8rem', color: 'rgb(13, 148, 136)', marginLeft: '0.5rem' }}>
-                  (Member price)
-                </span>
-              )}
-              {registrationForm.sponsor === 'yes' && (
-                <span style={{ fontSize: '0.8rem', color: '#7c3aed', marginLeft: '0.5rem' }}>
-                  (${basePrice.toFixed(2)} + ${parseFloat(registrationForm.sponsorAmount).toFixed(2) || 0} sponsorship)
+              {totalGolfers > 1 && (
+                <span style={{ fontSize: '0.8rem', color: '#6b7280', marginLeft: '0.5rem' }}>
+                  ({totalGolfers} golfers)
                 </span>
               )}
             </span>
@@ -318,7 +524,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
             </div>
           )}
 
-          {/* All fields always shown — pre-filled for logged-in users */}
+          {/* Primary registrant fields */}
           <div className="form-group">
             <label htmlFor="reg-name">Full Name *</label>
             <input
@@ -360,6 +566,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
                 id="reg-handicap"
                 value={registrationForm.handicap}
                 onChange={handleHandicapChange}
+                onBlur={handleHandicapBlur}
                 placeholder="e.g., 12"
                 inputMode="decimal"
               />
@@ -415,6 +622,175 @@ export default function EventRegistrationModal({ event, onClose, onSuccess }) {
                     />
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Additional Golfers Section */}
+          {additionalGolfers.length > 0 && (
+            <div style={{ marginTop: '1.25rem' }}>
+              {additionalGolfers.map((golfer, index) => (
+                <div key={index} style={{
+                  border: '1px solid #e5e7eb', borderRadius: '12px', padding: '1rem',
+                  marginBottom: '0.75rem', background: '#fafafa', position: 'relative',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#374151' }}>
+                      Additional Golfer {index + 1}
+                      <span style={{ fontWeight: 400, fontSize: '0.8rem', color: '#6b7280', marginLeft: '0.5rem' }}>
+                        (${(user && golfer.isMember ? memberPrice : guestPrice).toFixed(2)}
+                        {user && golfer.isMember ? ' member' : ' guest'} rate)
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeGolfer(index)}
+                      style={{
+                        background: '#fee2e2', border: 'none', borderRadius: '6px',
+                        padding: '0.3rem 0.5rem', cursor: 'pointer', color: '#dc2626',
+                        display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: 600,
+                      }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="14" height="14">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" />
+                      </svg>
+                      Remove
+                    </button>
+                  </div>
+
+                  {/* Member toggle — only show for logged-in members */}
+                  {user && (
+                    <label style={{
+                      display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem',
+                      fontSize: '0.875rem', cursor: 'pointer', color: '#374151',
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={golfer.isMember}
+                        onChange={(e) => handleGolferMemberToggle(index, e.target.checked)}
+                        style={{ width: '16px', height: '16px', accentColor: '#059669' }}
+                      />
+                      This golfer is a SAGA member
+                    </label>
+                  )}
+
+                  {/* Member search or guest fields */}
+                  {golfer.isMember ? (
+                    <div className="form-group">
+                      <MemberSearchInput
+                        golfer={golfer}
+                        index={index}
+                        onSelect={handleMemberSelect}
+                        onChange={updateGolfer}
+                      />
+                      {golfer.userId && (
+                        <div style={{
+                          marginTop: '0.5rem', padding: '0.5rem 0.75rem',
+                          background: '#ecfdf5', borderRadius: '8px', border: '1px solid #a7f3d0',
+                          fontSize: '0.85rem', color: '#065f46',
+                        }}>
+                          Selected: <strong>{golfer.name}</strong>
+                          {golfer.handicap && <span> (HCP: {golfer.handicap})</span>}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="form-group">
+                        <label htmlFor={`golfer-name-${index}`}>Full Name *</label>
+                        <input
+                          type="text"
+                          id={`golfer-name-${index}`}
+                          value={golfer.name}
+                          onChange={(e) => updateGolfer(index, 'name', e.target.value)}
+                          placeholder="Enter golfer's full name"
+                        />
+                      </div>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label htmlFor={`golfer-email-${index}`}>Email</label>
+                          <input
+                            type="email"
+                            id={`golfer-email-${index}`}
+                            value={golfer.email}
+                            onChange={(e) => updateGolfer(index, 'email', e.target.value)}
+                            placeholder="Enter email"
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label htmlFor={`golfer-phone-${index}`}>Phone</label>
+                          <input
+                            type="tel"
+                            id={`golfer-phone-${index}`}
+                            value={golfer.phone}
+                            onChange={(e) => handleGolferPhoneChange(index, e.target.value)}
+                            placeholder="(555) 555-5555"
+                          />
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor={`golfer-handicap-${index}`}>Golf Handicap</label>
+                        <input
+                          type="text"
+                          id={`golfer-handicap-${index}`}
+                          value={golfer.handicap}
+                          onChange={(e) => handleGolferHandicapChange(index, e.target.value)}
+                          placeholder="e.g., 12"
+                          inputMode="decimal"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add Golfer Button */}
+          <button
+            type="button"
+            onClick={addGolfer}
+            style={{
+              width: '100%', padding: '0.65rem', marginTop: '0.75rem',
+              background: '#f0fdf4', border: '1px dashed #86efac', borderRadius: '10px',
+              color: '#059669', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#dcfce7'; e.currentTarget.style.borderColor = '#4ade80'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#f0fdf4'; e.currentTarget.style.borderColor = '#86efac'; }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="18" height="18">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Add Additional Golfer
+          </button>
+
+          {/* Price breakdown for multiple golfers */}
+          {additionalGolfers.length > 0 && (
+            <div style={{
+              marginTop: '1rem', padding: '0.75rem', background: '#f9fafb',
+              borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '0.85rem',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                <span>Your registration ({user ? 'member' : 'guest'})</span>
+                <span>${basePrice.toFixed(2)}</span>
+              </div>
+              {additionalGolfers.map((g, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                  <span>Golfer {i + 1}: {g.name || 'TBD'} ({user && g.isMember ? 'member' : 'guest'})</span>
+                  <span>${(user && g.isMember ? memberPrice : guestPrice).toFixed(2)}</span>
+                </div>
+              ))}
+              {sponsorAdd > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                  <span>Sponsorship</span>
+                  <span>${sponsorAdd.toFixed(2)}</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, borderTop: '1px solid #e5e7eb', paddingTop: '0.5rem', marginTop: '0.25rem' }}>
+                <span>Total</span>
+                <span>${displayPrice.toFixed(2)}</span>
               </div>
             </div>
           )}

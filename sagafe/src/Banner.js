@@ -9,6 +9,14 @@ export default function Banner() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [display_count, setDisplayCount] = useState(3);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Listen for banner updates from admin dashboard
+  useEffect(() => {
+    const handleBannerUpdate = () => setRefreshKey((k) => k + 1);
+    window.addEventListener("banner-updated", handleBannerUpdate);
+    return () => window.removeEventListener("banner-updated", handleBannerUpdate);
+  }, []);
 
   // Fetch banner messages
   useEffect(() => {
@@ -16,16 +24,10 @@ export default function Banner() {
       try {
         setLoading(true);
         const data = await bannerApi.getAll();
-        
-        console.log('=== BANNER DATA ===');
-        console.log('Full response:', data);
-        console.log('display_count:', data.display_count);
-        console.log('messages:', data.messages);
-        console.log('==================');
 
         setDisplayCount(data.display_count || 3);
         setItems(data.messages || data);  // Fallback for old format
-        
+
         setError(null);
       } catch (err) {
         console.error("Failed to fetch banners:", err);
@@ -35,9 +37,9 @@ export default function Banner() {
         setLoading(false);
       }
     };
-  
+
     fetchBanners();
-  }, []);
+  }, [refreshKey]);
   
 
   // Rotate banner messages
@@ -59,12 +61,12 @@ export default function Banner() {
   }
 
   const visibleItems = items.slice(0, display_count);
+  const safeIndex = index % (visibleItems.length || 1);
 
   return (
     <div className="banner">
       <p className="banner-text">
-        {/* change `.message` if your column is named differently */}
-        {visibleItems[index]?.message}
+        {visibleItems[safeIndex]?.message}
       </p>
     </div>
   );

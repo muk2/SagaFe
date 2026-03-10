@@ -60,13 +60,11 @@ const BannerManagement = () => {
       }
 
       await adminBannerApi.updateMessages(validMessages);
-      setSuccess('Banner messages updated successfully - refreshing...');
+      setSuccess('Banner messages updated successfully');
 
       // Refresh messages
       await fetchBannerMessages();
-
-      setTimeout(() => {window.location.reload();
-    }, 1500);
+      window.dispatchEvent(new Event("banner-updated"));
     } catch (err) {
       setError(err.message || 'Failed to update banner messages');
     }
@@ -79,8 +77,8 @@ const BannerManagement = () => {
       
       await adminBannerApi.updateDisplayCount(newCount);
 
-      setSuccess('Display count updated - changes will appear shortly');
-      setTimeout(() => {window.location.reload();}, 2000);
+      setSuccess('Display count updated successfully');
+      window.dispatchEvent(new Event("banner-updated"));
     } catch (err) {
       setError(err.message || 'Failed to update display count');
     }

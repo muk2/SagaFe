@@ -1,15 +1,51 @@
 import React, { useState, useEffect } from 'react';
+import { membershipOptionsApi, pastChampionsApi } from '../lib/api';
 
 export default function SagaTourPage() {
   const [activeSection, setActiveSection] = useState('overview');
+  const [membershipOptions, setMembershipOptions] = useState([]);
+  const [feesLoading, setFeesLoading] = useState(true);
+  const [feesError, setFeesError] = useState(null);
+  const [pastChampions, setPastChampions] = useState([]);
+  const [championsLoading, setChampionsLoading] = useState(true);
+
+  // Fetch membership options from backend
+  useEffect(() => {
+    const fetchMembershipOptions = async () => {
+      try {
+        setFeesLoading(true);
+        const data = await membershipOptionsApi.getAll();
+        setMembershipOptions(data);
+        setFeesError(null);
+      } catch (err) {
+        console.error('Failed to fetch membership options:', err);
+        setFeesError('Unable to load membership fees');
+      } finally {
+        setFeesLoading(false);
+      }
+    };
+
+    const fetchPastChampions = async () => {
+      try {
+        setChampionsLoading(true);
+        const data = await pastChampionsApi.getAll();
+        setPastChampions(data);
+      } catch (err) {
+        console.error('Failed to fetch past champions:', err);
+      } finally {
+        setChampionsLoading(false);
+      }
+    };
+
+    fetchMembershipOptions();
+    fetchPastChampions();
+  }, []);
 
   // Track which section is in view
   useEffect(() => {
     const handleScroll = () => {
       const sections = [
         'overview',
-        'teams',
-        'captains',
         'eligibility',
         'scoring',
         'reset-points',
@@ -55,8 +91,6 @@ export default function SagaTourPage() {
 
   const tocItems = [
     { id: 'overview', label: 'Overview' },
-    { id: 'teams', label: 'Teams' },
-    { id: 'captains', label: 'Captain Responsibilities' },
     { id: 'eligibility', label: 'Signing Up & Eligibility' },
     { id: 'scoring', label: 'Scoring - Regular Season' },
     { id: 'reset-points', label: 'Reset Points' },
@@ -69,6 +103,16 @@ export default function SagaTourPage() {
     { id: 'saga-open', label: 'SAGA Open' },
     { id: 'uhc-cup', label: 'United Healthcare Cup' },
   ];
+
+  /**
+   * Format the price from the API for display.
+   * If price is 0 or "0.00", show "FREE". Otherwise show "$X/year".
+   */
+  const formatFeeAmount = (price) => {
+    const numPrice = parseFloat(price);
+    if (numPrice === 0) return 'FREE';
+    return `$${numPrice.toFixed(0)}/year`;
+  };
 
   return (
     <div className="saga-tour-page">
@@ -113,66 +157,6 @@ export default function SagaTourPage() {
               </div>
             </section>
 
-            {/* Teams */}
-            <section id="teams" className="tour-section">
-              <h2>Teams</h2>
-              <div className="teams-grid">
-                <div className="team-card linksmen">
-                  <div className="team-color-bar"></div>
-                  <div className="team-header">
-                    <h3>Linksmen</h3>
-                    <div className="team-color-circle"></div>
-                  </div>
-                  <p className="captain-name"><strong>Captain:</strong> Niraj Desai</p>
-                </div>
-
-                <div className="team-card brunswick">
-                  <div className="team-color-bar"></div>
-                  <div className="team-header">
-                    <h3>Brunswick</h3>
-                    <div className="team-color-circle"></div>
-                  </div>
-                  <p className="captain-name"><strong>Captain:</strong> Amit Parekh</p>
-                </div>
-              </div>
-            </section>
-
-            {/* Captain Responsibilities */}
-            <section id="captains" className="tour-section">
-              <h2>Captain Responsibilities</h2>
-              
-              <div className="content-card">
-                <h4>Player Signups & Responsibilities</h4>
-                <ul className="info-list">
-                  <li>Promote SAGA within your club and encourage eligible members to sign up</li>
-                  <li>Be able to vouch for all players registering from your club and confirm eligibility</li>
-                  <li>Ensure all players join the SAGA WhatsApp group</li>
-                  <li>Make sure all players understand and agree to abide by SAGA's four cornerstones</li>
-                </ul>
-              </div>
-
-              <div className="content-card">
-                <h4>Working with the SAGA Board & Executive Committee</h4>
-                <ul className="info-list">
-                  <li>Conduct regular round matches in alignment with the SAGA calendar, rules, and formats</li>
-                  <li>Serve as the primary rules official onsite during SAGA rounds</li>
-                  <li>Send regular SAGA communications to your chapter members</li>
-                  <li>Submit scores for all regular round matches that are held</li>
-                  <li>Maintain a chapter-level leaderboard</li>
-                  <li>Select an 8-player team to compete in the UHC Cup</li>
-                </ul>
-              </div>
-
-              <div className="content-card">
-                <h4>Club Eligibility Requirements</h4>
-                <ul className="info-list">
-                  <li>The club must have a minimum of 10 members interested in signing up for SAGA</li>
-                  <li>All players must have an active USGA handicap and meet USGA eligibility requirements, including having played golf for several years</li>
-                  <li>All members must agree to abide by the four cornerstones of SAGA</li>
-                </ul>
-              </div>
-            </section>
-
             {/* Signing Up & Eligibility */}
             <section id="eligibility" className="tour-section">
               <h2>Signing Up & Eligibility</h2>
@@ -182,35 +166,42 @@ export default function SagaTourPage() {
                 <ul className="info-list">
                   <li>If golfers are not affiliated with any of the member clubs, they should sign up as part of the <strong>Linksmen Chapter</strong></li>
                   <li>If golfers are members of one of the member clubs, they should sign up for that chapter</li>
-                  <li>Sign up with your team captain (see Teams section above)</li>
+                  <li>Sign up with your team captain (see United Healthcare Cup section below)</li>
                 </ul>
               </div>
 
               <div className="content-card">
                 <h4>Membership Fees</h4>
-                <div className="fees-grid">
-                  <div className="fee-item">
-                    <span className="fee-label">Linksmen Chapter</span>
-                    <span className="fee-amount">$350/year</span>
+                {feesLoading ? (
+                  <div className="fees-loading">
+                    <p>Loading membership fees...</p>
                   </div>
-                  <div className="fee-item">
-                    <span className="fee-label">Other Clubs</span>
-                    <span className="fee-amount">$250/year</span>
+                ) : feesError ? (
+                  <div className="fees-error">
+                    <p>{feesError}</p>
                   </div>
-                  <div className="fee-item">
-                    <span className="fee-label">Young Golfers (Under 27)</span>
-                    <span className="fee-amount">$200/year</span>
+                ) : membershipOptions.length > 0 ? (
+                  <div className="fees-grid">
+                    {membershipOptions.map((option) => {
+                      const isFree = parseFloat(option.price) === 0;
+                      return (
+                        <div className={`fee-item ${isFree ? 'special' : ''}`} key={option.id}>
+                          <div className="fee-details">
+                            <span className="fee-label">{option.name}</span>
+                            {option.description && (
+                              <span className="fee-description">{option.description}</span>
+                            )}
+                          </div>
+                          <span className="fee-amount">{formatFeeAmount(option.price)}</span>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="fee-item special">
-                    <span className="fee-label">Student of Member Parent<br />(High School/College)</span>
-                    <span className="fee-amount">FREE</span>
+                ) : (
+                  <div className="fees-empty">
+                    <p>No membership fee information available at this time.</p>
                   </div>
-                </div>
-                
-                <div className="highlight-box">
-                  <p><strong>Monthly Round Fees:</strong> $125 per person</p>
-                  <p><strong>SAGA-Linksmen Round Fee:</strong> $115 per round for the SAGA round</p>
-                </div>
+                )}
               </div>
 
               <div className="content-card">
@@ -318,12 +309,10 @@ export default function SagaTourPage() {
                   <li>
                     Players may declare all seven rounds at the beginning of the season if they 
                     know they will miss a scheduled round
-                  
+                  </li>
                   <li>
                     <strong>Example:</strong> If a player cannot attend the first round, they may 
                     select a future round from the other team's schedule to count as their first round
-                  </li>
-                
                   </li>
                   <li>All round declarations must be made at the start of the season due to limited availability</li>
                   <li>Makeup rounds requested during the season are subject to availability</li>
@@ -375,7 +364,11 @@ export default function SagaTourPage() {
               <h2>Anish Joshi Trophy</h2>
               <div className="content-card featured">
                 <div className="trophy-header">
-                  <span className="trophy-icon">🏆</span>
+                  <img
+                    src="/trophies/anish-joshi-trophy.jpg"
+                    alt="SAGA Anish Joshi Memorial Trophy"
+                    className="trophy-image"
+                  />
                   <p className="trophy-subtitle">Our Most Prestigious Champion's Trophy</p>
                 </div>
 
@@ -427,6 +420,29 @@ export default function SagaTourPage() {
                   <li>Must have qualified to play the playoffs</li>
                 </ul>
               </div>
+
+              {/* Past Champions */}
+              <div className="content-card">
+                <h4>Past SAGA Champions</h4>
+                {championsLoading ? (
+                  <div className="champions-loading">
+                    <p>Loading past champions...</p>
+                  </div>
+                ) : pastChampions.length > 0 ? (
+                  <div className="past-champions-grid">
+                    {pastChampions.map((champ) => (
+                      <div className="champion-card" key={champ.id}>
+                        <span className="champion-year">{champ.year}</span>
+                        <span className="champion-name">{champ.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="champions-empty">
+                    <p>Past champions will be listed here once the season concludes.</p>
+                  </div>
+                )}
+              </div>
             </section>
 
             {/* SAGA Open */}
@@ -454,9 +470,71 @@ export default function SagaTourPage() {
               </div>
             </section>
 
-            {/* United Healthcare Cup */}
+            {/* United Healthcare Cup — now includes Teams & Captain Responsibilities */}
             <section id="uhc-cup" className="tour-section">
               <h2>United Healthcare Cup</h2>
+
+
+              {/* Teams sub-section */}
+              <div className="content-card">
+              <img
+                  src="/trophies/uhc-trophy.jpg"
+                  alt="United Health Care Champions Trophy"
+                  className="trophy-image"
+                />
+                <h4>Teams</h4>
+                <div className="teams-grid">
+                  <div className="team-card linksmen">
+                    <div className="team-color-bar"></div>
+                    <div className="team-header">
+                      <h3>Linksmen</h3>
+                      <div className="team-color-circle"></div>
+                    </div>
+                    <p className="captain-name"><strong>Captain:</strong> Niraj Desai</p>
+                  </div>
+
+                  <div className="team-card brunswick">
+                    <div className="team-color-bar"></div>
+                    <div className="team-header">
+                      <h3>Brunswick</h3>
+                      <div className="team-color-circle"></div>
+                    </div>
+                    <p className="captain-name"><strong>Captain:</strong> Amit Parekh</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Captain Responsibilities sub-section */}
+              <div className="content-card">
+                <h4>Captain Responsibilities</h4>
+
+                <h5 className="sub-heading">Player Signups & Responsibilities</h5>
+                <ul className="info-list">
+                  <li>Promote SAGA within your club and encourage eligible members to sign up</li>
+                  <li>Be able to vouch for all players registering from your club and confirm eligibility</li>
+                  <li>Ensure all players join the SAGA WhatsApp group</li>
+                  <li>Make sure all players understand and agree to abide by SAGA's four cornerstones</li>
+                </ul>
+
+                <h5 className="sub-heading">Working with the SAGA Board & Executive Committee</h5>
+                <ul className="info-list">
+                  <li>Conduct regular round matches in alignment with the SAGA calendar, rules, and formats</li>
+                  <li>Serve as the primary rules official onsite during SAGA rounds</li>
+                  <li>Send regular SAGA communications to your chapter members</li>
+                  <li>Submit scores for all regular round matches that are held</li>
+                  <li>Maintain a chapter-level leaderboard</li>
+                  <li>Select an 8-player team to compete in the UHC Cup</li>
+                </ul>
+
+                <h5 className="sub-heading">Club Eligibility Requirements</h5>
+                <ul className="info-list">
+                  <li>The club must have a minimum of 10 members interested in signing up for SAGA</li>
+                  <li>All players must have an active USGA handicap and meet USGA eligibility requirements, including having played golf for several years</li>
+                  <li>All members must agree to abide by the four cornerstones of SAGA</li>
+                </ul>
+              </div>
+
+              {/* Competition Format */}
               <div className="content-card">
                 <h4>Team Competition Format</h4>
                 <ul className="info-list">
@@ -588,6 +666,19 @@ export default function SagaTourPage() {
           margin: 2rem 0 1rem 0;
         }
 
+        .tour-section h4:first-child {
+          margin-top: 0;
+        }
+
+        .sub-heading {
+          font-size: 1.05rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin: 1.75rem 0 0.75rem 0;
+          padding-bottom: 0.35rem;
+          border-bottom: 1px solid var(--border);
+        }
+
         .content-card {
           background: white;
           border: 1px solid var(--border);
@@ -612,7 +703,7 @@ export default function SagaTourPage() {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 2rem;
-          margin-bottom: 1.5rem;
+          margin: 1rem 0 0.5rem;
         }
 
         .team-card {
@@ -888,10 +979,13 @@ export default function SagaTourPage() {
           margin-bottom: 1.5rem;
         }
 
-        .trophy-icon {
-          font-size: 4rem;
+        .trophy-image {
           display: block;
-          margin-bottom: 0.5rem;
+          max-height: 160px;
+          width: auto;
+          margin: 0 auto 1rem;
+          border-radius: var(--radius-lg);
+          object-fit: contain;
         }
 
         .trophy-subtitle {
@@ -899,6 +993,11 @@ export default function SagaTourPage() {
           font-weight: 600;
           color: var(--primary);
           font-style: italic;
+        }
+
+        .uhc-trophy-showcase {
+          text-align: center;
+          padding: 2rem;
         }
 
         .sponsor-info {
@@ -911,6 +1010,130 @@ export default function SagaTourPage() {
         .sponsor-info p {
           margin: 0;
           color: var(--text-primary);
+        }
+
+        /* Fees Grid — dynamic from API */
+        .fees-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 1rem;
+          margin: 1.5rem 0;
+        }
+
+        .fee-item {
+          background: white;
+          border: 2px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 1.25rem;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          transition: all 0.2s;
+        }
+
+        .fee-item:hover {
+          border-color: var(--primary);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .fee-item.special {
+          background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+          border-color: #86efac;
+        }
+
+        .fee-details {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .fee-label {
+          font-weight: 500;
+          color: var(--text-primary);
+        }
+
+        .fee-description {
+          font-size: 0.8rem;
+          color: var(--text-secondary);
+        }
+
+        .fee-amount {
+          font-weight: 700;
+          font-size: 1.25rem;
+          color: var(--primary);
+          white-space: nowrap;
+          margin-left: 1rem;
+        }
+
+        .fee-item.special .fee-amount {
+          color: #059669;
+        }
+
+        .fees-loading,
+        .fees-error,
+        .fees-empty {
+          padding: 2rem;
+          text-align: center;
+          color: var(--text-secondary);
+          background: var(--border-light);
+          border-radius: var(--radius);
+          margin: 1rem 0;
+        }
+
+        .fees-error {
+          background: #fef2f2;
+          color: #991b1b;
+        }
+
+        /* Past Champions */
+        .past-champions-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          gap: 1rem;
+          margin-top: 1.25rem;
+        }
+
+        .champion-card {
+          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          border: 2px solid #e2e8f0;
+          border-radius: 10px;
+          padding: 1.25rem 1rem;
+          text-align: center;
+          transition: all 0.25s ease;
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+
+        .champion-card:hover {
+          border-color: var(--primary);
+          box-shadow: 0 4px 12px rgba(13, 148, 136, 0.15);
+          transform: translateY(-2px);
+        }
+
+        .champion-year {
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: var(--primary);
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+        }
+
+        .champion-name {
+          font-size: 1.3rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          line-height: 1.3;
+        }
+
+        .champions-loading,
+        .champions-empty {
+          padding: 2rem;
+          text-align: center;
+          color: var(--text-secondary);
+          background: var(--border-light);
+          border-radius: var(--radius);
+          margin-top: 1rem;
         }
 
         /* Responsive */
@@ -970,50 +1193,6 @@ export default function SagaTourPage() {
         margin: 0 0 1.5rem 0;
         }
 
-         /* Fees Grid */
-        .fees-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 1rem;
-          margin: 1.5rem 0;
-        }
-
-        .fee-item {
-          background: white;
-          border: 2px solid #e5e7eb;
-          border-radius: 8px;
-          padding: 1.25rem;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          transition: all 0.2s;
-        }
-
-        .fee-item:hover {
-          border-color: var(--primary);
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .fee-item.special {
-          background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-          border-color: #86efac;
-        }
-
-        .fee-label {
-          font-weight: 500;
-          color: var(--text-primary);
-        }
-
-        .fee-amount {
-          font-weight: 700;
-          font-size: 1.25rem;
-          color: var(--primary);
-        }
-
-        .fee-item.special .fee-amount {
-          color: #059669;
-        }
-
         @media (max-width: 768px) {
           .tour-hero {
             padding: 3rem 1.5rem;
@@ -1025,6 +1204,10 @@ export default function SagaTourPage() {
 
           .content-card {
             padding: 1.5rem;
+          }
+
+          .fees-grid {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>

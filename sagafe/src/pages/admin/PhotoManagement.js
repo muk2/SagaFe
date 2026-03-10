@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { adminPhotosApi, adminMediaApi } from '../../lib/api';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
@@ -11,6 +11,7 @@ const PhotoManagement = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingAlbum, setEditingAlbum] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const formRef = useRef(null);
   const [formData, setFormData] = useState({
     title: '',
     date: '',
@@ -135,6 +136,9 @@ const PhotoManagement = () => {
       google_drive_link: album.googleDriveLink || album.google_drive_link || '',
     });
     setShowForm(true);
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   const handleDelete = async (albumId, albumTitle) => {
@@ -193,7 +197,7 @@ const PhotoManagement = () => {
       {success && <div className="success">{success}</div>}
 
       {showForm && (
-        <div className="album-form-card">
+        <div className="album-form-card" ref={formRef}>
           <h3>{editingAlbum ? 'Edit Album' : 'Create New Album'}</h3>
           <form onSubmit={handleSubmit} className="admin-form">
             <div className="form-group">
