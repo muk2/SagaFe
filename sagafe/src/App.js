@@ -31,6 +31,23 @@ const getFullImageUrl = (url) => {
   return `${API_URL}/${url}`;
 };
 
+// Safe date parser that avoids UTC timezone issues with YYYY-MM-DD strings
+function parseEventDate(dateStr) {
+  if (!dateStr) return new Date();
+  if (dateStr instanceof Date) return dateStr;
+  if (typeof dateStr === 'string') {
+    if (dateStr.includes('-')) {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    }
+    if (dateStr.includes('/')) {
+      const [month, day, year] = dateStr.split('/').map(Number);
+      return new Date(year, month - 1, day);
+    }
+  }
+  return new Date(dateStr);
+}
+
 export function App() {
   return (
     <div className="app">
@@ -382,7 +399,7 @@ export function ItemList() {
   const [error, setError] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const navigate = useNavigate();
-  const REGULAR_ITEMS_PER_SLIDE = 3;
+  const REGULAR_ITEMS_PER_SLIDE = 2;
 
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
@@ -409,13 +426,13 @@ export function ItemList() {
         const upcomingEvents = data
           .filter(event => {
             if (!event.date) return false;
-            const eventDate = new Date(event.date);
+            const eventDate = parseEventDate(event.date);
             eventDate.setHours(0, 0, 0, 0);
             return eventDate >= today;
           })
           .sort((a, b) => {
-            const dateA = new Date(a.date);
-            const dateB = new Date(b.date);
+            const dateA = parseEventDate(a.date);
+            const dateB = parseEventDate(b.date);
             return dateA - dateB;
           });
         
@@ -528,7 +545,7 @@ export function ItemList() {
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="16" height="16">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
           </svg>
-          {new Date(event.date).toLocaleDateString('en-US')}
+          {parseEventDate(event.date).toLocaleDateString('en-US')}
         </p>
         {/* ✅ Button pushed to bottom */}
         <button
@@ -545,7 +562,7 @@ export function ItemList() {
 
   {/* ✅ Ryder Cup card - sticky to slider with red/blue border */}
   {slides.ryderCupEvent && (() => {
-    const rcDate = new Date(slides.ryderCupEvent.date);
+    const rcDate = parseEventDate(slides.ryderCupEvent.date);
     const day2 = new Date(rcDate);
     day2.setDate(day2.getDate() + 1);
     return (
@@ -608,7 +625,7 @@ export function ItemList() {
         <div className="championship-badge">
           🏆 Championship Round
         </div>
-        <h3>SAGA Open {new Date(slides.championshipEvent.date).getFullYear()}</h3>
+        <h3>SAGA Open {parseEventDate(slides.championshipEvent.date).getFullYear()}</h3>
         <p className="championship-location">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="14" height="14">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -620,7 +637,7 @@ export function ItemList() {
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="14" height="14">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
           </svg>
-          {new Date(slides.championshipEvent.date).toLocaleDateString('en-US')}
+          {parseEventDate(slides.championshipEvent.date).toLocaleDateString('en-US')}
         </p>
         <button
           className={`championship-register ${slides.championshipEvent.registration_open === false ? 'register-btn-disabled' : ''}`}
@@ -648,9 +665,9 @@ export function ItemList() {
               onClose={closeRegistration}
               displayName={
                 slides.championshipEvent && selectedEvent.id === slides.championshipEvent.id
-                  ? `SAGA Open ${new Date(selectedEvent.date).getFullYear()}`
+                  ? `SAGA Open ${parseEventDate(selectedEvent.date).getFullYear()}`
                   : slides.ryderCupEvent && selectedEvent.id === slides.ryderCupEvent.id
-                    ? `SAGA Ryder Cup ${new Date(selectedEvent.date).getFullYear()}`
+                    ? `SAGA Ryder Cup ${parseEventDate(selectedEvent.date).getFullYear()}`
                     : undefined
               }
               onSuccess={() => {
@@ -661,11 +678,11 @@ export function ItemList() {
                   const upcomingEvents = data
                     .filter(event => {
                       if (!event.date) return false;
-                      const eventDate = new Date(event.date);
+                      const eventDate = parseEventDate(event.date);
                       eventDate.setHours(0, 0, 0, 0);
                       return eventDate >= today;
                     })
-                    .sort((a, b) => new Date(a.date) - new Date(b.date));
+                    .sort((a, b) => parseEventDate(a.date) - parseEventDate(b.date));
                   setItems(upcomingEvents);
                 });
               }}
@@ -731,7 +748,7 @@ export function LeaderboardSection() {
   const fetchEvents = async () => {
     try {
       const data = await eventsApi.getAll();
-      const sorted = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const sorted = [...data].sort((a, b) => parseEventDate(a.date) - parseEventDate(b.date));
       setEvents(sorted);
       if (sorted.length > 0) {
         setSelectedEventId(String(sorted[0].id));
@@ -867,7 +884,7 @@ export function LeaderboardSection() {
                   >
                     {events.map(ev => (
                       <option key={ev.id} value={ev.id}>
-                        {ev.golf_course} — {new Date(ev.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                        {ev.golf_course} — {parseEventDate(ev.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                       </option>
                     ))}
                   </select>
@@ -904,7 +921,7 @@ export function LeaderboardSection() {
                       <h3>{selectedEvent?.golf_course}</h3>
                       {selectedEvent && (
                         <span className="ss-winners-date">
-                          {new Date(selectedEvent.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                          {parseEventDate(selectedEvent.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
                         </span>
                       )}
                     </div>

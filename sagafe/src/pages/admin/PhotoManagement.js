@@ -480,7 +480,7 @@ const PhotoManagement = () => {
 
         .album-info h3 {
           margin: 0 0 0.5rem 0;
-          font-size: 1.1rem;
+          font-size: 0.9rem;
           color: #1f2937;
         }
 

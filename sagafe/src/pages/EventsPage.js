@@ -450,9 +450,9 @@ export default function EventsPage() {
             <p className="section-subtitle">A two-day team competition in the spirit of the Ryder Cup!</p>
             <div className="events-grid">
               <div className="event-card-compact ryder-cup-card-compact">
-                <div className="compact-date ryder-cup-date">
-                  <span className="compact-month">{MONTHS[rcDate.getMonth()].slice(0, 3)}</span>
-                  <span className="compact-day">{rcDate.getDate()}–{rcDay2.getDate()}</span>
+                <div className="compact-rc-date ryder-cup-date">
+                  <span className="compact-rc-month">{MONTHS[rcDate.getMonth()].slice(0, 3)}</span>
+                  <span className="compact-rc-day">{rcDate.getDate()}–{rcDay2.getDate()}</span>
                 </div>
                 <div className="compact-info">
                   <h4>SAGA Ryder Cup {rcDate.getFullYear()}</h4>

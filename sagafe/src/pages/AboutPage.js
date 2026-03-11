@@ -142,7 +142,7 @@ export default function AboutPage() {
               <span className="stat-label">Partner Courses</span>
             </div>
             <div className="stat-item">
-              <span className="stat-number">9</span>
+              <span className="stat-number">10</span>
               <span className="stat-label">Events Per Year</span>
             </div>
             <div className="stat-item">

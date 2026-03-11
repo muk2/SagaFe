@@ -848,8 +848,10 @@ body {
 .championship-image {
   width: 100%;
   height: 180px; /* ✅ Match regular card image height */
-  background-size: cover;
+  background-size: contain;
   background-position: center;
+  background-repeat: no-repeat;
+  background-color: white;
   flex-shrink: 0;
 }
 
@@ -937,9 +939,11 @@ body {
 .ryder-cup-image {
   width: 100%;
   height: 180px;
-  background-size: cover;
+  background-size: contain;
   background-position: center;
   flex-shrink: 0;
+  background-repeat: no-repeat;
+  background-color: white;
 }
 
 .ryder-cup-content {
@@ -1669,6 +1673,18 @@ body {
   flex-shrink: 0;
 }
 
+.compact-rc-date {
+  width: 80px;
+  height: 57px;
+  background: var(--border-light);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .compact-month {
   font-size: 0.65rem;
   font-weight: 600;
@@ -1676,10 +1692,24 @@ body {
   color: var(--primary);
 }
 
+.compact-rc-month {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
 .compact-day {
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-primary);
+  line-height: 1;
+}
+
+.compact-rc-day {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
   line-height: 1;
 }
 

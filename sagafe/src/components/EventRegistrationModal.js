@@ -23,6 +23,23 @@ function formatPhoneNumber(value) {
   else return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
 }
 
+// Safe date parser that avoids UTC timezone issues with YYYY-MM-DD strings
+function parseEventDate(dateStr) {
+  if (!dateStr) return new Date();
+  if (dateStr instanceof Date) return dateStr;
+  if (typeof dateStr === 'string') {
+    if (dateStr.includes('-')) {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    }
+    if (dateStr.includes('/')) {
+      const [month, day, year] = dateStr.split('/').map(Number);
+      return new Date(year, month - 1, day);
+    }
+  }
+  return new Date(dateStr);
+}
+
 const EMPTY_GOLFER = { isMember: false, userId: null, name: '', email: '', phone: '', handicap: '', memberSearch: '', searchResults: [], searching: false };
 
 
@@ -392,7 +409,18 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
               </div>
               <div className="info-row">
                 <span className="info-label">Date:</span>
-                <span>{event.date}</span>
+                <span>
+                  {(() => {
+                    const d = parseEventDate(event.date);
+                    const formatted = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                    if (event.event_type === 'ryder_cup') {
+                      const day2 = new Date(d);
+                      day2.setDate(day2.getDate() + 1);
+                      return `${formatted} – ${day2.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+                    }
+                    return formatted;
+                  })()}
+                </span>
               </div>
               <div className="info-row">
                 <span className="info-label">Golfers:</span>
@@ -489,9 +517,21 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
           <div className="info-row">
             <span className="info-label">Date:</span>
             <span>
-              {new Date(event.date).toLocaleDateString('en-US', {
-                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-              })}
+              {(() => {
+                const d = parseEventDate(event.date);
+                const formatted = d.toLocaleDateString('en-US', {
+                  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                });
+                if (event.event_type === 'ryder_cup') {
+                  const day2 = new Date(d);
+                  day2.setDate(day2.getDate() + 1);
+                  const formatted2 = day2.toLocaleDateString('en-US', {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                  });
+                  return `${formatted} – ${formatted2}`;
+                }
+                return formatted;
+              })()}
             </span>
           </div>
           {event.start_time && (
