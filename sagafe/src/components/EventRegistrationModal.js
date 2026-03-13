@@ -272,6 +272,12 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
   // --- Payment handler ---
   const handlePaymentToken = useCallback(
     async (token) => {
+      // Guard: ensure token is a string (not an object)
+      if (token && typeof token === 'object') {
+        console.error('Payment token is an object, not a string:', JSON.stringify(token));
+        token = token.token || token.cardToken || token.paymentToken || String(token);
+      }
+
       setLoading(true);
       setError('');
       setPaymentError('');

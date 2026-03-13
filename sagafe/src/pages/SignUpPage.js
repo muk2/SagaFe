@@ -1,7 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { membershipOptionsApi } from '../lib/api';
+import PaymentForm from '../components/PaymentForm';
+
+function generateIdempotencyKey() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 export default function SignUpPage() {
   const [form, setForm] = useState({
@@ -11,12 +20,13 @@ export default function SignUpPage() {
     email: "",
     password: "",
     golf_handicap: "",
-    membership: "" 
+    membership: ""
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [membershipError, setMembershipError] = useState(false); 
-  const [showPassword, setShowPassword] = useState(false); 
+  const [membershipError, setMembershipError] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
   const navigate = useNavigate();
   const { signup } = useAuth();
   const [membershipOptions, setMembershipOptions] = useState([]);
@@ -33,51 +43,59 @@ export default function SignUpPage() {
     }
     };
 
-  const handleSignUp = async (e) => {
-    e.preventDefault();
-    setError("");
-    setMembershipError(false); 
+  // Get the selected membership price
+  const selectedOption = membershipOptions.find(o => o.name === form.membership);
+  const membershipPrice = selectedOption ? parseFloat(selectedOption.price) : 0;
 
-    if (!form.membership) {
-      setError("Please select a membership type");
-      setMembershipError(true); 
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
+  // Check if all required form fields are filled (excluding payment)
+  const isFormValid = () => {
+    return (
+      form.first_name.trim() &&
+      form.last_name.trim() &&
+      form.phone_number.trim() &&
+      form.email.trim() &&
+      form.password.trim() &&
+      form.membership
+    );
+  };
+
+  // Handle payment token received from PaymentForm
+  const handlePaymentToken = useCallback(async (token) => {
+    if (token && typeof token === 'object') {
+      token = token.token || token.cardToken || token.paymentToken || String(token);
     }
 
+    setError("");
+    setPaymentError("");
     setLoading(true);
 
     try {
-      // Prepare data - convert golf_handicap to number if provided
       const userData = {
         ...form,
         handicap: form.golf_handicap ? String(form.golf_handicap).replace(/\.$/, '') : null,
+        payment_token: token,
+        idempotency_key: generateIdempotencyKey(),
       };
 
       await signup(userData);
       alert("Account created successfully! Please log in.");
       navigate("/login");
     } catch (err) {
-      
       let message = "Signup failed. Please try again.";
-      
-      // Check different error formats
+
       if (typeof err === 'string') {
         message = err;
       } else if (err?.response?.data?.detail) {
-        // FastAPI error format
         message = err.response.data.detail;
       } else if (err?.detail) {
-        // Direct detail field
         message = err.detail;
       } else if (err?.message) {
-        // Standard error message
         message = err.message;
       }
-      
+
       const lowerMessage = message.toLowerCase();
-      
-      if (lowerMessage.includes("email already") || 
+
+      if (lowerMessage.includes("email already") ||
           lowerMessage.includes("already registered") ||
           lowerMessage.includes("email exists")) {
         message = "This email is already registered. Please use a different email or try logging in.";
@@ -85,15 +103,22 @@ export default function SignUpPage() {
         message = "Please enter a valid email address.";
       } else if (lowerMessage.includes("password")) {
         message = "Password must be at least 6 characters long.";
+      } else if (lowerMessage.includes("declined")) {
+        setPaymentError(message);
+        setLoading(false);
+        return;
       }
-      
+
       setError(message);
-      
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [form, signup, navigate]);
+
+  const handlePaymentError = useCallback((errorMsg) => {
+    setPaymentError(errorMsg);
+  }, []);
 
   const formatPhoneNumber = (value) => {
     // Remove all non-digits
@@ -159,7 +184,7 @@ export default function SignUpPage() {
         </div>
       )}
 
-      <form onSubmit={handleSignUp} className="login-form">
+      <div className="login-form">
         {fields.map((field) => (
           <div className="form-group" key={field.key}>
             <label htmlFor={field.key}>{field.label}</label>
@@ -263,9 +288,24 @@ export default function SignUpPage() {
           </div>
         </div>
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Creating account..." : "Create Account"}
-        </button>
+        {/* Payment section — appears after membership is selected and form is valid */}
+        {membershipPrice > 0 && isFormValid() && (
+          <PaymentForm
+            amount={String(membershipPrice.toFixed(2))}
+            onTokenReceived={handlePaymentToken}
+            onError={handlePaymentError}
+            loading={loading}
+            submitLabel={`Sign Up & Pay — $${membershipPrice.toFixed(2)}`}
+            error={paymentError}
+          />
+        )}
+
+        {/* Prompt to complete form */}
+        {membershipPrice > 0 && !isFormValid() && form.membership && (
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '0.5rem' }}>
+            Fill in all required fields above to continue to payment.
+          </p>
+        )}
 
         <p>
           Already have an account?{" "}
@@ -276,7 +316,7 @@ export default function SignUpPage() {
             Sign In
           </span>
         </p>
-      </form>
+      </div>
 
       <style jsx>{`
         /* Error Banner */

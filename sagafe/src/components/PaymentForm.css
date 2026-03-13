@@ -70,8 +70,10 @@
 }
 
 .payment-field-container {
-  min-height: 44px;
+  height: 44px;
+  max-height: 44px;
   background: var(--surface);
+  border: none;
   border-radius: var(--radius);
   overflow: hidden;
 }
@@ -79,12 +81,13 @@
 .payment-field-container.invalid {
   border: 1px solid #ef4444;
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-  border-radius: var(--radius);
 }
 
 .payment-field-container iframe {
   width: 100% !important;
-  min-height: 44px !important;
+  height: 44px !important;
+  max-height: 44px !important;
+  border: none !important;
 }
 
 .payment-field-error {
@@ -92,6 +95,64 @@
   font-size: 0.75rem;
   color: #ef4444;
   margin-top: 0.25rem;
+}
+
+/* Expiry select dropdowns */
+.payment-select {
+  width: 100%;
+  height: 44px;
+  padding: 0 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  cursor: pointer;
+  appearance: auto;
+}
+
+.payment-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+  outline: none;
+}
+
+/* Apple Pay */
+.apple-pay-container {
+  width: 100%;
+  margin-bottom: 0;
+  overflow: hidden;
+  height: 48px;
+}
+
+#north-apple-pay-button {
+  width: 100% !important;
+  height: 48px !important;
+}
+
+.apple-pay-hidden {
+  display: none;
+}
+
+.payment-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.payment-divider::before,
+.payment-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
 }
 
 /* Two-column row for expiry + CVV */
@@ -172,8 +233,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 1rem;
-  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
   border-top: 1px solid var(--border);
 }
 
