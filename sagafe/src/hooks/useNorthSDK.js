@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-const NORTH_SDK_URL = 'https://sdk.paymentshub.dev/pay-now.min.js';
+const NORTH_SDK_URL = 'https://sdk.paymentshub.com/pay-now.min.js';
 
 /**
  * Hook to load and manage the North PayNow iFrame JS SDK.
