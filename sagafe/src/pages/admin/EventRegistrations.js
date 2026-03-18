@@ -2,6 +2,36 @@ import React, { useState, useEffect } from 'react';
 import { eventsApi, usersApi } from '../../lib/api';
 import { formatTime } from '../../lib/dateUtils';
 
+// Predefined palette of badge colors — cycles for any number of membership types
+const BADGE_COLORS = [
+  { background: '#dbeafe', color: '#1e40af' }, // blue
+  { background: '#fef3c7', color: '#92400e' }, // amber
+  { background: '#fee2e2', color: '#991b1b' }, // red
+  { background: '#d1fae5', color: '#065f46' }, // green
+  { background: '#ede9fe', color: '#5b21b6' }, // violet
+  { background: '#fce7f3', color: '#9d174d' }, // pink
+  { background: '#e0e7ff', color: '#3730a3' }, // indigo
+  { background: '#ffedd5', color: '#9a3412' }, // orange
+];
+
+const GUEST_BADGE = { background: '#f3f4f6', color: '#4b5563' };
+
+/**
+ * Returns a consistent badge style for a membership name.
+ * "guest" always gets a gray badge. All other names get a color
+ * from the palette based on a simple hash so the color is stable.
+ */
+function getMembershipBadgeStyle(membership) {
+  const name = (membership || 'guest').toLowerCase();
+  if (name === 'guest') return GUEST_BADGE;
+  // Simple string hash to pick a palette index
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return BADGE_COLORS[Math.abs(hash) % BADGE_COLORS.length];
+}
+
 const EventRegistrations = () => {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -259,7 +289,10 @@ const EventRegistrations = () => {
                     <td>{reg.phone || reg.phone_number || 'N/A'}</td>
                     <td>{reg.handicap || reg.golf_handicap || 'N/A'}</td>
                     <td>
-                      <span className={`membership-badge ${reg.membership || 'guest'}`}>
+                      <span
+                        className="membership-badge"
+                        style={getMembershipBadgeStyle(reg.membership)}
+                      >
                         {(reg.membership || 'guest').toUpperCase()}
                       </span>
                       {reg.is_sponsor && (
@@ -400,7 +433,7 @@ const EventRegistrations = () => {
           transition: width 0.3s ease;
         }
 
-        /* Membership badges */
+        /* Membership badges — colors applied via inline style from getMembershipBadgeStyle() */
         .membership-badge {
           display: inline-block;
           padding: 0.25rem 0.75rem;
@@ -409,26 +442,6 @@ const EventRegistrations = () => {
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.025em;
-        }
-
-        .membership-badge.individual {
-          background: #dbeafe;
-          color: #1e40af;
-        }
-
-        .membership-badge.junior {
-          background: #fef3c7;
-          color: #92400e;
-        }
-
-        .membership-badge.brunswick {
-          background: #fee2e2;
-          color: #991b1b;
-        }
-
-        .membership-badge.guest {
-          background: #f3f4f6;
-          color: #4b5563;
         }
 
         /* Sponsor badge */

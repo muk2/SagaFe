@@ -45,7 +45,11 @@ export default function SignUpPage() {
 
   // Get the selected membership price
   const selectedOption = membershipOptions.find(o => o.name === form.membership);
-  const membershipPrice = selectedOption ? parseFloat(selectedOption.price) : 0;
+  const membershipPrice = selectedOption ? (parseFloat(selectedOption.price) || 0) : 0;
+  // Debug: log membership price resolution
+  if (selectedOption) {
+    console.log('[SignUp] selectedOption:', selectedOption.name, 'raw price:', selectedOption.price, 'typeof:', typeof selectedOption.price, 'parsed:', membershipPrice);
+  }
 
   // Check if all required form fields are filled (excluding payment)
   const isFormValid = () => {
@@ -305,6 +309,33 @@ export default function SignUpPage() {
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '0.5rem' }}>
             Fill in all required fields above to continue to payment.
           </p>
+        )}
+
+        {/* Free membership sign up button (e.g. Student Golfer) */}
+        {form.membership && membershipPrice === 0 && (
+          <button
+            type="button"
+            onClick={() => handlePaymentToken(null)}
+            disabled={loading || !isFormValid()}
+            style={{
+              width: '100%',
+              marginTop: '1rem',
+              padding: '0.875rem 1.5rem',
+              background: isFormValid() ? 'var(--primary, #1a472a)' : '#9ca3af',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '10px',
+              fontSize: '1rem',
+              fontWeight: 600,
+              cursor: isFormValid() ? 'pointer' : 'not-allowed',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+            }}
+          >
+            {loading ? 'Creating Account...' : 'Sign Up — Free'}
+          </button>
         )}
 
         <p>

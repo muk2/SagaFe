@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-const NORTH_SDK_URL = 'https://sdk.paymentshub.com/pay-now.min.js';
+const NORTH_SDK_URL = 'https://sdk.paymentshub.dev/pay-now.min.js';
 
 /**
  * Hook to load and manage the North PayNow iFrame JS SDK.
@@ -12,20 +12,27 @@ export default function useNorthSDK() {
   const [sdkError, setSdkError] = useState(null);
   const [fieldsReady, setFieldsReady] = useState(false);
   const [applePayAvailable, setApplePayAvailable] = useState(false);
-  const loadedRef = useRef(false);
   const sdkInstanceRef = useRef(null);
   const applePayAmountRef = useRef(null);
   const onTokenRef = useRef(null);
 
   useEffect(() => {
-    if (loadedRef.current) {
+    // Check if script is already on the page
+    if (window.PayNow) {
       setSdkLoaded(true);
       return;
     }
 
-    if (window.PayNow) {
-      loadedRef.current = true;
-      setSdkLoaded(true);
+    // Check if script tag already exists (another instance added it)
+    const existing = document.querySelector(`script[src="${NORTH_SDK_URL}"]`);
+    if (existing) {
+      // Script tag exists but may still be loading
+      if (window.PayNow) {
+        setSdkLoaded(true);
+      } else {
+        existing.addEventListener('load', () => setSdkLoaded(true));
+        existing.addEventListener('error', () => setSdkError('Failed to load payment SDK'));
+      }
       return;
     }
 
@@ -34,7 +41,6 @@ export default function useNorthSDK() {
     script.async = true;
 
     script.onload = () => {
-      loadedRef.current = true;
       setSdkLoaded(true);
     };
 

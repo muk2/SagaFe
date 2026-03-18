@@ -15,6 +15,7 @@ async function apiRequest(endpoint, options = {}) {
 
   const headers = {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
     ...options.headers,
   };
 
@@ -43,12 +44,27 @@ async function apiRequest(endpoint, options = {}) {
     }
     
     // ✅ For login failures, throw the actual error message
-    throw new Error(error.detail || 'Invalid email or password');
+    const detail = typeof error.detail === 'string' ? error.detail
+      : Array.isArray(error.detail) ? error.detail.map(e => e.msg || JSON.stringify(e)).join(', ')
+      : 'Invalid email or password';
+    throw new Error(detail);
   }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Request failed' }));
-    throw new Error(error.detail || 'Request failed');
+    console.error('API error response:', response.status, JSON.stringify(error));
+    let message = 'Request failed';
+    if (typeof error.detail === 'string') {
+      message = error.detail;
+    } else if (Array.isArray(error.detail)) {
+      // Pydantic validation errors return an array of objects with loc and msg
+      message = error.detail.map(e => {
+        const field = Array.isArray(e.loc) ? e.loc[e.loc.length - 1] : '';
+        const msg = e.msg || 'invalid';
+        return field ? `${field}: ${msg}` : msg;
+      }).join(', ');
+    }
+    throw new Error(message);
   }
 
   // Handle empty responses

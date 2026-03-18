@@ -28,6 +28,17 @@ export default function PaymentForm({
   const [expiryMonth, setExpiryMonth] = useState('');
   const [expiryYear, setExpiryYear] = useState('');
   const initializedRef = useRef(false);
+  const onErrorRef = useRef(onError);
+  const onTokenRef = useRef(onTokenReceived);
+
+  // Keep callback refs current without triggering re-init
+  useEffect(() => { onErrorRef.current = onError; }, [onError]);
+  useEffect(() => { onTokenRef.current = onTokenReceived; }, [onTokenReceived]);
+
+  // Reset init flag on unmount so re-mount triggers re-initialization
+  useEffect(() => {
+    return () => { initializedRef.current = false; };
+  }, []);
 
   // Keep Apple Pay amount in sync
   useEffect(() => {
@@ -40,35 +51,68 @@ export default function PaymentForm({
   useEffect(() => {
     if (!sdkLoaded || initializedRef.current) return;
 
-    const timer = setTimeout(() => {
+    // Wait until all container elements are in the DOM before initializing
+    const waitForContainers = () => {
+      const containers = ['north-card-number', 'north-card-cvv', 'north-billing-address', 'north-billing-zip'];
+      return containers.every(id => document.getElementById(id));
+    };
+
+    let attempts = 0;
+    let cancelled = false;
+    const tryInit = () => {
+      if (cancelled) return;
+      attempts++;
+      if (!waitForContainers() && attempts < 20) {
+        setTimeout(tryInit, 100);
+        return;
+      }
+      if (!waitForContainers()) {
+        console.error('North SDK: payment field containers not found after retries');
+        return;
+      }
+      initializedRef.current = true;
       initialize({
-        onReady: () => {
-          initializedRef.current = true;
-        },
+        onReady: () => {},
         onValidation: () => {},
         onErrors: (errors) => {
+          console.log('North SDK onErrors:', JSON.stringify(errors));
           setTokenizing(false);
           const msg = Array.isArray(errors)
-            ? errors.map(e => e.message || e).join(', ')
+            ? errors.map(e => {
+                let raw = e.message || e.error || e.detail || (typeof e === 'string' ? e : '');
+                // North SDK may return a JSON string with nested reason details
+                if (typeof raw === 'string' && raw.startsWith('{')) {
+                  try {
+                    const parsed = JSON.parse(raw);
+                    const reason = parsed.reason || parsed;
+                    const statusMsg = reason.status_message || reason.response_code || '';
+                    if (reason.response_code === 'DCL' || reason.response_code === 'ST') {
+                      return 'Your card was declined. Please try a different card or check your details.';
+                    }
+                    return statusMsg || 'Payment failed. Please try again.';
+                  } catch { /* fall through */ }
+                }
+                return raw || JSON.stringify(e);
+              }).join(', ')
             : 'Card validation failed. Please check your card details.';
           setValidationError(msg);
-          if (onError) onError(msg);
+          if (onErrorRef.current) onErrorRef.current(msg);
         },
         onApplePayToken: (token) => {
-          // Apple Pay completed — token is already extracted as a string by useNorthSDK
-          if (token && onTokenReceived) {
-            onTokenReceived(token);
+          if (token && onTokenRef.current) {
+            onTokenRef.current(token);
           } else {
             const msg = 'Apple Pay completed but no payment token was received. Please try again or use a card.';
             setValidationError(msg);
-            if (onError) onError(msg);
+            if (onErrorRef.current) onErrorRef.current(msg);
           }
         },
       });
-    }, 100);
+    };
 
-    return () => clearTimeout(timer);
-  }, [sdkLoaded, initialize, onError, onTokenReceived]);
+    const timer = setTimeout(tryInit, 100);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [sdkLoaded, initialize]);
 
   const handleSubmit = useCallback(
     async (e) => {
