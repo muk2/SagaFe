@@ -569,21 +569,70 @@ body {
       grid-template-columns: 1fr 1fr;
       min-height: 560px;
     }
-  
+
     .hero-content {
       padding: 3rem 2rem 3rem 3rem;
     }
-  
+
     .hero h1 {
       font-size: 2.75rem;
     }
-  
+
+    .hero-carousel-side {
+      min-height: 400px;
+      margin: 2rem 1.5rem 2rem 0;
+    }
+
     .hero-stats-row {
       gap: 1rem;
       padding: 1rem 1.25rem;
     }
   }
-  
+
+  @media (max-width: 900px) {
+    .hero {
+      grid-template-columns: 1fr;
+      min-height: auto;
+    }
+
+    .hero::before {
+      width: 100%;
+    }
+
+    .hero-content {
+      padding: 3rem 2rem 2rem;
+      align-items: center;
+      text-align: center;
+    }
+
+    .hero-eyebrow {
+      justify-content: center;
+    }
+
+    .hero h1 {
+      font-size: 2.5rem;
+    }
+
+    .hero-content > p {
+      max-width: 100%;
+    }
+
+    .hero-carousel-side {
+      margin: 0 2rem 2.5rem;
+      min-height: 300px;
+      border-radius: 16px;
+    }
+
+    .hero-buttons {
+      justify-content: center;
+    }
+
+    .hero-stats-row {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
   @media (max-width: 768px) {
     .hero {
       grid-template-columns: 1fr;
@@ -2688,7 +2737,112 @@ body {
   }
 }
 
+/* Tablet / narrow desktop — prevent nav items and auth buttons from wrapping */
+@media (min-width: 769px) and (max-width: 1200px) {
+  .nav {
+    gap: 0.15rem;
+  }
+  .nav a {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  .auth-buttons {
+    gap: 0.4rem;
+    flex-shrink: 0;
+  }
+  .auth-buttons .login-btn,
+  .auth-buttons .signup-btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  .header {
+    padding: 0 1rem;
+    gap: 0.5rem;
+  }
+  .user-section {
+    gap: 0.5rem;
+  }
+}
+
 @media (max-width: 768px) {
+  /* ── Mobile Events Slider ─────────────────────────────────────── */
+  .slider-container {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: 1rem;
+    padding-bottom: 0.5rem;
+    /* Hide scrollbar but keep scrolling */
+    scrollbar-width: none;          /* Firefox */
+    -ms-overflow-style: none;       /* IE/Edge */
+  }
+  .slider-container::-webkit-scrollbar {
+    display: none;                  /* Chrome/Safari */
+  }
+
+  /* Each card takes ~75% width so next card peeks in; uniform height */
+  .slider-container > .card,
+  .slider-container > .championship-card,
+  .slider-container > .ryder-cup-card {
+    flex: 0 0 75%;
+    min-width: 0;
+    scroll-snap-align: center;
+    height: 320px;          /* Fixed height so all cards match */
+  }
+
+  /* Adjust image height for mobile */
+  .slider-container .card-image,
+  .slider-container .championship-image,
+  .slider-container .ryder-cup-image {
+    height: 130px;
+  }
+
+  /* Card content fills remaining space and pushes button to bottom */
+  .slider-container .card-content,
+  .slider-container .championship-content,
+  .slider-container .ryder-cup-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0.875rem;
+  }
+
+  /* Slightly reduce card text for mobile */
+  .slider-container .card-content h3,
+  .slider-container .championship-content h3,
+  .slider-container .ryder-cup-content h3 {
+    font-size: 0.9rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .slider-container .card-location,
+  .slider-container .card-date,
+  .slider-container .championship-location,
+  .slider-container .championship-date,
+  .slider-container .ryder-cup-location,
+  .slider-container .ryder-cup-date {
+    font-size: 0.78rem;
+  }
+
+  /* Push register button to bottom with extra spacing */
+  .slider-container .register-btn,
+  .slider-container .championship-register,
+  .slider-container .ryder-cup-register {
+    font-size: 0.78rem;
+    padding: 0.5rem 0.75rem;
+    margin-top: auto;
+    padding-top: .45rem;
+  }
+
+  /* Hide the desktop slider arrows/dots — swipe replaces them */
+  .slider-nav {
+    display: none;
+  }
+  /* ──────────────────────────────────────────────────────────────── */
+
   .header {
     padding: 0 1rem;
   }
@@ -3510,41 +3664,48 @@ body {
 }
 
 @media (max-width: 1024px) {
+  .partners-slider-viewport {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .partners-slider-viewport::-webkit-scrollbar { display: none; }
+
+  .partners-track {
+    transition: none;
+    transform: none !important;
+  }
+
   .partners-slide {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .partner-prev {
-    left: -40px;
-  }
-
-  .partner-next {
-    right: -40px;
-  }
-}
-
-@media (max-width: 768px) {
-  .partners-slide {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-
-  .partner-arrow {
-    width: 40px;
-    height: 40px;
-  }
-
-  .partner-prev {
-    left: 10px;
-  }
-
-  .partner-next {
-    right: 10px;
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: nowrap;
   }
 
   .partner-card {
-    min-height: 200px;
+    flex: 0 0 260px;
+    min-width: 200px;
+    scroll-snap-align: center;
+    min-height: 220px;
   }
+
+  .partner-arrow { display: none; }
+  .partner-dots { display: none; }
+
+  .partners-section { padding: 3rem 1.5rem; }
+}
+
+@media (max-width: 768px) {
+  .partner-card {
+    flex: 0 0 220px;
+    min-width: 180px;
+    min-height: 200px;
+    padding: 1.25rem;
+  }
+
+  .partners-section { padding: 2rem 1rem; }
 }
 
  /* Password Input Wrapper */

@@ -401,8 +401,15 @@ export function ItemList() {
   const navigate = useNavigate();
   const REGULAR_ITEMS_PER_SLIDE = 2;
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const openRegistration = (event) => {
     setSelectedEvent(event);
@@ -518,8 +525,8 @@ export function ItemList() {
         <>
           {/* ✅ Slider Container with Regular Events + Championship */}
           <div className="slider-container">
-  {/* ✅ Regular cards sit directly in the grid - no wrapper div */}
-  {slides.slides[currentSlide].map((event) => (
+  {/* On mobile: show ALL regular events in scrollable row; on desktop: show current slide only */}
+  {(isMobile ? items.filter(e => !e.event_type || e.event_type === 'regular') : slides.slides[currentSlide]).map((event) => (
     <div key={event.id} className="card">
       <div
         className="card-image"
@@ -1121,8 +1128,15 @@ export function PartnersSection() {
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isTabletOrMobile, setIsTabletOrMobile] = useState(window.innerWidth <= 1024);
 
   const PARTNERS_PER_SLIDE = 3;
+
+  useEffect(() => {
+    const onResize = () => setIsTabletOrMobile(window.innerWidth <= 1024);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   useEffect(() => {
     fetchPartners();
@@ -1141,10 +1155,14 @@ export function PartnersSection() {
     }
   };
 
-  // Split partners into slides of 3
+  // On tablet/mobile show all partners in one scrollable row; on desktop paginate into slides of 3
   const slides = [];
-  for (let i = 0; i < partners.length; i += PARTNERS_PER_SLIDE) {
-    slides.push(partners.slice(i, i + PARTNERS_PER_SLIDE));
+  if (isTabletOrMobile) {
+    slides.push(partners);
+  } else {
+    for (let i = 0; i < partners.length; i += PARTNERS_PER_SLIDE) {
+      slides.push(partners.slice(i, i + PARTNERS_PER_SLIDE));
+    }
   }
 
   const nextSlide = () => {
