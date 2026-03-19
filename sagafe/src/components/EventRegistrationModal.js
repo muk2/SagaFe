@@ -1,20 +1,9 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import PaymentForm from './PaymentForm';
+import PayPalPayment from './PayPalPayment';
 import { registrationsApi, membersApi } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { formatTime } from '../lib/dateUtils';
 
-
-/**
- * Generates a UUID v4 for idempotency keys
- */
-function generateIdempotencyKey() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
 
 function formatPhoneNumber(value) {
   const phoneNumber = value.replace(/\D/g, '');
@@ -269,15 +258,9 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
     }
   };
 
-  // --- Payment handler ---
-  const handlePaymentToken = useCallback(
-    async (token) => {
-      // Guard: ensure token is a string (not an object)
-      if (token && typeof token === 'object') {
-        console.error('Payment token is an object, not a string:', JSON.stringify(token));
-        token = token.token || token.cardToken || token.paymentToken || String(token);
-      }
-
+  // --- PayPal payment handler ---
+  const handlePayPalApprove = useCallback(
+    async ({ orderID }) => {
       setLoading(true);
       setError('');
       setPaymentError('');
@@ -314,20 +297,16 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
       });
 
       try {
-        const idempotencyKey = generateIdempotencyKey();
-
         let response;
         if (failedRegistrationId) {
           response = await registrationsApi.retryPayment(failedRegistrationId, {
-            payment_token: token,
-            idempotency_key: idempotencyKey,
+            paypal_order_id: orderID,
           });
         } else if (user) {
           response = await registrationsApi.register({
             event_id:        event.id,
             handicap:        cleanHandicap,
-            payment_token:   token,
-            idempotency_key: idempotencyKey,
+            paypal_order_id: orderID,
             additional_golfers: golferPayload,
             ...sponsorData,
           });
@@ -339,8 +318,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
             email:           registrationForm.email,
             phone:           registrationForm.phone,
             handicap:        cleanHandicap,
-            payment_token:   token,
-            idempotency_key: idempotencyKey,
+            paypal_order_id: orderID,
             additional_golfers: golferPayload,
             ...sponsorData,
           });
@@ -364,6 +342,70 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
   const handlePaymentError = useCallback((errorMsg) => {
     setPaymentError(errorMsg);
   }, []);
+
+  // Handler for free events (no payment needed)
+  const handleFreeRegistration = useCallback(async () => {
+    setLoading(true);
+    setError('');
+
+    const isSponsor = registrationForm.sponsor === 'yes';
+    const sponsorData = {
+      is_sponsor: isSponsor,
+      sponsor_amount: isSponsor ? parseFloat(registrationForm.sponsorAmount) : null,
+      company_name: isSponsor ? registrationForm.companyName : null,
+    };
+
+    const cleanHandicap = registrationForm.handicap.endsWith('.')
+      ? registrationForm.handicap.slice(0, -1)
+      : registrationForm.handicap || null;
+
+    const golferPayload = additionalGolfers.map(g => {
+      if (g.isMember && g.userId) {
+        return { is_member: true, user_id: g.userId, handicap: g.handicap || null };
+      }
+      const nameParts = (g.name || '').trim().split(' ');
+      return {
+        is_member: false,
+        first_name: nameParts[0] || '',
+        last_name: nameParts.slice(1).join(' ') || '',
+        email: g.email || null,
+        phone: g.phone || null,
+        handicap: g.handicap || null,
+      };
+    });
+
+    try {
+      let response;
+      if (user) {
+        response = await registrationsApi.register({
+          event_id: event.id,
+          handicap: cleanHandicap,
+          paypal_order_id: '',
+          additional_golfers: golferPayload,
+          ...sponsorData,
+        });
+      } else {
+        response = await registrationsApi.registerGuest({
+          event_id: event.id,
+          first_name: registrationForm.name.split(' ')[0] || registrationForm.name,
+          last_name: registrationForm.name.split(' ').slice(1).join(' ') || '',
+          email: registrationForm.email,
+          phone: registrationForm.phone,
+          handicap: cleanHandicap,
+          paypal_order_id: '',
+          additional_golfers: golferPayload,
+          ...sponsorData,
+        });
+      }
+      setConfirmationData(response);
+      setStep('confirmation');
+      if (onSuccess) onSuccess(response);
+    } catch (err) {
+      setError(err.message || 'Registration failed');
+    } finally {
+      setLoading(false);
+    }
+  }, [user, event.id, registrationForm, additionalGolfers, onSuccess]);
 
   const handleRetry = useCallback(() => {
     setPaymentError('');
@@ -476,9 +518,10 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
             <h2>Payment Declined</h2>
             <p>Your card was declined. Please try a different card.</p>
 
-            <PaymentForm
-              amount={displayPrice ? String(displayPrice) : undefined}
-              onTokenReceived={handlePaymentToken}
+            <PayPalPayment
+              amount={displayPrice || 0}
+              description={`SAGA Event Registration — ${displayName || event.golf_course}`}
+              onApprove={handlePayPalApprove}
               onError={handlePaymentError}
               loading={loading}
               submitLabel="Retry Payment"
@@ -843,9 +886,10 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
 
           {/* Payment section */}
           {displayPrice > 0 && isFormValid() && (
-            <PaymentForm
-              amount={String(parseFloat(displayPrice).toFixed(2))}
-              onTokenReceived={handlePaymentToken}
+            <PayPalPayment
+              amount={displayPrice}
+              description={`SAGA Event Registration — ${displayName || event.golf_course}`}
+              onApprove={handlePayPalApprove}
               onError={handlePaymentError}
               loading={loading}
               submitLabel={`Register & Pay — $${parseFloat(displayPrice).toFixed(2)}`}
@@ -865,7 +909,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
             <button
               type="button"
               className="submit-registration"
-              onClick={() => handlePaymentToken(null)}
+              onClick={handleFreeRegistration}
               disabled={loading || !isFormValid()}
             >
               {loading ? 'Registering...' : 'Complete Registration'}

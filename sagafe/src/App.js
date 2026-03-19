@@ -103,6 +103,8 @@ function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const iconRef = useRef(null);
+  const navRef = useRef(null);
+  const toggleRef = useRef(null);
   const { user, logout } = useAuth();
 
   const handleLogout = async () => {
@@ -123,12 +125,26 @@ function Header() {
       }
     };
 
+    const handleMobileClickOutside = (event) => {
+      if (
+        mobileMenuOpen &&
+        navRef.current &&
+        !navRef.current.contains(event.target) &&
+        toggleRef.current &&
+        !toggleRef.current.contains(event.target)
+      ) {
+        setMobileMenuOpen(false);
+      }
+    };
+
     document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handleMobileClickOutside);
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("mousedown", handleMobileClickOutside);
     };
-  }, []);
+  }, [mobileMenuOpen]);
 
 
   return (
@@ -152,6 +168,7 @@ function Header() {
       </div>
 
       <button
+        ref={toggleRef}
         className="mobile-menu-toggle"
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         aria-label="Toggle menu"
@@ -161,25 +178,44 @@ function Header() {
         <span></span>
       </button>
 
-      <nav className={`nav ${mobileMenuOpen ? 'nav-open' : ''}`}>
-        <NavLink to="/" className={({ isActive }) => isActive ? 'active' : ''}>Home</NavLink>
-        <NavLink to="/about" className={({ isActive }) => isActive ? 'active' : ''}>About</NavLink>
-        <NavLink to="/events" className={({ isActive }) => isActive ? 'active' : ''}>Events</NavLink>
-        <NavLink to="/photos" className={({ isActive }) => isActive ? 'active' : ''}>Photos</NavLink>
-        <NavLink to="/contact" className={({ isActive }) => isActive ? 'active' : ''}>Contact</NavLink>
-        <NavLink to="/sagatour" className={({ isActive }) => isActive ? 'active' : ''}>Saga Tour</NavLink>
-        <NavLink to="/scholarships" className={({ isActive }) => isActive ? 'active' : ''}>Scholarships</NavLink>
+      <nav ref={navRef} className={`nav ${mobileMenuOpen ? 'nav-open' : ''}`}>
+        <NavLink to="/" className={({ isActive }) => isActive ? 'active' : ''} onClick={() => setMobileMenuOpen(false)}>Home</NavLink>
+        <NavLink to="/about" className={({ isActive }) => isActive ? 'active' : ''} onClick={() => setMobileMenuOpen(false)}>About</NavLink>
+        <NavLink to="/events" className={({ isActive }) => isActive ? 'active' : ''} onClick={() => setMobileMenuOpen(false)}>Events</NavLink>
+        <NavLink to="/photos" className={({ isActive }) => isActive ? 'active' : ''} onClick={() => setMobileMenuOpen(false)}>Photos</NavLink>
+        <NavLink to="/contact" className={({ isActive }) => isActive ? 'active' : ''} onClick={() => setMobileMenuOpen(false)}>Contact</NavLink>
+        <NavLink to="/sagatour" className={({ isActive }) => isActive ? 'active' : ''} onClick={() => setMobileMenuOpen(false)}>Saga Tour</NavLink>
+        <NavLink to="/scholarships" className={({ isActive }) => isActive ? 'active' : ''} onClick={() => setMobileMenuOpen(false)}>Scholarships</NavLink>
+
+        {/* Auth buttons inside mobile dropdown */}
+        {!user && (
+          <div className="mobile-auth-buttons">
+            <button className="login-btn" onClick={() => { navigate("/login"); setMobileMenuOpen(false); }}>Login</button>
+            <button className="signup-btn" onClick={() => { navigate("/signup"); setMobileMenuOpen(false); }}>Membership Sign Up</button>
+          </div>
+        )}
+        {user && (
+          <div className="mobile-auth-buttons">
+            <button className="login-btn" onClick={() => { navigate("/dashboard"); setMobileMenuOpen(false); }}>Dashboard</button>
+            {isAdmin() && (
+              <button className="login-btn" onClick={() => { navigate("/admin"); setMobileMenuOpen(false); }}>Admin Dashboard</button>
+            )}
+            <button className="signup-btn" onClick={() => { handleLogout(); setMobileMenuOpen(false); }}>Logout</button>
+          </div>
+        )}
       </nav>
 
       <div className="user-section">
         {user ? (
           <div className="user-info">
-            <span className="user-name">{user.first_name}</span>
-            {user.handicap && (
-              <span className="user-handicap" title="Golf Handicap">
-                HCP: {user.handicap}
-              </span>
-            )}
+            <div className="user-name-group">
+              <span className="user-name">{user.first_name}</span>
+              {user.handicap && (
+                <span className="user-handicap" title="Golf Handicap">
+                  HCP: {user.handicap}
+                </span>
+              )}
+            </div>
             <div ref={iconRef} style={{ display: "inline-block" }}>
               <FontAwesomeIcon
                 icon={faUser}

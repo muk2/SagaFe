@@ -1,5 +1,6 @@
 .banner {
     width: 100%;
+    max-width: 100vw;
     background-color: #0f172a; /* dark slate */
     color: #f8fafc;
     text-align: center;

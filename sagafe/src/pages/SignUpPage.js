@@ -2,15 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { membershipOptionsApi } from '../lib/api';
-import PaymentForm from '../components/PaymentForm';
-
-function generateIdempotencyKey() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
+import PayPalPayment from '../components/PayPalPayment';
 
 export default function SignUpPage() {
   const [form, setForm] = useState({
@@ -46,10 +38,6 @@ export default function SignUpPage() {
   // Get the selected membership price
   const selectedOption = membershipOptions.find(o => o.name === form.membership);
   const membershipPrice = selectedOption ? (parseFloat(selectedOption.price) || 0) : 0;
-  // Debug: log membership price resolution
-  if (selectedOption) {
-    console.log('[SignUp] selectedOption:', selectedOption.name, 'raw price:', selectedOption.price, 'typeof:', typeof selectedOption.price, 'parsed:', membershipPrice);
-  }
 
   // Check if all required form fields are filled (excluding payment)
   const isFormValid = () => {
@@ -63,12 +51,8 @@ export default function SignUpPage() {
     );
   };
 
-  // Handle payment token received from PaymentForm
-  const handlePaymentToken = useCallback(async (token) => {
-    if (token && typeof token === 'object') {
-      token = token.token || token.cardToken || token.paymentToken || String(token);
-    }
-
+  // Handle PayPal approval — called with { orderID } after user approves payment
+  const handlePayPalApprove = useCallback(async ({ orderID }) => {
     setError("");
     setPaymentError("");
     setLoading(true);
@@ -77,8 +61,7 @@ export default function SignUpPage() {
       const userData = {
         ...form,
         handicap: form.golf_handicap ? String(form.golf_handicap).replace(/\.$/, '') : null,
-        payment_token: token,
-        idempotency_key: generateIdempotencyKey(),
+        paypal_order_id: orderID,
       };
 
       await signup(userData);
@@ -111,6 +94,39 @@ export default function SignUpPage() {
         setPaymentError(message);
         setLoading(false);
         return;
+      }
+
+      setError(message);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } finally {
+      setLoading(false);
+    }
+  }, [form, signup, navigate]);
+
+  // Handle free membership signup (no payment)
+  const handleFreeSignup = useCallback(async () => {
+    setError("");
+    setLoading(true);
+
+    try {
+      const userData = {
+        ...form,
+        handicap: form.golf_handicap ? String(form.golf_handicap).replace(/\.$/, '') : null,
+      };
+
+      await signup(userData);
+      alert("Account created successfully! Please log in.");
+      navigate("/login");
+    } catch (err) {
+      let message = "Signup failed. Please try again.";
+      if (typeof err === 'string') message = err;
+      else if (err?.response?.data?.detail) message = err.response.data.detail;
+      else if (err?.detail) message = err.detail;
+      else if (err?.message) message = err.message;
+
+      const lowerMessage = message.toLowerCase();
+      if (lowerMessage.includes("email already") || lowerMessage.includes("already registered") || lowerMessage.includes("email exists")) {
+        message = "This email is already registered. Please use a different email or try logging in.";
       }
 
       setError(message);
@@ -294,9 +310,10 @@ export default function SignUpPage() {
 
         {/* Payment section — appears after membership is selected and form is valid */}
         {membershipPrice > 0 && isFormValid() && (
-          <PaymentForm
-            amount={String(membershipPrice.toFixed(2))}
-            onTokenReceived={handlePaymentToken}
+          <PayPalPayment
+            amount={membershipPrice}
+            description={`SAGA Membership — ${form.membership}`}
+            onApprove={handlePayPalApprove}
             onError={handlePaymentError}
             loading={loading}
             submitLabel={`Sign Up & Pay — $${membershipPrice.toFixed(2)}`}
@@ -315,7 +332,7 @@ export default function SignUpPage() {
         {form.membership && membershipPrice === 0 && (
           <button
             type="button"
-            onClick={() => handlePaymentToken(null)}
+            onClick={handleFreeSignup}
             disabled={loading || !isFormValid()}
             style={{
               width: '100%',

@@ -41,12 +41,16 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 .app {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 /* ========================================
@@ -147,6 +151,10 @@ body {
   color: var(--primary);
 }
 
+.mobile-auth-buttons {
+  display: none;
+}
+
 .user-section {
   display: flex;
   align-items: center;
@@ -199,9 +207,16 @@ body {
   position: relative;
 }
 
+.user-name-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .user-name {
   font-weight: 500;
   color: var(--text-primary);
+  white-space: nowrap;
 }
 
 .user-handicap {
@@ -211,6 +226,7 @@ body {
   background: rgba(13, 148, 136, 0.1);
   padding: 0.25rem 0.5rem;
   border-radius: var(--radius-sm);
+  white-space: nowrap;
 }
 
 .user-icon {
@@ -600,9 +616,12 @@ body {
     }
 
     .hero-content {
-      padding: 3rem 2rem 2rem;
+      padding: 2.5rem 2rem 1.5rem;
       align-items: center;
       text-align: center;
+      max-width: 640px;
+      margin: 0 auto;
+      width: 100%;
     }
 
     .hero-eyebrow {
@@ -614,17 +633,23 @@ body {
     }
 
     .hero-content > p {
-      max-width: 100%;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+      margin-bottom: 1.5rem;
     }
 
     .hero-carousel-side {
-      margin: 0 2rem 2.5rem;
-      min-height: 300px;
+      margin: 0 auto 2rem;
+      max-width: 640px;
+      width: calc(100% - 4rem);
+      min-height: 340px;
       border-radius: 16px;
     }
 
     .hero-buttons {
       justify-content: center;
+      margin-bottom: 0.5rem;
     }
 
     .hero-stats-row {
@@ -638,57 +663,85 @@ body {
       grid-template-columns: 1fr;
       min-height: auto;
     }
-  
+
     .hero::before {
       width: 100%;
     }
-  
+
     .hero-content {
-      padding: 3rem 1.5rem 2rem;
+      padding: 2rem 1.5rem 1rem;
       align-items: center;
       text-align: center;
+      max-width: 540px;
+      margin: 0 auto;
+      width: 100%;
     }
-  
+
     .hero-eyebrow {
       justify-content: center;
     }
-  
+
     .hero h1 {
-      font-size: 2.25rem;
+      font-size: 2rem;
     }
-  
+
     .hero-content > p {
-      max-width: 100%;
+      max-width: 440px;
+      margin-left: auto;
+      margin-right: auto;
+      font-size: 0.95rem;
+      margin-bottom: 1.25rem;
     }
-  
+
     .hero-stats-row {
       width: 100%;
       justify-content: center;
     }
-  
+
     .hero-buttons {
       flex-direction: column;
       width: 100%;
+      margin-bottom: 0.5rem;
     }
-  
+
     .primary-btn,
     .secondary-btn {
       width: 100%;
       justify-content: center;
     }
-  
+
     .hero-carousel-side {
-      margin: 0 1.5rem 2.5rem;
-      min-height: 280px;
-      border-radius: 16px;
+      margin: 0 auto 1.5rem;
+      max-width: 540px;
+      width: calc(100% - 2rem);
+      min-height: 260px;
+      border-radius: 14px;
       background-color: #f9fafc;
     }
-  
+
     .carousel-arrow,
     .carousel-dots,
     .carousel-counter {
       opacity: 1 !important;
       pointer-events: auto !important;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .hero-content {
+      padding: 1.5rem 1rem 0.75rem;
+      max-width: 100%;
+    }
+
+    .hero h1 {
+      font-size: 1.75rem;
+    }
+
+    .hero-carousel-side {
+      margin: 0 auto 1.25rem;
+      width: calc(100% - 1.5rem);
+      min-height: 220px;
+      border-radius: 12px;
     }
   }
 /* ========================================
@@ -2631,6 +2684,7 @@ body {
   color: white;
   padding: 3rem 4rem 1.5rem;
   margin-top: auto;
+  width: 100%;
 }
 
 .footer-content {
@@ -2692,14 +2746,13 @@ body {
 
 @media (max-width: 1024px) {
   .hero {
-    grid-template-columns: 1fr;
     gap: 2rem;
     padding: 3rem 2rem;
   }
 
   .hero-content {
     max-width: 100%;
-    text-align: center;
+    
   }
 
   .hero-buttons {
@@ -2763,6 +2816,14 @@ body {
   }
   .user-section {
     gap: 0.5rem;
+  }
+  .user-name-group {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.15rem;
+  }
+  .user-name {
+    font-size: 0.85rem;
   }
 }
 
@@ -2876,6 +2937,46 @@ body {
     width: 100%;
     padding: 0.75rem 1rem;
     justify-content: center;
+  }
+
+  .mobile-auth-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.75rem 1rem 0.25rem;
+    border-top: 1px solid var(--border);
+    margin-top: 0.5rem;
+  }
+
+  .mobile-auth-buttons .login-btn {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+
+  .mobile-auth-buttons .signup-btn {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    background: var(--primary);
+    border: none;
+    border-radius: var(--radius);
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+
+  .user-section {
+    display: none;
   }
 
   .hero h1 {

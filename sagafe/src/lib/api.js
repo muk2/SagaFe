@@ -833,4 +833,19 @@ export const healthCheck = async () => {
   }
 };
 
+/**
+ * PayPal API methods
+ */
+export const paypalApi = {
+  /**
+   * Create a PayPal order
+   * @param {number} amount - Payment amount
+   * @param {string} description - Payment description
+   * @returns {Promise<{id: string}>} - PayPal order ID
+   */
+  createOrder: async (amount, description = 'SAGA Golf Payment') => {
+    return api.post('/api/paypal/create-order', { amount, description });
+  },
+};
+
 export default api;
