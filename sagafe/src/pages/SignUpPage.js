@@ -513,9 +513,11 @@ export default function SignUpPage() {
         }
 
         .option-text {
+	  flex: 1;
           display: flex;
           flex-direction: column;
           gap: 0.25rem;
+	  min-width:0;
         }
 
         .option-label {
@@ -534,6 +536,7 @@ export default function SignUpPage() {
           font-weight: 700;
           color: var(--primary);
           font-size: 1.125rem;
+          flex-shrink: 0;
         }
 
         .radio-indicator {

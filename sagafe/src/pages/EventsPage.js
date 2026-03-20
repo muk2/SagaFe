@@ -566,7 +566,7 @@ export default function EventsPage() {
   .championship-card-compact {
     border: 2px solid #f59e0b;
     background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(249, 115, 22, 0.05));
-    width: 470px;
+    max-width: 470px;
   }
 
   .championship-date {
@@ -648,7 +648,7 @@ export default function EventsPage() {
     border: 2px solid;
     border-image: linear-gradient(135deg, #dc2626, #2563eb) 1;
     background: linear-gradient(135deg, rgba(220, 38, 38, 0.05), rgba(37, 99, 235, 0.05));
-    width: 470px;
+    max-width: 470px;
   }
 
   .ryder-cup-date {

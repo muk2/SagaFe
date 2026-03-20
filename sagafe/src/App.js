@@ -1025,7 +1025,7 @@ export function LeaderboardSection() {
      
 
       <style>{`
-        .saga-standings-section {
+      .saga-standings-section {
           background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
           padding: 5rem 2rem;
           position: relative;
@@ -1047,7 +1047,7 @@ export function LeaderboardSection() {
         .ss-tab-bar {
           display: flex; gap: 0;
           background: #f3f4f6; border-radius: 12px; padding: 4px;
-          margin-bottom: 1.75rem; width: fit-content;
+          margin-bottom: 1.75rem; width: fit-content; max-width: 100%;
         }
         .ss-tab {
           display: flex; align-items: center; gap: 0.5rem;
@@ -1055,6 +1055,11 @@ export function LeaderboardSection() {
           background: transparent; color: #6b7280;
           font-size: 0.9rem; font-weight: 600; cursor: pointer;
           transition: all 0.2s ease; white-space: nowrap;
+        }
+        @media (max-width: 480px) {
+          .ss-tab-bar { width: 100%; }
+          .ss-tab { flex: 1; justify-content: center; padding: 0.6rem 0.75rem; font-size: 0.7rem; white-space: normal; text-align: center; }
+          .ss-tab svg { display: none; }
         }
         .ss-tab.active { background: white; color: #065f46; box-shadow: 0 1px 6px rgba(0,0,0,0.1); }
         .ss-tab:hover:not(.active) { color: #374151; }
@@ -1150,12 +1155,12 @@ export function LeaderboardSection() {
         @media (max-width: 640px) {
           .saga-standings-section { padding: 3rem 1rem; }
           .ss-tab-bar { width: 100%; }
-          .ss-tab { flex: 1; justify-content: center; font-size: 0.8rem; padding: 0.55rem 0.75rem; }
+          .ss-tab { flex: 1; justify-content: center; font-size: 0.8rem; padding: 0.55rem 0.75rem; white-space: normal; text-align: center; }
           .ss-pdf-card { flex-direction: column; padding: 1.5rem; }
           .ss-pdf-btn { width: 100%; justify-content: center; }
           .ss-table th, .ss-table td { padding: 0.75rem 1rem; }
         }
-      `}</style>
+	      `}</style>
     </section>
   );
 }

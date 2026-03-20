@@ -722,11 +722,17 @@ body {
     .carousel-arrow,
     .carousel-dots,
     .carousel-counter {
-      opacity: 1 !important;
-      pointer-events: auto !important;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .hero-carousel-side:hover .carousel-arrow,
+    .hero-carousel-side:hover .carousel-dots,
+    .hero-carousel-side:hover .carousel-counter {
+      opacity: 1;
+      pointer-events: auto;
     }
   }
-
   @media (max-width: 480px) {
     .hero-content {
       padding: 1.5rem 1rem 0.75rem;
@@ -1478,6 +1484,7 @@ body {
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   position: relative;
+  overflow: hidden;
 }
 
 .calendar-day:nth-child(7n) {
@@ -1744,7 +1751,7 @@ body {
 
 .events-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
   gap: 1rem;
 }
 
@@ -2780,6 +2787,38 @@ body {
     grid-template-columns: 1fr;
   }
 
+     .calendar-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .calendar-header,
+  .calendar-grid {
+    min-width: 360px;
+  }
+
+  .calendar-header span {
+    padding: 0.75rem 0.25rem;
+    font-size: 0.65rem;
+  }
+
+  .calendar-day {
+    min-height: 70px;
+    padding: 0.25rem;
+  }
+
+  .day-number {
+    font-size: 0.75rem;
+  }
+
+  .calendar-event-dot {
+    font-size: 0.55rem;
+    padding: 0.15rem 0.3rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .event-card {
     flex-direction: column;
   }
@@ -2787,6 +2826,37 @@ body {
   .event-image {
     width: 100%;
     height: 200px;
+  }
+
+  .event-content { 
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .event-meta {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .event-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .event-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .register-btn {
+    white-space: nowrap;
+  }
+
+  .event-spots {
+    max-width: 100%;
+    width: 100%;
   }
 }
 
@@ -3039,8 +3109,22 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .events-grid {
+    m  .events-grid {
     grid-template-columns: 1fr;
+  }
+
+  .event-card-compact {
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .compact-info h4 {
+    white-space: normal;
+    font-size: 0.85rem;
+  }
+
+  .compact-info p {
+    white-space: normal;
   }
 
   .login-page {
