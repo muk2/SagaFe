@@ -487,21 +487,6 @@ export default function PayPalPayment({
             onCancel={() => setInternalError('')}
           />
         </div> */}
-	  {/* Venmo button (US only, shown when eligible) */}
-<div style={{ marginBottom: '0.75rem' }}>
-          <PayPalButtons
-            fundingSource={FUNDING.VENMO}
-            style={{
-              shape: 'pill',
-              height: 45,
-            }}
-            disabled={loading || isPaying}
-            createOrder={createOrder}
-            onApprove={handleApprove}
-            onError={handleError}
-            onCancel={() => setInternalError('')}
-          />
-        </div>
 
         {/* Divider */}
 
