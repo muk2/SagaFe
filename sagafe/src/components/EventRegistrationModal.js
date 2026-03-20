@@ -156,12 +156,13 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
 
   const memberPrice  = parseFloat(event.price || event.member_price) || 0;
   const guestPrice   = parseFloat(event.guest_price || event.price) || 0;
-  const basePrice    = user ? memberPrice : guestPrice;
+  const isMemberActive = user && !user.membership_expired;
+  const basePrice    = isMemberActive ? memberPrice : guestPrice;
   const sponsorAdd   = registrationForm.sponsor === 'yes' ? (parseFloat(registrationForm.sponsorAmount) || 0) : 0;
 
   // Calculate total price including additional golfers
   const additionalGolfersPrice = additionalGolfers.reduce((sum, g) => {
-    if (user && g.isMember) {
+    if (isMemberActive && g.isMember) {
       return sum + memberPrice;
     }
     return sum + guestPrice;

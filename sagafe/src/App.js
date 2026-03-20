@@ -14,6 +14,7 @@ import DashboardPage from "./pages/DashboardPage.js";
 import EventRegistrationModal from "./components/EventRegistrationModal.js";
 import AdminDashboard from "./pages/AdminDashboard.js";
 import ScholarshipsPage from "./pages/ScholarshipPage.js";
+import RenewMembershipPage from "./pages/RenewMembershipPage.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser } from "@fortawesome/free-solid-svg-icons";
 import Banner from "./Banner";
@@ -73,6 +74,7 @@ export function App() {
         <Route path="/scholarships" element={<ScholarshipsPage />} />
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/renew-membership" element={<ProtectedRoute allowExpired><RenewMembershipPage /></ProtectedRoute>} />
         <Route
           path="/login"
           element={<LoginPage />}
@@ -238,6 +240,11 @@ function Header() {
                     Admin Dashboard
                   </button>
                 )}
+                {user.membership_expired && (
+                  <button onClick={() => { navigate("/renew-membership"); setMenuOpen(false); }} className="renew-menu-item">
+                    Renew Membership
+                  </button>
+                )}
                 <button onClick={handleLogout}>Logout</button>
               </div>
             )}
@@ -254,15 +261,15 @@ function Header() {
   );
 }
 
-function ProtectedRoute({ children }) {
+function ProtectedRoute({ children, allowExpired = false }) {
   const { user, loading } = useAuth();
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         minHeight: '60vh',
         color: 'var(--text-secondary)'
       }}>
@@ -271,9 +278,12 @@ function ProtectedRoute({ children }) {
     );
   }
 
-
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (user.membership_expired && !allowExpired && user.role !== 'admin') {
+    return <Navigate to="/renew-membership" replace />;
   }
 
   return children;

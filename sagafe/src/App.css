@@ -301,6 +301,17 @@ body {
   background: linear-gradient(135deg, #5568d3 0%, #63408b 100%);
 }
 
+.user-menu button.renew-menu-item {
+  background: #fee2e2;
+  color: #991b1b;
+  font-weight: 600;
+  border-radius: 4px;
+  margin: 0.25rem;
+}
+
+.user-menu button.renew-menu-item:hover {
+  background: #fecaca;
+}
 
 
 /* ========================================
@@ -4014,4 +4025,117 @@ body {
 .price-highlight {
   font-weight: 600;
   color: var(--primary);
+}
+
+/* ========================================
+   RENEW MEMBERSHIP PAGE
+   ======================================== */
+
+.renew-membership-page {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 60vh;
+  padding: 2rem 1rem;
+}
+
+.renew-membership-card {
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  padding: 2.5rem;
+  max-width: 550px;
+  width: 100%;
+}
+
+.renew-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.renew-header h1 {
+  font-size: 1.75rem;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.renew-header p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.renew-error {
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.renew-greeting {
+  text-align: center;
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.renew-label {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+}
+
+.renew-free-btn {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.875rem 1.5rem;
+  background: var(--primary, #1a472a);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.renew-free-btn:hover {
+  background: var(--primary-dark, #153d23);
+}
+
+.renew-free-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.renew-logout-btn {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.renew-logout-btn:hover {
+  background: #f9fafb;
+  color: var(--text-primary);
+}
+
+@media (max-width: 480px) {
+  .renew-membership-card {
+    padding: 1.5rem;
+  }
+
+  .renew-header h1 {
+    font-size: 1.4rem;
+  }
 }
