@@ -2,6 +2,7 @@
   max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
+  overflow-x: auto;
 }
 
 .admin-header {
@@ -222,24 +223,33 @@
   }
 
   .admin-tabs {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding-bottom: 0.75rem;
   }
 
   .admin-tab {
-    flex-direction: column;
-    padding: 0.5rem 1rem;
+    flex-shrink: 0;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.85rem;
   }
 
   .admin-content {
     padding: 1rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .admin-table {
     font-size: 0.85rem;
+    min-width: 600px;
   }
 
   .admin-table th,
   .admin-table td {
     padding: 0.5rem;
+    white-space: nowrap;
   }
 }

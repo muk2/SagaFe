@@ -12,14 +12,15 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   console.log('DashboardPage - user:', user);
-  // Handicap form state
+  // Profile form state
   const [handicapForm, setHandicapForm] = useState({
-    handicap: user?.handicap || ''
+    handicap: user?.handicap || '',
+    ghin_number: user?.ghin_number || '',
   });
 
   useEffect(() => {
     if (user) {
-      setHandicapForm({ handicap: user.handicap || '' });
+      setHandicapForm({ handicap: user.handicap || '', ghin_number: user.ghin_number || '' });
     }
   }, [user]);
 
@@ -105,16 +106,15 @@ export default function DashboardPage() {
     setMessage({ type: '', text: '' });
 
     try {
-      const response = await api.put('/api/users/profile', {
-        handicap: handicapForm.handicap
+      await api.put('/api/users/profile', {
+        handicap: handicapForm.handicap,
+        ghin_number: handicapForm.ghin_number || null,
       });
-      updateUser(response);
-      // Update user in context
-      updateUser({ ...user, handicap: handicapForm.handicap });
+      updateUser({ ...user, handicap: handicapForm.handicap, ghin_number: handicapForm.ghin_number || null });
 
-      setMessage({ type: 'success', text: 'Golf handicap updated successfully!' });
+      setMessage({ type: 'success', text: 'Profile updated successfully!' });
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to update handicap' });
+      setMessage({ type: 'error', text: error.message || 'Failed to update profile' });
     } finally {
       setLoading(false);
     }
@@ -357,7 +357,7 @@ export default function DashboardPage() {
         {activeTab === 'settings' && (
           <div className="settings-section">
             <div className="settings-card">
-              <h2>Update Golf Handicap</h2>
+              <h2>Update Golf Profile</h2>
               <form onSubmit={handleHandicapUpdate} className="settings-form">
                 <div className="form-group">
                   <label htmlFor="golf_handicap">Golf Handicap</label>
@@ -373,8 +373,21 @@ export default function DashboardPage() {
                   />
                   <small>Enter your current USGA handicap index</small>
                 </div>
+                <div className="form-group">
+                  <label htmlFor="ghin_number">GHIN Number</label>
+                  <input
+                    type="text"
+                    id="ghin_number"
+                    value={handicapForm.ghin_number}
+                    onChange={(e) => setHandicapForm({ ...handicapForm, ghin_number: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                    placeholder="Enter your GHIN number"
+                    inputMode="numeric"
+                    disabled={loading}
+                  />
+                  <small>Your GHIN identification number (numbers only)</small>
+                </div>
                 <button type="submit" className="primary-btn" disabled={loading}>
-                  {loading ? 'Updating...' : 'Update Handicap'}
+                  {loading ? 'Updating...' : 'Update Profile'}
                 </button>
               </form>
             </div>

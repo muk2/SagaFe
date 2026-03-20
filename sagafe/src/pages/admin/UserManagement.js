@@ -9,6 +9,7 @@ const EMPTY_FORM = {
   membership: '',
   role: 'user',
   handicap: '',
+  ghin_number: '',
 };
 
 const UserManagement = () => {
@@ -171,6 +172,7 @@ const UserManagement = () => {
         membership: formData.membership,
         role: formData.role,
         handicap: formData.handicap.trim() || null,
+        ghin_number: formData.ghin_number.trim() || null,
       });
       setUsers([...users, newUser]);
       handleCloseModal();
@@ -219,6 +221,7 @@ const UserManagement = () => {
             <th>Email</th>
             <th>Phone</th>
             <th>Handicap</th>
+            <th>GHIN #</th>
             <th>Membership</th>
             <th>Role</th>
             <th>Actions</th>
@@ -231,6 +234,7 @@ const UserManagement = () => {
               <td>{user.email}</td>
               <td>{user.phone_number || 'N/A'}</td>
               <td>{user.handicap || user.golf_handicap || 'N/A'}</td>
+              <td>{user.ghin_number || 'N/A'}</td>
               <td>{user.membership || 'N/A'}</td>
               <td>
                 <label className="role-toggle">
@@ -354,17 +358,30 @@ const UserManagement = () => {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>Handicap <span className="optional">(optional)</span></label>
-                <input
-                  name="handicap"
-                  type="text"
-                  value={formData.handicap}
-                  onChange={handleHandicapChange}
-                  onBlur={handleHandicapBlur}
-                  placeholder="e.g. 12.4"
-                  inputMode="decimal"
-                />
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Handicap <span className="optional">(optional)</span></label>
+                  <input
+                    name="handicap"
+                    type="text"
+                    value={formData.handicap}
+                    onChange={handleHandicapChange}
+                    onBlur={handleHandicapBlur}
+                    placeholder="e.g. 12.4"
+                    inputMode="decimal"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>GHIN Number <span className="optional">(optional)</span></label>
+                  <input
+                    name="ghin_number"
+                    type="text"
+                    value={formData.ghin_number}
+                    onChange={(e) => setFormData({ ...formData, ghin_number: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                    placeholder="e.g. 1234567"
+                    inputMode="numeric"
+                  />
+                </div>
               </div>
 
               <div className="modal-actions">

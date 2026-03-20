@@ -12,6 +12,7 @@ export default function SignUpPage() {
     email: "",
     password: "",
     golf_handicap: "",
+    ghin_number: "",
     membership: ""
   });
   const [error, setError] = useState("");
@@ -61,6 +62,7 @@ export default function SignUpPage() {
       const userData = {
         ...form,
         handicap: form.golf_handicap ? String(form.golf_handicap).replace(/\.$/, '') : null,
+        ghin_number: form.ghin_number.trim() || null,
         paypal_order_id: orderID,
       };
 
@@ -112,6 +114,7 @@ export default function SignUpPage() {
       const userData = {
         ...form,
         handicap: form.golf_handicap ? String(form.golf_handicap).replace(/\.$/, '') : null,
+        ghin_number: form.ghin_number.trim() || null,
       };
 
       await signup(userData);
@@ -188,7 +191,8 @@ export default function SignUpPage() {
     { key: "last_name", label: "Last Name *", type: "text", placeholder: "Doe", required: true },
     { key: "phone_number", label: "Phone Number *", type: "tel", placeholder: "(555) 555-5555", required: true },
     { key: "email", label: "Email Address *", type: "email", placeholder: "john@example.com", required: true },
-    { key: "golf_handicap", label: "Golf Handicap", type: "text", placeholder: "e.g., 12", required: false }
+    { key: "golf_handicap", label: "Golf Handicap", type: "text", placeholder: "e.g., 12", required: false },
+    { key: "ghin_number", label: "GHIN Number", type: "text", placeholder: "e.g., 1234567", required: false }
   ];
 
   return (
@@ -216,6 +220,7 @@ export default function SignUpPage() {
               onChange={
                 field.key === "phone_number" ? handlePhoneChange
                 : field.key === "golf_handicap" ? handleHandicapChange
+                : field.key === "ghin_number" ? (e) => setForm({ ...form, ghin_number: e.target.value.replace(/\D/g, '').slice(0, 10) })
                 : (e) => setForm({ ...form, [field.key]: e.target.value })
               }
               onBlur={
