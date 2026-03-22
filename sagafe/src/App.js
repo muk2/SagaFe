@@ -21,7 +21,7 @@ import Banner from "./Banner";
 import { useAuth } from "./context/AuthContext";
 import { eventsApi, api, carouselApi, partnersApi, authApi} from "./lib/api";
 import { isAdmin } from "./lib/auth";
-
+import ScrollToTop from "./components/ScrollToTop.js";
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -54,6 +54,7 @@ export function App() {
     <div className="app">
       <Header />
       <Banner />
+      <ScrollToTop />
       <Routes>
         <Route
           path="/"

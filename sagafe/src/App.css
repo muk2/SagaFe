@@ -1168,8 +1168,14 @@ body {
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 1rem;
+  text-align: center;
 }
 
+@media (max-width: 768px) {
+  .content-section h2 {
+    text-align: center;
+  }
+}
 /* ========================================
    ABOUT PAGE
    ======================================== */

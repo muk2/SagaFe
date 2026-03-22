@@ -104,7 +104,7 @@ export default function AboutPage() {
 
             <div 
               className="about-card clickable" 
-              onClick={() => navigate('/saga-tour')}
+              onClick={() => navigate('/sagatour')}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => e.key === 'Enter' && navigate('/saga-tour')}
