@@ -185,15 +185,55 @@ const UserManagement = () => {
     }
   };
 
+  const exportToCSV = () => {
+    if (users.length === 0) {
+      alert('No users to export');
+      return;
+    }
+  
+    const headers = ['Name', 'Email', 'Phone', 'Handicap', 'GHIN', 'Membership'];
+    const rows = users.map(user => [
+      user.first_name+' '+user.last_name,
+      user.email,
+      user.phone_number || 'N/A',
+      user.handicap || user.golf_handicap || 'N/A',
+      user.ghin_number || 'N/A',
+      user.membership,
+    ]);
+  
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
+    ].join('\n');
+  
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `user_membership_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   if (loading) return <div className="loading">Loading users...</div>;
 
   return (
     <div className="user-management">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h2 className="admin-section-title" style={{ margin: 0 }}>User Management</h2>
+        <div>
         <button className="btn-primary" onClick={handleOpenModal}>
           + Add User
         </button>
+ 
+           
+            {users.length > 0 && (
+              <button onClick={exportToCSV} className="btn-primary">
+                Export to CSV
+              </button>
+            )}
+            </div>
+       
       </div>
 
       {error   && <div className="error">{error}</div>}
@@ -397,6 +437,7 @@ const UserManagement = () => {
         </div>
       )}
 
+
       <style jsx>{`
         .users-stats {
           display: grid;
@@ -447,6 +488,7 @@ const UserManagement = () => {
           font-weight: 600;
           cursor: pointer;
           transition: background 0.2s;
+          margin: 2px;
         }
         .btn-primary:hover:not(:disabled) { background: var(--primary-dark, #0f766e); }
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
