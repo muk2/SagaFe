@@ -251,6 +251,32 @@ export default function SagaTourPage() {
                     <strong>Points System:</strong> Similar to the FedEx Cup, higher regular season performance earns more reset points entering the playoffs
                   </p>
                 </div>
+
+                <h4>Reset Points Table</h4>
+                <div className="reset-points-table-wrapper">
+                  <table className="reset-points-table">
+                    <thead>
+                      <tr><th>Rank</th><th>Reset Pts</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>1</td><td>18</td></tr>
+                      <tr><td>2</td><td>15</td></tr>
+                      <tr><td>3</td><td>12</td></tr>
+                      <tr><td>4</td><td>11</td></tr>
+                      <tr><td>5</td><td>10</td></tr>
+                      <tr><td>6</td><td>9</td></tr>
+                      <tr><td>7</td><td>8</td></tr>
+                      <tr><td>8</td><td>7</td></tr>
+                      <tr><td>9</td><td>6</td></tr>
+                      <tr><td>10</td><td>5</td></tr>
+                      <tr><td>11</td><td>4</td></tr>
+                      <tr><td>12</td><td>3</td></tr>
+                      <tr><td>13</td><td>2</td></tr>
+                      <tr><td>14</td><td>1</td></tr>
+                      <tr><td>REST</td><td>1</td></tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </section>
 
@@ -1134,6 +1160,42 @@ export default function SagaTourPage() {
           background: var(--border-light);
           border-radius: var(--radius);
           margin-top: 1rem;
+        }
+
+        /* Reset Points Table */
+        .reset-points-table-wrapper {
+          overflow-x: auto;
+          margin-top: 1rem;
+        }
+
+        .reset-points-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 0.95rem;
+        }
+
+        .reset-points-table thead th {
+          background: #f1f5f9;
+          color: var(--text-primary);
+          font-weight: 700;
+          padding: 0.75rem 1rem;
+          text-align: center;
+          border-bottom: 2px solid #e2e8f0;
+        }
+
+        .reset-points-table tbody td {
+          padding: 0.625rem 1rem;
+          text-align: center;
+          border-bottom: 1px solid #e2e8f0;
+          color: var(--text-secondary);
+        }
+
+        .reset-points-table tbody tr:hover {
+          background: rgba(13, 148, 136, 0.04);
+        }
+
+        .reset-points-table {
+          max-width: 300px;
         }
 
         /* Responsive */

@@ -254,6 +254,7 @@ const UserManagement = () => {
         </div>
       </div>
 
+      <div className="admin-table-wrapper">
       <table className="admin-table">
         <thead>
           <tr>
@@ -300,6 +301,7 @@ const UserManagement = () => {
           ))}
         </tbody>
       </table>
+      </div>
 
       {users.length === 0 && <div className="empty-state">No users found</div>}
 

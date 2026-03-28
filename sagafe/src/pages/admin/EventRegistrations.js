@@ -265,6 +265,7 @@ const EventRegistrations = () => {
               No registrations yet for this event.
             </div>
           ) : (
+            <div className="admin-table-wrapper">
             <table className="admin-table">
               <thead>
                 <tr>
@@ -319,6 +320,7 @@ const EventRegistrations = () => {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </>
       )}
@@ -438,7 +440,7 @@ const EventRegistrations = () => {
           display: inline-block;
           padding: 0.25rem 0.75rem;
           border-radius: 12px;
-          font-size: 0.75rem;
+          font-size: 0.69rem;
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.025em;
