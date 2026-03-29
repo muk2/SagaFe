@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { usersApi, membershipOptionsApi } from '../../lib/api';
+import { usersApi, membershipOptionsApi, exemptionCodesApi } from '../../lib/api';
 
 const EMPTY_FORM = {
   first_name: '',
@@ -22,10 +22,15 @@ const UserManagement = () => {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [exemptionCodes, setExemptionCodes] = useState([]);
+  const [showCodesSection, setShowCodesSection] = useState(false);
+  const [newCodeForm, setNewCodeForm] = useState({ code: '', max_uses: 1 });
+  const [creatingCode, setCreatingCode] = useState(false);
 
   useEffect(() => {
     fetchUsers();
     fetchMembershipOptions();
+    fetchExemptionCodes();
   }, []);
 
   const fetchMembershipOptions = async () => {
@@ -34,6 +39,46 @@ const UserManagement = () => {
       setMembershipOptions(data);
     } catch (err) {
       console.error('Failed to load membership options:', err);
+    }
+  };
+
+  const fetchExemptionCodes = async () => {
+    try {
+      const codes = await exemptionCodesApi.getAll();
+      setExemptionCodes(codes);
+    } catch (err) {
+      console.error('Failed to load exemption codes:', err);
+    }
+  };
+
+  const handleCreateCode = async (e) => {
+    e.preventDefault();
+    setCreatingCode(true);
+    try {
+      const created = await exemptionCodesApi.create({
+        code: newCodeForm.code.trim() || null,
+        max_uses: parseInt(newCodeForm.max_uses) || 1,
+      });
+      setExemptionCodes([created, ...exemptionCodes]);
+      setNewCodeForm({ code: '', max_uses: 1 });
+      setSuccess('Exemption code created');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err.message || 'Failed to create exemption code');
+    } finally {
+      setCreatingCode(false);
+    }
+  };
+
+  const handleDeleteCode = async (codeId) => {
+    if (!window.confirm('Delete this exemption code?')) return;
+    try {
+      await exemptionCodesApi.delete(codeId);
+      setExemptionCodes(exemptionCodes.filter(c => c.id !== codeId));
+      setSuccess('Exemption code deleted');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err.message || 'Failed to delete exemption code');
     }
   };
 
@@ -191,7 +236,7 @@ const UserManagement = () => {
       return;
     }
   
-    const headers = ['Name', 'Email', 'Phone', 'Handicap', 'GHIN', 'Membership'];
+    const headers = ['Name', 'Email', 'Phone', 'Handicap', 'GHIN', 'Membership', 'Exempt'];
     const rows = users.map(user => [
       user.first_name+' '+user.last_name,
       user.email,
@@ -199,6 +244,7 @@ const UserManagement = () => {
       user.handicap || user.golf_handicap || 'N/A',
       user.ghin_number || 'N/A',
       user.membership,
+      user.membership_exempt ? 'Yes' : '',
     ]);
   
     const csvContent = [
@@ -276,7 +322,12 @@ const UserManagement = () => {
               <td>{user.phone_number || 'N/A'}</td>
               <td>{user.handicap || user.golf_handicap || 'N/A'}</td>
               <td>{user.ghin_number || 'N/A'}</td>
-              <td>{user.membership || 'N/A'}</td>
+              <td>
+                {user.membership || 'N/A'}
+                {user.membership_exempt && (
+                  <span className="exempt-badge">EXEMPT</span>
+                )}
+              </td>
               <td>
                 <label className="role-toggle">
                   <input
@@ -304,6 +355,88 @@ const UserManagement = () => {
       </div>
 
       {users.length === 0 && <div className="empty-state">No users found</div>}
+
+      {/* ── Exemption Codes Section ── */}
+      <div className="exemption-codes-section">
+        <button
+          className="codes-toggle"
+          onClick={() => setShowCodesSection(!showCodesSection)}
+        >
+          <span>Exemption Codes ({exemptionCodes.length})</span>
+          <span>{showCodesSection ? '▲' : '▼'}</span>
+        </button>
+
+        {showCodesSection && (
+          <div className="codes-content">
+            <p className="codes-description">
+              Share these codes with users who are exempt from membership fees. They enter the code on the signup page to skip payment.
+            </p>
+
+            <form onSubmit={handleCreateCode} className="code-create-form">
+              <input
+                type="text"
+                placeholder="Custom code (leave blank to auto-generate)"
+                value={newCodeForm.code}
+                onChange={(e) => setNewCodeForm({ ...newCodeForm, code: e.target.value.toUpperCase() })}
+                className="code-input"
+              />
+              <input
+                type="number"
+                min="1"
+                value={newCodeForm.max_uses}
+                onChange={(e) => setNewCodeForm({ ...newCodeForm, max_uses: e.target.value })}
+                className="code-uses-input"
+                title="Max uses"
+              />
+              <button type="submit" className="btn-primary" disabled={creatingCode}>
+                {creatingCode ? 'Creating...' : 'Create Code'}
+              </button>
+            </form>
+
+            {exemptionCodes.length > 0 ? (
+              <table className="admin-table codes-table">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Uses</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {exemptionCodes.map((code) => (
+                    <tr key={code.id}>
+                      <td><code className="code-value">{code.code}</code></td>
+                      <td>{code.times_used} / {code.max_uses}</td>
+                      <td>{new Date(code.created_at).toLocaleDateString()}</td>
+                      <td>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(code.code);
+                            setSuccess('Code copied to clipboard');
+                            setTimeout(() => setSuccess(null), 2000);
+                          }}
+                          className="btn-sm btn-secondary"
+                        >
+                          Copy
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCode(code.id)}
+                          className="btn-danger btn-sm"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="codes-empty">No exemption codes created yet.</p>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* ── Add User Modal ── */}
       {showAddModal && (
@@ -479,7 +612,19 @@ const UserManagement = () => {
         }
         .role-badge.admin { background: #fef3c7; color: #92400e; }
         .role-badge.user  { background: #e0e7ff; color: #3730a3; }
-        .btn-sm { padding: 0.25rem 0.75rem; font-size: 0.85rem; }
+        .btn-sm { padding: 0.6rem 1.25rem; font-size: 0.95rem; margin-right: 0.35rem; }
+        .exempt-badge {
+          display: inline-block;
+          margin-left: 0.5rem;
+          padding: 0.15rem 0.5rem;
+          border-radius: 10px;
+          font-size: 0.7rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          background: #dcfce7;
+          color: #166534;
+          vertical-align: middle;
+        }
         .btn-primary {
           background: var(--primary, #0d9488);
           color: white;
@@ -616,10 +761,88 @@ const UserManagement = () => {
           padding-top: 1.25rem;
           border-top: 1px solid #e5e7eb;
         }
+        /* Exemption Codes */
+        .exemption-codes-section {
+          margin-top: 2rem;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          overflow: hidden;
+        }
+        .codes-toggle {
+          width: 100%;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.875rem 1.25rem;
+          background: #f8fafc;
+          border: none;
+          cursor: pointer;
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: #1e293b;
+        }
+        .codes-toggle:hover { background: #f1f5f9; }
+        .codes-content {
+          padding: 1.25rem;
+          border-top: 1px solid #e5e7eb;
+        }
+        .codes-description {
+          font-size: 0.85rem;
+          color: #64748b;
+          margin-bottom: 1rem;
+        }
+        .code-create-form {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 1rem;
+          align-items: center;
+        }
+        .code-input {
+          flex: 1;
+          padding: 0.5rem 0.75rem;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          font-size: 0.9rem;
+          font-family: monospace;
+        }
+        .code-input:focus {
+          outline: none;
+          border-color: var(--primary, #0d9488);
+          box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.1);
+        }
+        .code-uses-input {
+          width: 70px;
+          padding: 0.5rem 0.5rem;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          font-size: 0.9rem;
+          text-align: center;
+        }
+        .code-uses-input:focus {
+          outline: none;
+          border-color: var(--primary, #0d9488);
+        }
+        .codes-table { margin-top: 0.5rem; }
+        .code-value {
+          background: #f1f5f9;
+          padding: 0.2rem 0.5rem;
+          border-radius: 4px;
+          font-size: 0.9rem;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+        }
+        .codes-empty {
+          text-align: center;
+          color: #9ca3af;
+          font-size: 0.875rem;
+          padding: 1rem 0;
+        }
         @media (max-width: 480px) {
           .form-row { grid-template-columns: 1fr; }
           .modal-actions { flex-direction: column-reverse; }
           .modal-actions button { width: 100%; }
+          .code-create-form { flex-direction: column; }
+          .code-uses-input { width: 100%; }
         }
       `}</style>
     </div>

@@ -417,6 +417,10 @@ export const usersApi = {
     return api.delete(`/api/admin/users/${userId}`);
   },
 
+  toggleMembershipExempt: async (userId) => {
+    return api.put(`/api/admin/users/${userId}/membership-exempt`);
+  },
+
   deleteEventRegistration: async (registrationId) => {
     return api.delete(`/api/admin/event-registrations/${registrationId}`);
   },
@@ -627,6 +631,22 @@ export const partnersApi = {
 /**
  * Admin Partners API
  */
+export const exemptionCodesApi = {
+  validate: async (code) => {
+    return api.post('/auth/validate-exemption-code', { code });
+  },
+  getAll: async () => {
+    const response = await api.get('/api/admin/exemption-codes');
+    return response.codes || [];
+  },
+  create: async (data) => {
+    return api.post('/api/admin/exemption-codes', data);
+  },
+  delete: async (codeId) => {
+    return api.delete(`/api/admin/exemption-codes/${codeId}`);
+  },
+};
+
 export const adminPartnersApi = {
   getAll: async () => {
     return api.get('/api/admin/partners');

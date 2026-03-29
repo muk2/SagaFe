@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { membershipOptionsApi } from '../lib/api';
+import { membershipOptionsApi, exemptionCodesApi } from '../lib/api';
 import PayPalPayment from '../components/PayPalPayment';
 
 export default function SignUpPage() {
@@ -20,6 +20,10 @@ export default function SignUpPage() {
   const [membershipError, setMembershipError] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [paymentError, setPaymentError] = useState('');
+  const [exemptionCode, setExemptionCode] = useState('');
+  const [exemptionValid, setExemptionValid] = useState(false);
+  const [exemptionChecking, setExemptionChecking] = useState(false);
+  const [exemptionError, setExemptionError] = useState('');
   const navigate = useNavigate();
   const { signup } = useAuth();
   const [membershipOptions, setMembershipOptions] = useState([]);
@@ -64,6 +68,7 @@ export default function SignUpPage() {
         handicap: form.golf_handicap ? String(form.golf_handicap).replace(/\.$/, '') : null,
         ghin_number: form.ghin_number.trim() || null,
         paypal_order_id: orderID,
+        exemption_code: exemptionValid ? exemptionCode.trim() : null,
       };
 
       await signup(userData);
@@ -103,7 +108,7 @@ export default function SignUpPage() {
     } finally {
       setLoading(false);
     }
-  }, [form, signup, navigate]);
+  }, [form, signup, navigate, exemptionCode, exemptionValid]);
 
   // Handle free membership signup (no payment)
   const handleFreeSignup = useCallback(async () => {
@@ -115,6 +120,7 @@ export default function SignUpPage() {
         ...form,
         handicap: form.golf_handicap ? String(form.golf_handicap).replace(/\.$/, '') : null,
         ghin_number: form.ghin_number.trim() || null,
+        exemption_code: exemptionValid ? exemptionCode.trim() : null,
       };
 
       await signup(userData);
@@ -137,11 +143,33 @@ export default function SignUpPage() {
     } finally {
       setLoading(false);
     }
-  }, [form, signup, navigate]);
+  }, [form, signup, navigate, exemptionCode, exemptionValid]);
 
   const handlePaymentError = useCallback((errorMsg) => {
     setPaymentError(errorMsg);
   }, []);
+
+  const handleValidateCode = async () => {
+    const code = exemptionCode.trim();
+    if (!code) return;
+    setExemptionChecking(true);
+    setExemptionError('');
+    try {
+      await exemptionCodesApi.validate(code);
+      setExemptionValid(true);
+    } catch (err) {
+      setExemptionValid(false);
+      setExemptionError(err.message || 'Invalid code');
+    } finally {
+      setExemptionChecking(false);
+    }
+  };
+
+  const handleClearCode = () => {
+    setExemptionCode('');
+    setExemptionValid(false);
+    setExemptionError('');
+  };
 
   const formatPhoneNumber = (value) => {
     // Remove all non-digits
@@ -313,8 +341,47 @@ export default function SignUpPage() {
           </div>
         </div>
 
-        {/* Payment section — appears after membership is selected and form is valid */}
-        {membershipPrice > 0 && isFormValid() && (
+        {/* Exemption Code Section */}
+        {form.membership && membershipPrice > 0 && (
+          <div className="exemption-code-section">
+            <label className="exemption-label">Have a promo code?</label>
+            <div className="exemption-input-row">
+              <input
+                type="text"
+                placeholder="Enter code"
+                value={exemptionCode}
+                onChange={(e) => {
+                  setExemptionCode(e.target.value.toUpperCase());
+                  if (exemptionValid) {
+                    setExemptionValid(false);
+                    setExemptionError('');
+                  }
+                }}
+                className={`exemption-input ${exemptionValid ? 'valid' : ''} ${exemptionError ? 'invalid' : ''}`}
+                disabled={exemptionValid}
+              />
+              {!exemptionValid ? (
+                <button
+                  type="button"
+                  onClick={handleValidateCode}
+                  disabled={!exemptionCode.trim() || exemptionChecking}
+                  className="exemption-btn"
+                >
+                  {exemptionChecking ? 'Checking...' : 'Apply'}
+                </button>
+              ) : (
+                <button type="button" onClick={handleClearCode} className="exemption-btn clear">
+                  Clear
+                </button>
+              )}
+            </div>
+            {exemptionError && <p className="exemption-error">{exemptionError}</p>}
+            {exemptionValid && <p className="exemption-success">Code applied — membership fee waived!</p>}
+          </div>
+        )}
+
+        {/* Payment section — appears after membership is selected and form is valid (skip if exempt) */}
+        {membershipPrice > 0 && !exemptionValid && isFormValid() && (
           <PayPalPayment
             amount={membershipPrice}
             description={`SAGA Membership — ${form.membership}`}
@@ -327,10 +394,44 @@ export default function SignUpPage() {
         )}
 
         {/* Prompt to complete form */}
-        {membershipPrice > 0 && !isFormValid() && form.membership && (
+        {membershipPrice > 0 && !exemptionValid && !isFormValid() && form.membership && (
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '0.5rem' }}>
             Fill in all required fields above to continue to payment.
           </p>
+        )}
+
+        {/* Prompt to complete form (exempt case) */}
+        {membershipPrice > 0 && exemptionValid && !isFormValid() && form.membership && (
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '0.5rem' }}>
+            Fill in all required fields above to continue.
+          </p>
+        )}
+
+        {/* Exempt signup button (code applied, paid membership) */}
+        {form.membership && membershipPrice > 0 && exemptionValid && (
+          <button
+            type="button"
+            onClick={handleFreeSignup}
+            disabled={loading || !isFormValid()}
+            style={{
+              width: '100%',
+              marginTop: '1rem',
+              padding: '0.875rem 1.5rem',
+              background: isFormValid() ? 'var(--primary, #1a472a)' : '#9ca3af',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '10px',
+              fontSize: '1rem',
+              fontWeight: 600,
+              cursor: isFormValid() ? 'pointer' : 'not-allowed',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+            }}
+          >
+            {loading ? 'Creating Account...' : 'Sign Up'}
+          </button>
         )}
 
         {/* Free membership sign up button (e.g. Student Golfer) */}
@@ -573,6 +674,77 @@ export default function SignUpPage() {
           height: 8px;
           border-radius: 50%;
           background: white;
+        }
+
+        /* Exemption Code */
+        .exemption-code-section {
+          margin-top: 1rem;
+          padding: 1rem 1.25rem;
+          background: #f0fdf4;
+          border: 1px solid #bbf7d0;
+          border-radius: var(--radius-lg, 12px);
+        }
+        .exemption-label {
+          display: block;
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: #374151;
+          margin-bottom: 0.5rem;
+        }
+        .exemption-input-row {
+          display: flex;
+          gap: 0.5rem;
+        }
+        .exemption-input {
+          flex: 1;
+          padding: 0.5rem 0.75rem;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          font-size: 0.9rem;
+          font-family: monospace;
+          letter-spacing: 0.05em;
+          background: white;
+        }
+        .exemption-input:focus {
+          outline: none;
+          border-color: var(--primary, #0d9488);
+          box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.1);
+        }
+        .exemption-input.valid {
+          border-color: #22c55e;
+          background: #f0fdf4;
+        }
+        .exemption-input.invalid {
+          border-color: #ef4444;
+        }
+        .exemption-btn {
+          padding: 0.5rem 1rem;
+          border: none;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          font-weight: 600;
+          cursor: pointer;
+          background: var(--primary, #0d9488);
+          color: white;
+          white-space: nowrap;
+        }
+        .exemption-btn:hover:not(:disabled) { opacity: 0.9; }
+        .exemption-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .exemption-btn.clear {
+          background: #e5e7eb;
+          color: #374151;
+        }
+        .exemption-btn.clear:hover { background: #d1d5db; }
+        .exemption-error {
+          margin: 0.375rem 0 0;
+          font-size: 0.8rem;
+          color: #dc2626;
+        }
+        .exemption-success {
+          margin: 0.375rem 0 0;
+          font-size: 0.8rem;
+          color: #16a34a;
+          font-weight: 500;
         }
 
         @media (max-width: 768px) {
