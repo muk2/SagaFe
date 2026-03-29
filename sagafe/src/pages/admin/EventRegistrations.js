@@ -440,7 +440,7 @@ const EventRegistrations = () => {
           display: inline-block;
           padding: 0.25rem 0.75rem;
           border-radius: 12px;
-          font-size: 0.69rem;
+          font-size: 0.68rem;
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.025em;

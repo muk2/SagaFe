@@ -277,7 +277,12 @@ const UserManagement = () => {
               <button onClick={exportToCSV} className="btn-primary">
                 Export to CSV
               </button>
-            )}
+            )
+	    }
+
+	    <button onClick={fetchUsers} className="btn-secondary" disabled={loading}>
+              {loading ? 'Refreshing...' : 'Refresh'}
+            </button>
             </div>
        
       </div>

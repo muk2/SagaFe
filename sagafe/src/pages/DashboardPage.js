@@ -13,14 +13,21 @@ export default function DashboardPage() {
   const [message, setMessage] = useState({ type: '', text: '' });
   console.log('DashboardPage - user:', user);
   // Profile form state
-  const [handicapForm, setHandicapForm] = useState({
+  const [profileForm, setProfileForm] = useState({
+    first_name: user?.first_name || '',
+    last_name: user?.last_name || '',
     handicap: user?.handicap || '',
     ghin_number: user?.ghin_number || '',
   });
 
   useEffect(() => {
     if (user) {
-      setHandicapForm({ handicap: user.handicap || '', ghin_number: user.ghin_number || '' });
+      setProfileForm({
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        handicap: user.handicap || '',
+        ghin_number: user.ghin_number || '',
+      });
     }
   }, [user]);
 
@@ -40,16 +47,16 @@ export default function DashboardPage() {
   const handleHandicapChange = (e) => {
     const value = e.target.value;
     if (value === '') {
-      setHandicapForm(prev => ({ ...prev, handicap: value }));
+      setProfileForm(prev => ({ ...prev, handicap: value }));
       return;
     }
-    
+
     const regex = /^-?\d*\.?\d{0,1}$/;
     if (regex.test(value)) {
       const numValue = parseFloat(value);
-      if (value === '-' || value === '.' || value.endsWith('.') || 
+      if (value === '-' || value === '.' || value.endsWith('.') ||
           (!isNaN(numValue) && numValue >= -10 && numValue <= 30)) {
-            setHandicapForm(prev => ({ ...prev, handicap: value }));
+            setProfileForm(prev => ({ ...prev, handicap: value }));
       }
     }
   };
@@ -57,7 +64,7 @@ export default function DashboardPage() {
   const handleHandicapBlur = (e) => {
     const value = e.target.value;
     if (value.endsWith('.')) {
-      setHandicapForm(prev => ({ ...prev, handicap: value.slice(0, -1) }));
+      setProfileForm(prev => ({ ...prev, handicap: value.slice(0, -1) }));
     }
   };
 
@@ -100,17 +107,31 @@ export default function DashboardPage() {
     }
   }, [user]);
 
-  const handleHandicapUpdate = async (e) => {
+  const handleProfileUpdate = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage({ type: '', text: '' });
 
+    if (!profileForm.first_name.trim() || !profileForm.last_name.trim()) {
+      setMessage({ type: 'error', text: 'First and last name are required.' });
+      setLoading(false);
+      return;
+    }
+
     try {
       await api.put('/api/users/profile', {
-        handicap: handicapForm.handicap,
-        ghin_number: handicapForm.ghin_number || null,
+        first_name: profileForm.first_name.trim(),
+        last_name: profileForm.last_name.trim(),
+        handicap: profileForm.handicap,
+        ghin_number: profileForm.ghin_number || null,
       });
-      updateUser({ ...user, handicap: handicapForm.handicap, ghin_number: handicapForm.ghin_number || null });
+      updateUser({
+        ...user,
+        first_name: profileForm.first_name.trim(),
+        last_name: profileForm.last_name.trim(),
+        handicap: profileForm.handicap,
+        ghin_number: profileForm.ghin_number || null,
+      });
 
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
     } catch (error) {
@@ -357,14 +378,36 @@ export default function DashboardPage() {
         {activeTab === 'settings' && (
           <div className="settings-section">
             <div className="settings-card">
-              <h2>Update Golf Profile</h2>
-              <form onSubmit={handleHandicapUpdate} className="settings-form">
+              <h2>Update Profile</h2>
+              <form onSubmit={handleProfileUpdate} className="settings-form">
+                <div className="form-group">
+                  <label htmlFor="first_name">First Name</label>
+                  <input
+                    type="text"
+                    id="first_name"
+                    value={profileForm.first_name}
+                    onChange={(e) => setProfileForm({ ...profileForm, first_name: e.target.value })}
+                    placeholder="First name"
+                    disabled={loading}
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="last_name">Last Name</label>
+                  <input
+                    type="text"
+                    id="last_name"
+                    value={profileForm.last_name}
+                    onChange={(e) => setProfileForm({ ...profileForm, last_name: e.target.value })}
+                    placeholder="Last name"
+                    disabled={loading}
+                  />
+                </div>
                 <div className="form-group">
                   <label htmlFor="golf_handicap">Golf Handicap</label>
                   <input
                     type="text"
                     id="golf_handicap"
-                    value={handicapForm.handicap}
+                    value={profileForm.handicap}
                     onChange={handleHandicapChange}
                     onBlur={handleHandicapBlur}
                     placeholder="Enter your handicap (e.g., 12.5)"
@@ -378,8 +421,8 @@ export default function DashboardPage() {
                   <input
                     type="text"
                     id="ghin_number"
-                    value={handicapForm.ghin_number}
-                    onChange={(e) => setHandicapForm({ ...handicapForm, ghin_number: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                    value={profileForm.ghin_number}
+                    onChange={(e) => setProfileForm({ ...profileForm, ghin_number: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                     placeholder="Enter your GHIN number"
                     inputMode="numeric"
                     disabled={loading}
@@ -442,3 +485,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
