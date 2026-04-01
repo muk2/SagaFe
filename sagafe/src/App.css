@@ -86,6 +86,29 @@ body {
   object-fit: contain;
 }
 
+.mobile-right-controls {
+  display: none;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.mobile-instagram-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
+  text-decoration: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.mobile-instagram-icon:hover {
+  opacity: 0.9;
+  transform: scale(1.05);
+}
+
 .mobile-menu-toggle {
   display: none;
   flex-direction: column;
@@ -110,23 +133,24 @@ body {
   gap: 0.5rem;
 }
 
-.instagram-bar {
-  width: 100%;
-  text-align: center;
-  background-color: transparent;
-  padding: 0.2rem 0;
-}
-
-.instagram-follow {
+.instagram-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.75rem;
+  background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
+  color: #fff;
   font-size: 0.7rem;
-  color: #0d9487;
+  font-weight: 600;
   text-decoration: none;
+  border-radius: 20px;
   letter-spacing: 0.3px;
+  white-space: nowrap;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.instagram-follow:hover {
-  color: #0d9487;
-  text-decoration: underline;
+.instagram-badge:hover {
+  opacity: 0.9;
+  transform: scale(1.03);
 }
 
 .nav a {
@@ -2993,6 +3017,10 @@ body {
 
   .header {
     padding: 0 1rem;
+  }
+
+  .mobile-right-controls {
+    display: flex;
   }
 
   .mobile-menu-toggle {

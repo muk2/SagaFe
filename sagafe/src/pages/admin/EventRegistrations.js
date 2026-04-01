@@ -16,6 +16,15 @@ const BADGE_COLORS = [
 
 const GUEST_BADGE = { background: '#f3f4f6', color: '#4b5563' };
 
+/** Parse "YYYY-MM-DD" as a local date to avoid UTC off-by-one. */
+function parseEventDate(dateStr) {
+  if (typeof dateStr === 'string' && dateStr.includes('-')) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+  return new Date(dateStr);
+}
+
 /**
  * Returns a consistent badge style for a membership name.
  * "guest" always gets a gray badge. All other names get a color
@@ -67,8 +76,8 @@ const EventRegistrations = () => {
       
       const now = new Date();
       const sortedEvents = data.sort((a, b) => {
-        const dateA = new Date(a.date);
-        const dateB = new Date(b.date);
+        const dateA = parseEventDate(a.date);
+        const dateB = parseEventDate(b.date);
         const isAUpcoming = dateA >= now;
         const isBUpcoming = dateB >= now;
         if (isAUpcoming === isBUpcoming) return dateA - dateB;
@@ -186,7 +195,7 @@ const EventRegistrations = () => {
               >
                 {events.map(event => (
                   <option key={event.id} value={event.id}>
-                    {event.golf_course} - {new Date(event.date).toLocaleDateString()} at {formatTime(event.start_time)}
+                    {event.golf_course} - {parseEventDate(event.date).toLocaleDateString()} at {formatTime(event.start_time)}
                   </option>
                 ))}
               </select>
@@ -209,7 +218,7 @@ const EventRegistrations = () => {
                 </div>
                 <div className="info-item">
                   <span className="label">Date:</span>
-                  <span className="value">{new Date(selectedEvent.date).toLocaleDateString()}</span>
+                  <span className="value">{parseEventDate(selectedEvent.date).toLocaleDateString()}</span>
                 </div>
                 <div className="info-item">
                   <span className="label">Time:</span>
