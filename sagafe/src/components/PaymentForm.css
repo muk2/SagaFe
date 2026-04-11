@@ -131,8 +131,13 @@
   height: 48px !important;
 }
 
+/* Hidden state: keep in DOM for SDK injection but invisible */
 .apple-pay-hidden {
-  display: none;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 .payment-divider {

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import PayPalPayment from './PayPalPayment';
+import PaymentForm from './PaymentForm';
 import { registrationsApi, membersApi } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { formatTime } from '../lib/dateUtils';
@@ -259,9 +259,9 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
     }
   };
 
-  // --- PayPal payment handler ---
-  const handlePayPalApprove = useCallback(
-    async ({ orderID }) => {
+  // --- North payment handler ---
+  const handleTokenReceived = useCallback(
+    async (token) => {
       setLoading(true);
       setError('');
       setPaymentError('');
@@ -301,13 +301,13 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
         let response;
         if (failedRegistrationId) {
           response = await registrationsApi.retryPayment(failedRegistrationId, {
-            paypal_order_id: orderID,
+            payment_token: token,
           });
         } else if (user) {
           response = await registrationsApi.register({
             event_id:        event.id,
             handicap:        cleanHandicap,
-            paypal_order_id: orderID,
+            payment_token:   token,
             additional_golfers: golferPayload,
             ...sponsorData,
           });
@@ -319,7 +319,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
             email:           registrationForm.email,
             phone:           registrationForm.phone,
             handicap:        cleanHandicap,
-            paypal_order_id: orderID,
+            payment_token:   token,
             additional_golfers: golferPayload,
             ...sponsorData,
           });
@@ -381,7 +381,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
         response = await registrationsApi.register({
           event_id: event.id,
           handicap: cleanHandicap,
-          paypal_order_id: '',
+          payment_token: '',
           additional_golfers: golferPayload,
           ...sponsorData,
         });
@@ -393,7 +393,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
           email: registrationForm.email,
           phone: registrationForm.phone,
           handicap: cleanHandicap,
-          paypal_order_id: '',
+          payment_token: '',
           additional_golfers: golferPayload,
           ...sponsorData,
         });
@@ -517,12 +517,11 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
               </svg>
             </div>
             <h2>Payment Declined</h2>
-            <p>Your card was declined. Please try a different card.</p>
+            <p>{paymentError || 'Your card was declined. Please try a different card.'}</p>
 
-            <PayPalPayment
-              amount={displayPrice || 0}
-              description={`SAGA Event Registration — ${displayName || event.golf_course}`}
-              onApprove={handlePayPalApprove}
+            <PaymentForm
+              amount={String(displayPrice || 0)}
+              onTokenReceived={handleTokenReceived}
               onError={handlePaymentError}
               loading={loading}
               submitLabel="Retry Payment"
@@ -903,10 +902,9 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
 
           {/* Payment section */}
           {displayPrice > 0 && isFormValid() && (
-            <PayPalPayment
-              amount={displayPrice}
-              description={`SAGA Event Registration — ${displayName || event.golf_course}`}
-              onApprove={handlePayPalApprove}
+            <PaymentForm
+              amount={String(displayPrice)}
+              onTokenReceived={handleTokenReceived}
               onError={handlePaymentError}
               loading={loading}
               submitLabel={`Register & Pay — $${parseFloat(displayPrice).toFixed(2)}`}

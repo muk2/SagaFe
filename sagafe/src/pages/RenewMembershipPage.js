@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { membershipOptionsApi, api } from '../lib/api';
-import PayPalPayment from '../components/PayPalPayment';
+import PaymentForm from '../components/PaymentForm';
 
 export default function RenewMembershipPage() {
   const { user, updateUser, logout } = useAuth();
@@ -29,7 +29,7 @@ export default function RenewMembershipPage() {
   const selectedOption = membershipOptions.find(o => o.name === membership);
   const membershipPrice = selectedOption ? (parseFloat(selectedOption.price) || 0) : 0;
 
-  const handlePayPalApprove = useCallback(async ({ orderID }) => {
+  const handleTokenReceived = useCallback(async (token) => {
     setError('');
     setPaymentError('');
     setLoading(true);
@@ -37,7 +37,7 @@ export default function RenewMembershipPage() {
     try {
       const response = await api.post('/api/users/renew-membership', {
         membership,
-        paypal_order_id: orderID,
+        payment_token: token,
       });
 
       updateUser({
@@ -143,10 +143,9 @@ export default function RenewMembershipPage() {
         </div>
 
         {membership && membershipPrice > 0 && (
-          <PayPalPayment
-            amount={membershipPrice}
-            description={`SAGA Membership Renewal — ${membership}`}
-            onApprove={handlePayPalApprove}
+          <PaymentForm
+            amount={String(membershipPrice)}
+            onTokenReceived={handleTokenReceived}
             onError={handlePaymentError}
             loading={loading}
             submitLabel={`Renew & Pay — $${membershipPrice.toFixed(2)}`}

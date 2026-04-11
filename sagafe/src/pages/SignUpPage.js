@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { membershipOptionsApi, exemptionCodesApi } from '../lib/api';
-import PayPalPayment from '../components/PayPalPayment';
+import PaymentForm from '../components/PaymentForm';
 
 export default function SignUpPage() {
   const [form, setForm] = useState({
@@ -56,8 +56,8 @@ export default function SignUpPage() {
     );
   };
 
-  // Handle PayPal approval — called with { orderID } after user approves payment
-  const handlePayPalApprove = useCallback(async ({ orderID }) => {
+  // Handle North token — called with token string after card is tokenized
+  const handleTokenReceived = useCallback(async (token) => {
     setError("");
     setPaymentError("");
     setLoading(true);
@@ -67,7 +67,7 @@ export default function SignUpPage() {
         ...form,
         handicap: form.golf_handicap ? String(form.golf_handicap).replace(/\.$/, '') : null,
         ghin_number: form.ghin_number.trim() || null,
-        paypal_order_id: orderID,
+        payment_token: token,
         exemption_code: exemptionValid ? exemptionCode.trim() : null,
       };
 
@@ -382,10 +382,9 @@ export default function SignUpPage() {
 
         {/* Payment section — appears after membership is selected and form is valid (skip if exempt) */}
         {membershipPrice > 0 && !exemptionValid && isFormValid() && (
-          <PayPalPayment
-            amount={membershipPrice}
-            description={`SAGA Membership — ${form.membership}`}
-            onApprove={handlePayPalApprove}
+          <PaymentForm
+            amount={String(membershipPrice)}
+            onTokenReceived={handleTokenReceived}
             onError={handlePaymentError}
             loading={loading}
             submitLabel={`Sign Up & Pay — $${membershipPrice.toFixed(2)}`}

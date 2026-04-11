@@ -236,7 +236,7 @@ const UserManagement = () => {
       return;
     }
   
-    const headers = ['Name', 'Email', 'Phone', 'Handicap', 'GHIN', 'Membership', 'Exempt'];
+    const headers = ['Name', 'Email', 'Phone', 'Handicap', 'GHIN', 'Membership', 'Exempt', 'Joined'];
     const rows = users.map(user => [
       user.first_name+' '+user.last_name,
       user.email,
@@ -245,6 +245,7 @@ const UserManagement = () => {
       user.ghin_number || 'N/A',
       user.membership,
       user.membership_exempt ? 'Yes' : '',
+      user.created_at ? new Date(user.created_at).toLocaleDateString('en-US') : 'N/A',
     ]);
   
     const csvContent = [
@@ -315,6 +316,7 @@ const UserManagement = () => {
             <th>Handicap</th>
             <th>GHIN #</th>
             <th>Membership</th>
+            <th>Joined</th>
             <th>Role</th>
             <th>Actions</th>
           </tr>
@@ -332,6 +334,11 @@ const UserManagement = () => {
                 {user.membership_exempt && (
                   <span className="exempt-badge">EXEMPT</span>
                 )}
+              </td>
+              <td>
+                {user.created_at
+                  ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  : 'N/A'}
               </td>
               <td>
                 <label className="role-toggle">

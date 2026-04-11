@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-const NORTH_SDK_URL = 'https://sdk.paymentshub.dev/pay-now.min.js';
+// Sandbox: https://sdk.paymentshub.dev/pay-now.min.js
+// Production: https://sdk.paymentshub.com/pay-now.min.js
+const NORTH_SDK_URL = process.env.REACT_APP_NORTH_SDK_URL || 'https://sdk.paymentshub.com/pay-now.min.js';
 
 /**
  * Hook to load and manage the North PayNow iFrame JS SDK.
@@ -89,14 +91,27 @@ export default function useNorthSDK() {
       PayNowSdk().setStyle('zip', fieldStyle);
       PayNowSdk().setNumberFormat('prettyFormat');
 
-      // Check if Apple Pay button rendered (indicates availability)
-      const applePayEl = document.getElementById('north-apple-pay-button');
-      if (applePayEl && applePayEl.children.length > 0) {
-        setApplePayAvailable(true);
-      }
-
       setFieldsReady(true);
       if (options.onReady) options.onReady();
+
+      // Check if Apple Pay button was rendered by the SDK.
+      // The SDK may inject it slightly after ready, so observe for changes.
+      const applePayEl = document.getElementById('north-apple-pay-button');
+      if (applePayEl) {
+        if (applePayEl.children.length > 0) {
+          setApplePayAvailable(true);
+        } else {
+          const observer = new MutationObserver(() => {
+            if (applePayEl.children.length > 0) {
+              setApplePayAvailable(true);
+              observer.disconnect();
+            }
+          });
+          observer.observe(applePayEl, { childList: true });
+          // Stop observing after 5s if nothing appears
+          setTimeout(() => observer.disconnect(), 5000);
+        }
+      }
     });
 
     PayNowSdk().on('validation', (inputProperties) => {
@@ -116,33 +131,68 @@ export default function useNorthSDK() {
       });
     });
 
-    // Apple Pay: when payment completes
+    // Apple Pay: when payment completes, the SDK stores the token internally.
+    // We need to retrieve it via getCardToken(), sometimes with a short delay.
     PayNowSdk().on('applePayComplete', (response) => {
-      console.log('Apple Pay complete response:', JSON.stringify(response));
+      console.log('Apple Pay complete — raw response:', response);
+      console.log('Apple Pay complete — JSON:', JSON.stringify(response, null, 2));
+      console.log('Apple Pay complete — type:', typeof response);
+      if (response && typeof response === 'object') {
+        console.log('Apple Pay complete — keys:', Object.keys(response));
+      }
       if (!onTokenRef.current) return;
 
-      // Extract the token string from the response object
-      let token = null;
-      if (typeof response === 'string') {
-        token = response;
-      } else if (response) {
-        token = response.token || response.cardToken || response.paymentToken || null;
-        // Some SDK versions nest under data
-        if (!token && response.data) {
-          token = response.data.token || response.data.cardToken || null;
+      // 1. Try direct string response
+      if (typeof response === 'string' && response.length > 0) {
+        console.log('Apple Pay: using response as token directly');
+        onTokenRef.current(response);
+        return;
+      }
+
+      // 2. Try known token fields on the response object
+      if (response && typeof response === 'object') {
+        const directToken = response.token || response.cardToken || response.paymentToken
+          || response.card_token || response.payment_token || null;
+        if (directToken) {
+          console.log('Apple Pay: found token in response field');
+          onTokenRef.current(directToken);
+          return;
+        }
+        // Check nested data/result objects
+        const nested = response.data || response.result || response.response || null;
+        if (nested) {
+          const nestedToken = typeof nested === 'string' ? nested
+            : (nested.token || nested.cardToken || nested.card_token || null);
+          if (nestedToken) {
+            console.log('Apple Pay: found token in nested response');
+            onTokenRef.current(nestedToken);
+            return;
+          }
         }
       }
 
-      // Fallback: try getCardToken() after Apple Pay completes
-      if (!token || typeof token !== 'string') {
+      // 3. Fallback: poll getCardToken() — the SDK may need a moment to store it
+      let attempts = 0;
+      const pollToken = () => {
+        attempts++;
         try {
-          token = PayNowSdk().getCardToken();
+          const cardToken = PayNowSdk().getCardToken();
+          console.log(`Apple Pay: getCardToken() attempt ${attempts} =`, cardToken);
+          if (cardToken && typeof cardToken === 'string' && cardToken.length > 0) {
+            onTokenRef.current(cardToken);
+            return;
+          }
         } catch (err) {
-          console.error('Apple Pay: getCardToken fallback failed:', err);
+          console.error(`Apple Pay: getCardToken() attempt ${attempts} error:`, err);
         }
-      }
-
-      onTokenRef.current(token || null);
+        if (attempts < 10) {
+          setTimeout(pollToken, 200);
+        } else {
+          console.error('Apple Pay: could not retrieve token after all attempts');
+          onTokenRef.current(null);
+        }
+      };
+      pollToken();
     });
 
     PayNowSdk().init(gatewayPublicKey, mid, sdkOptions);

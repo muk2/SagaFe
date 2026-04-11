@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import useNorthSDK from '../hooks/useNorthSDK';
+import { parseSDKError } from '../lib/paymentErrors';
 import './PaymentForm.css';
 
 /**
@@ -22,7 +23,7 @@ export default function PaymentForm({
   submitLabel = 'Submit Payment',
   error: externalError,
 }) {
-  const { sdkLoaded, sdkError, fieldsReady, initialize, tokenize, setApplePayAmount } = useNorthSDK();
+  const { sdkLoaded, sdkError, fieldsReady, applePayAvailable, initialize, tokenize, setApplePayAmount } = useNorthSDK();
   const [tokenizing, setTokenizing] = useState(false);
   const [validationError, setValidationError] = useState('');
   const [expiryMonth, setExpiryMonth] = useState('');
@@ -77,24 +78,7 @@ export default function PaymentForm({
         onErrors: (errors) => {
           console.log('North SDK onErrors:', JSON.stringify(errors));
           setTokenizing(false);
-          const msg = Array.isArray(errors)
-            ? errors.map(e => {
-                let raw = e.message || e.error || e.detail || (typeof e === 'string' ? e : '');
-                // North SDK may return a JSON string with nested reason details
-                if (typeof raw === 'string' && raw.startsWith('{')) {
-                  try {
-                    const parsed = JSON.parse(raw);
-                    const reason = parsed.reason || parsed;
-                    const statusMsg = reason.status_message || reason.response_code || '';
-                    if (reason.response_code === 'DCL' || reason.response_code === 'ST') {
-                      return 'Your card was declined. Please try a different card or check your details.';
-                    }
-                    return statusMsg || 'Payment failed. Please try again.';
-                  } catch { /* fall through */ }
-                }
-                return raw || JSON.stringify(e);
-              }).join(', ')
-            : 'Card validation failed. Please check your card details.';
+          const msg = parseSDKError(errors);
           setValidationError(msg);
           if (onErrorRef.current) onErrorRef.current(msg);
         },
@@ -276,10 +260,13 @@ export default function PaymentForm({
         </button>
       </form>
 
-      {/* Apple Pay button — hidden until domain is verified with North */}
+      {/* Apple Pay button — rendered by North SDK when available */}
+      {applePayAvailable && (
+        <div className="payment-divider">or</div>
+      )}
       <div
         id="north-apple-pay-button"
-        className="apple-pay-hidden"
+        className={applePayAvailable ? 'apple-pay-container' : 'apple-pay-hidden'}
       ></div>
 
       <div className="payment-form-footer">
