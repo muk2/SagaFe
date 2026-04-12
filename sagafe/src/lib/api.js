@@ -647,6 +647,22 @@ export const exemptionCodesApi = {
   },
 };
 
+export const eventPromoCodesApi = {
+  validate: async (code, eventId) => {
+    return api.post('/api/registrations/validate-promo-code', { code, event_id: eventId });
+  },
+  getAll: async () => {
+    const response = await api.get('/api/admin/event-promo-codes');
+    return response.codes || [];
+  },
+  create: async (data) => {
+    return api.post('/api/admin/event-promo-codes', data);
+  },
+  delete: async (codeId) => {
+    return api.delete(`/api/admin/event-promo-codes/${codeId}`);
+  },
+};
+
 export const adminPartnersApi = {
   getAll: async () => {
     return api.get('/api/admin/partners');

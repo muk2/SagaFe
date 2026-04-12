@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import PaymentForm from './PaymentForm';
-import { registrationsApi, membersApi } from '../lib/api';
+import { registrationsApi, membersApi, eventPromoCodesApi } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { formatTime } from '../lib/dateUtils';
 
@@ -154,10 +154,19 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
   const [confirmationData, setConfirmationData] = useState(null);
   const [failedRegistrationId, setFailedRegistrationId] = useState(null);
 
+  // Promo code state
+  const [promoCode, setPromoCode] = useState('');
+  const [promoApplied, setPromoApplied] = useState(null); // { discount_type, discount_value, discounted_member_price, discounted_guest_price }
+  const [promoError, setPromoError] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+
   const memberPrice  = parseFloat(event.price || event.member_price) || 0;
   const guestPrice   = parseFloat(event.guest_price || event.price) || 0;
   const isMemberActive = user && !user.membership_expired;
-  const basePrice    = isMemberActive ? memberPrice : guestPrice;
+  const basePriceBeforePromo = isMemberActive ? memberPrice : guestPrice;
+  const basePrice = promoApplied
+    ? (isMemberActive ? promoApplied.discounted_member_price : promoApplied.discounted_guest_price)
+    : basePriceBeforePromo;
   const sponsorAdd   = registrationForm.sponsor === 'yes' ? (parseFloat(registrationForm.sponsorAmount) || 0) : 0;
 
   // Calculate total price including additional golfers
@@ -240,6 +249,34 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
     }));
   };
 
+  // --- Promo code handlers ---
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) return;
+    setPromoLoading(true);
+    setPromoError('');
+    try {
+      const result = await eventPromoCodesApi.validate(promoCode.trim(), event.id);
+      if (result.valid) {
+        setPromoApplied(result);
+        setPromoError('');
+      } else {
+        setPromoError(result.message || 'Invalid promo code.');
+        setPromoApplied(null);
+      }
+    } catch (err) {
+      setPromoError(err.message || 'Failed to validate promo code.');
+      setPromoApplied(null);
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setPromoCode('');
+    setPromoApplied(null);
+    setPromoError('');
+  };
+
   const handleGolferPhoneChange = (index, value) => {
     updateGolfer(index, 'phone', formatPhoneNumber(value));
   };
@@ -309,6 +346,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
             handicap:        cleanHandicap,
             payment_token:   token,
             additional_golfers: golferPayload,
+            promo_code:      promoApplied ? promoCode.trim() : undefined,
             ...sponsorData,
           });
         } else {
@@ -321,6 +359,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
             handicap:        cleanHandicap,
             payment_token:   token,
             additional_golfers: golferPayload,
+            promo_code:      promoApplied ? promoCode.trim() : undefined,
             ...sponsorData,
           });
         }
@@ -383,6 +422,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
           handicap: cleanHandicap,
           payment_token: '',
           additional_golfers: golferPayload,
+          promo_code: promoApplied ? promoCode.trim() : undefined,
           ...sponsorData,
         });
       } else {
@@ -395,6 +435,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
           handicap: cleanHandicap,
           payment_token: '',
           additional_golfers: golferPayload,
+          promo_code: promoApplied ? promoCode.trim() : undefined,
           ...sponsorData,
         });
       }
@@ -676,6 +717,71 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
                 inputMode="decimal"
               />
             </div>
+          </div>
+
+          {/* Promo Code section */}
+          <div className="form-group" style={{ marginTop: '0.5rem' }}>
+            <label htmlFor="reg-promo">Promo Code</label>
+            {promoApplied ? (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                padding: '0.6rem 0.75rem', background: '#ecfdf5', border: '1px solid #a7f3d0',
+                borderRadius: '8px', fontSize: '0.875rem', color: '#065f46',
+              }}>
+                <span style={{ fontWeight: 600 }}>
+                  {promoApplied.discount_type === 'free' && 'Free event!'}
+                  {promoApplied.discount_type === 'member_price' && 'Member price applied!'}
+                  {promoApplied.discount_type === 'percent' && `${promoApplied.discount_value}% discount applied!`}
+                </span>
+                {basePriceBeforePromo !== basePrice && (
+                  <span style={{ textDecoration: 'line-through', color: '#6b7280' }}>
+                    ${basePriceBeforePromo.toFixed(2)}
+                  </span>
+                )}
+                <span style={{ fontWeight: 700 }}>${basePrice.toFixed(2)}</span>
+                <button
+                  type="button"
+                  onClick={handleRemovePromo}
+                  style={{
+                    marginLeft: 'auto', background: 'none', border: 'none',
+                    color: '#dc2626', cursor: 'pointer', fontSize: '0.8rem',
+                    fontWeight: 600, textDecoration: 'underline',
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  id="reg-promo"
+                  value={promoCode}
+                  onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setPromoError(''); }}
+                  placeholder="Enter promo code"
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyPromo}
+                  disabled={promoLoading || !promoCode.trim()}
+                  style={{
+                    padding: '0.5rem 1rem', background: '#0d9488', color: 'white',
+                    border: 'none', borderRadius: '8px', fontWeight: 600,
+                    cursor: promoLoading || !promoCode.trim() ? 'not-allowed' : 'pointer',
+                    opacity: promoLoading || !promoCode.trim() ? 0.6 : 1,
+                    fontSize: '0.875rem', whiteSpace: 'nowrap',
+                  }}
+                >
+                  {promoLoading ? 'Checking...' : 'Apply'}
+                </button>
+              </div>
+            )}
+            {promoError && (
+              <span style={{ fontSize: '0.8rem', color: '#dc2626', marginTop: '0.25rem', display: 'block' }}>
+                {promoError}
+              </span>
+            )}
           </div>
 
           {/* Sponsorship section */}

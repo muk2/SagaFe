@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef} from 'react';
-import {adminEventsApi, adminMediaApi } from '../../lib/api';
+import {adminEventsApi, adminMediaApi, eventPromoCodesApi } from '../../lib/api';
 import { formatTime, toDateInputFormat} from '../../lib/dateUtils';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
@@ -27,10 +27,23 @@ const EventManagement = () => {
     event_type: 'regular'
   });
 
+  // Promo code state
+  const [promoCodes, setPromoCodes] = useState([]);
+  const [showPromoForm, setShowPromoForm] = useState(false);
+  const [promoFormData, setPromoFormData] = useState({
+    code: '',
+    discount_type: 'member_price',
+    discount_value: '',
+    event_id: '',
+    max_uses: 1,
+    expires_at: '',
+  });
+
   const formRef = useRef(null);
 
   useEffect(() => {
     fetchEvents();
+    fetchPromoCodes();
   }, []);
 
   // ✅ Helper to get full image URL with cache-busting for uploaded files
@@ -45,6 +58,50 @@ const EventManagement = () => {
       fullUrl += `?v=${Date.now()}`;
     }
     return fullUrl;
+  };
+
+  const fetchPromoCodes = async () => {
+    try {
+      const data = await eventPromoCodesApi.getAll();
+      setPromoCodes(data);
+    } catch (err) {
+      console.error('Failed to load promo codes', err);
+    }
+  };
+
+  const handleCreatePromoCode = async (e) => {
+    e.preventDefault();
+    try {
+      setError(null);
+      const payload = {
+        code: promoFormData.code || undefined,
+        discount_type: promoFormData.discount_type,
+        discount_value: promoFormData.discount_type === 'percent' ? parseFloat(promoFormData.discount_value) : undefined,
+        event_id: promoFormData.event_id ? parseInt(promoFormData.event_id) : undefined,
+        max_uses: parseInt(promoFormData.max_uses) || 1,
+        expires_at: promoFormData.expires_at || undefined,
+      };
+      await eventPromoCodesApi.create(payload);
+      setSuccess('Promo code created successfully');
+      setShowPromoForm(false);
+      setPromoFormData({ code: '', discount_type: 'member_price', discount_value: '', event_id: '', max_uses: 1, expires_at: '' });
+      await fetchPromoCodes();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err.message || 'Failed to create promo code');
+    }
+  };
+
+  const handleDeletePromoCode = async (codeId) => {
+    if (!window.confirm('Are you sure you want to delete this promo code?')) return;
+    try {
+      await eventPromoCodesApi.delete(codeId);
+      setPromoCodes(prev => prev.filter(c => c.id !== codeId));
+      setSuccess('Promo code deleted');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err.message || 'Failed to delete promo code');
+    }
   };
 
   const fetchEvents = async () => {
@@ -660,6 +717,162 @@ const EventManagement = () => {
         );
       })()}
 
+      {/* Promo Codes Section */}
+      <div className="promo-codes-section">
+        <div className="section-header" style={{ marginTop: '2.5rem' }}>
+          <h3 style={{ color: '#374151', margin: 0 }}>Event Promo Codes</h3>
+          {!showPromoForm && (
+            <button onClick={() => setShowPromoForm(true)} className="btn-primary btn-sm">
+              + Create Promo Code
+            </button>
+          )}
+        </div>
+
+        {showPromoForm && (
+          <div className="event-form-card">
+            <h3>Create Promo Code</h3>
+            <form onSubmit={handleCreatePromoCode} className="admin-form">
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Code (leave blank to auto-generate)</label>
+                  <input
+                    type="text"
+                    value={promoFormData.code}
+                    onChange={(e) => setPromoFormData({ ...promoFormData, code: e.target.value.toUpperCase() })}
+                    placeholder="e.g., GUEST2026"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Discount Type *</label>
+                  <select
+                    value={promoFormData.discount_type}
+                    onChange={(e) => setPromoFormData({ ...promoFormData, discount_type: e.target.value, discount_value: '' })}
+                    required
+                  >
+                    <option value="member_price">Give Member Price</option>
+                    <option value="free">Make Event Free</option>
+                    <option value="percent">Percentage Discount</option>
+                  </select>
+                </div>
+              </div>
+
+              {promoFormData.discount_type === 'percent' && (
+                <div className="form-group">
+                  <label>Discount Percentage *</label>
+                  <input
+                    type="number"
+                    value={promoFormData.discount_value}
+                    onChange={(e) => setPromoFormData({ ...promoFormData, discount_value: e.target.value })}
+                    required
+                    min="1"
+                    max="100"
+                    placeholder="e.g., 25"
+                  />
+                </div>
+              )}
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Specific Event (optional)</label>
+                  <select
+                    value={promoFormData.event_id}
+                    onChange={(e) => setPromoFormData({ ...promoFormData, event_id: e.target.value })}
+                  >
+                    <option value="">All Events</option>
+                    {events.map(ev => (
+                      <option key={ev.id} value={ev.id}>
+                        {ev.golf_course} — {new Date(ev.date).toLocaleDateString()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Max Uses *</label>
+                  <input
+                    type="number"
+                    value={promoFormData.max_uses}
+                    onChange={(e) => setPromoFormData({ ...promoFormData, max_uses: e.target.value })}
+                    required
+                    min="1"
+                    placeholder="1"
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Expires At (optional)</label>
+                <input
+                  type="date"
+                  value={promoFormData.expires_at}
+                  onChange={(e) => setPromoFormData({ ...promoFormData, expires_at: e.target.value })}
+                />
+              </div>
+
+              <div className="form-actions" style={{ display: 'flex', gap: '1rem' }}>
+                <button type="submit" className="btn-primary">Create Promo Code</button>
+                <button type="button" onClick={() => { setShowPromoForm(false); setPromoFormData({ code: '', discount_type: 'member_price', discount_value: '', event_id: '', max_uses: 1, expires_at: '' }); }} className="btn-secondary">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {promoCodes.length > 0 ? (
+          <div className="events-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Type</th>
+                  <th>Value</th>
+                  <th>Event</th>
+                  <th>Uses</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {promoCodes.map((pc) => (
+                  <tr key={pc.id}>
+                    <td><code className="code-value">{pc.code}</code></td>
+                    <td>
+                      {pc.discount_type === 'member_price' && 'Member Price'}
+                      {pc.discount_type === 'free' && 'Free'}
+                      {pc.discount_type === 'percent' && 'Percentage'}
+                    </td>
+                    <td>
+                      {pc.discount_type === 'percent' ? `${pc.discount_value}%` : '—'}
+                    </td>
+                    <td>
+                      {pc.event_id
+                        ? (events.find(e => e.id === pc.event_id)?.golf_course || `Event #${pc.event_id}`)
+                        : 'All Events'}
+                    </td>
+                    <td>{pc.times_used} / {pc.max_uses}</td>
+                    <td>
+                      <span className={`reg-status-badge ${pc.is_active ? 'reg-open' : 'reg-closed'}`}>
+                        {pc.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        <button onClick={() => { navigator.clipboard.writeText(pc.code); }} className="btn-secondary btn-sm">Copy</button>
+                        <button onClick={() => handleDeletePromoCode(pc.id)} className="btn-danger btn-sm">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div style={{ color: '#9ca3af', textAlign: 'center', padding: '2rem', background: '#f9fafb', borderRadius: '8px', border: '1px dashed #e5e7eb' }}>
+            No promo codes created yet.
+          </div>
+        )}
+      </div>
+
       <style jsx>{`
         .section-header {
           display: flex;
@@ -855,7 +1068,20 @@ const EventManagement = () => {
           font-size: 1.1rem;
         }
 
-        @media (max-width: 768px) {
+        .promo-codes-section {
+          margin-top: 0;
+        }
+
+        .code-value {
+          background: #f1f5f9;
+          padding: 0.2rem 0.5rem;
+          border-radius: 4px;
+          font-family: monospace;
+          font-size: 0.95rem;
+          letter-spacing: 0.5px;
+        }
+
+@media (max-width: 768px) {
           .form-row {
             grid-template-columns: 1fr;
           }
