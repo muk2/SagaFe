@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import PaymentForm from './PaymentForm';
+import PayPalPayment from './PayPalPayment';
 import { registrationsApi, membersApi, eventPromoCodesApi } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { formatTime } from '../lib/dateUtils';
@@ -297,8 +297,8 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
   };
 
   // --- North payment handler ---
-  const handleTokenReceived = useCallback(
-    async (token) => {
+  const handlePayPalApprove = useCallback(
+    async ({ orderID }) => {
       setLoading(true);
       setError('');
       setPaymentError('');
@@ -338,13 +338,13 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
         let response;
         if (failedRegistrationId) {
           response = await registrationsApi.retryPayment(failedRegistrationId, {
-            payment_token: token,
+            paypal_order_id: orderID,
           });
         } else if (user) {
           response = await registrationsApi.register({
             event_id:        event.id,
             handicap:        cleanHandicap,
-            payment_token:   token,
+            paypal_order_id: orderID,
             additional_golfers: golferPayload,
             promo_code:      promoApplied ? promoCode.trim() : undefined,
             ...sponsorData,
@@ -357,7 +357,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
             email:           registrationForm.email,
             phone:           registrationForm.phone,
             handicap:        cleanHandicap,
-            payment_token:   token,
+            paypal_order_id: orderID,
             additional_golfers: golferPayload,
             promo_code:      promoApplied ? promoCode.trim() : undefined,
             ...sponsorData,
@@ -560,9 +560,10 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
             <h2>Payment Declined</h2>
             <p>{paymentError || 'Your card was declined. Please try a different card.'}</p>
 
-            <PaymentForm
-              amount={String(displayPrice || 0)}
-              onTokenReceived={handleTokenReceived}
+            <PayPalPayment
+              amount={displayPrice || 0}
+              description="SAGA Event Registration"
+              onApprove={handlePayPalApprove}
               onError={handlePaymentError}
               loading={loading}
               submitLabel="Retry Payment"
@@ -1008,9 +1009,10 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
 
           {/* Payment section */}
           {displayPrice > 0 && isFormValid() && (
-            <PaymentForm
-              amount={String(displayPrice)}
-              onTokenReceived={handleTokenReceived}
+            <PayPalPayment
+              amount={parseFloat(displayPrice)}
+              description="SAGA Event Registration"
+              onApprove={handlePayPalApprove}
               onError={handlePaymentError}
               loading={loading}
               submitLabel={`Register & Pay — $${parseFloat(displayPrice).toFixed(2)}`}

@@ -870,12 +870,12 @@ export const healthCheck = async () => {
 };
 
 /**
- * PayPal API methods — disabled, using North payment gateway
+ * PayPal API methods
  */
-// export const paypalApi = {
-//   createOrder: async (amount, description = 'SAGA Golf Payment') => {
-//     return api.post('/api/paypal/create-order', { amount, description });
-//   },
-// };
+export const paypalApi = {
+  createOrder: async (amount, description = 'SAGA Golf Payment') => {
+    return api.post('/api/paypal/create-order', { amount, description });
+  },
+};
 
 export default api;

@@ -174,7 +174,7 @@ function ApplePayButton({ amount, description, createOrder, onApprove, onError, 
           background: '#000',
           color: '#fff',
           border: 'none',
-          borderRadius: '999px',
+          borderRadius: '10px',
           fontSize: '1rem',
           fontWeight: 500,
           cursor: (loading || isPaying) ? 'not-allowed' : 'pointer',
@@ -191,7 +191,7 @@ function ApplePayButton({ amount, description, createOrder, onApprove, onError, 
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white">
           <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
         </svg>
-        Pay
+        Pay with Apple Pay
       </button>
     </div>
   );
@@ -246,27 +246,22 @@ function GooglePayButton({ amount, description, createOrder, onApprove, onError,
   };
 
   useEffect(() => {
-    let timeoutId;
+    let intervalId = null;
+    let timeoutId = null;
+    let cancelled = false;
 
     const checkEligibility = async () => {
       try {
         console.log('[GooglePay] Checking eligibility...');
 
-        if (!window.paypal?.Googlepay || !window.google?.payments?.api?.PaymentsClient) {
-          console.log('[GooglePay] SDK not ready');
-          return;
-        }
-
         const googlepay = window.paypal.Googlepay();
-        console.log('[GooglePay] Calling googlepay.config()...');
-        const config = await googlepay.config();
-        console.log('[GooglePay] Config received:', JSON.stringify(config, null, 2));
+        const config = await Promise.race([
+          googlepay.config(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('config() timed out — Google Pay may not be enabled on your PayPal app')), 8000)),
+        ]);
 
-        if (!config || !config.allowedPaymentMethods) {
-          console.log('[GooglePay] No allowedPaymentMethods in config — Google Pay not available');
-          return;
-        }
-
+        if (cancelled) return;
+        console.log('[GooglePay] Config:', config);
         googlePayConfigRef.current = { googlepay, config };
 
         const paymentsClient = new window.google.payments.api.PaymentsClient({
@@ -280,38 +275,41 @@ function GooglePayButton({ amount, description, createOrder, onApprove, onError,
         });
 
         console.log('[GooglePay] isReadyToPay:', readyToPay);
-        if (readyToPay.result) {
-          console.log('[GooglePay] Eligible!');
+        if (!cancelled && readyToPay.result) {
+          console.log('[GooglePay] Eligible! Will render button on next paint...');
           setEligible(true);
-        } else {
-          console.log('[GooglePay] Not eligible on this device/browser');
         }
       } catch (err) {
-        console.error('[GooglePay] Error:', err.message || err);
+        console.error('[GooglePay] Error during eligibility check:', err);
       }
     };
 
-    const interval = setInterval(() => {
+    intervalId = setInterval(() => {
       if (window.paypal?.Googlepay && window.google?.payments?.api?.PaymentsClient) {
-        clearInterval(interval);
+        console.log('[GooglePay] Both SDKs detected, running eligibility check...');
+        clearInterval(intervalId);
         clearTimeout(timeoutId);
         checkEligibility();
       }
     }, 500);
 
     timeoutId = setTimeout(() => {
-      clearInterval(interval);
-      console.log('[GooglePay] Timed out. paypal.Googlepay:', !!window.paypal?.Googlepay, 'google.payments:', !!window.google?.payments?.api?.PaymentsClient);
-    }, 10000);
-    return () => { clearInterval(interval); clearTimeout(timeoutId); };
+      clearInterval(intervalId);
+      console.log('[GooglePay] Timed out waiting for SDK. paypal.Googlepay:', !!window.paypal?.Googlepay, 'google.payments:', !!window.google?.payments?.api?.PaymentsClient);
+    }, 15000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+      clearTimeout(timeoutId);
+    };
   }, []);
 
-  // Append the Google Pay button after the container is rendered
+  // Render the Google Pay button once eligible and container is mounted
   useEffect(() => {
-    if (!eligible || !containerRef.current || !googlePayConfigRef.current) return;
+    if (!eligible || !googlePayConfigRef.current || !containerRef.current) return;
     if (containerRef.current.hasChildNodes()) return;
 
-    console.log('[GooglePay] Rendering button into container...');
     const paymentsClient = new window.google.payments.api.PaymentsClient({
       environment: 'PRODUCTION',
     });
@@ -320,19 +318,18 @@ function GooglePayButton({ amount, description, createOrder, onApprove, onError,
       buttonColor: 'black',
       buttonType: 'pay',
       buttonSizeMode: 'fill',
-      buttonRadius: 999,
-      buttonHeight: 45,
     });
     containerRef.current.appendChild(button);
+    console.log('[GooglePay] Button rendered.');
   }, [eligible]);
-
-  if (!eligible) return null;
 
   return (
     <div
-      style={{ marginBottom: '0.75rem', opacity: (loading || isPaying) ? 0.6 : 1, width: '100%' }}
+      className="gpay-container"
+      style={{ marginBottom: '0.75rem', opacity: (loading || isPaying) ? 0.6 : 1, display: eligible ? 'block' : 'none' }}
       ref={containerRef}
-    ></div>);
+    />
+  );
 }
 
 export default function PayPalPayment({
@@ -441,15 +438,14 @@ export default function PayPalPayment({
         </div>
       )}
 
-<PayPalScriptProvider options={{
+      <PayPalScriptProvider options={{
         'client-id': PAYPAL_CLIENT_ID,
-        components: 'card-fields,applepay,googlepay,buttons',
+        components: 'buttons,card-fields,applepay,googlepay',
         'enable-funding': 'venmo',
         currency: 'USD',
         intent: 'capture',
       }}>
-        {/* Apple Pay & Google Pay — uncomment once enabled in PayPal Dashboard */}
-        
+        {/* Apple Pay button (shown only on eligible devices) */}
         <ApplePayButton
           amount={amount}
           description={description}
@@ -458,8 +454,9 @@ export default function PayPalPayment({
           onError={handleError}
           loading={loading}
           isPaying={isPaying}
-        /> 
+        />
 
+        {/* Google Pay button (shown only on eligible devices/browsers) */}
         <GooglePayButton
           amount={amount}
           description={description}
@@ -468,29 +465,10 @@ export default function PayPalPayment({
           onError={handleError}
           loading={loading}
           isPaying={isPaying}
-        /> 
-
-        {/* Standard PayPal Buttons (PayPal, Debit/Credit) */}
-	 {/* <div style={{ marginBottom: '1rem' }}>
-          <PayPalButtons
-            style={{
-              layout: 'vertical',
-              color: 'gold',
-              shape: 'rect',
-              label: 'pay',
-              height: 45,
-            }}
-            disabled={loading || isPaying}
-            createOrder={createOrder}
-            onApprove={handleApprove}
-            onError={handleError}
-            onCancel={() => setInternalError('')}
-          />
-        </div> */}
+        />
 
         {/* Divider */}
-
-	  <div style={{
+        <div style={{
           display: 'flex', alignItems: 'center', gap: '1rem', margin: '0.75rem 0',
         }}>
           <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }} />
@@ -498,7 +476,7 @@ export default function PayPalPayment({
           <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }} />
         </div>
 
-        {/* Inline Card Fields (Advanced Checkout) */}
+        {/* Card Fields */}
         <PayPalCardFieldsProvider
           createOrder={createOrder}
           onApprove={handleApprove}
@@ -535,11 +513,11 @@ export default function PayPalPayment({
         @keyframes spin {
           to { transform: rotate(360deg); }
         }
-	.gpay-card-info-container-fill {
-          height: 45px !important;
+        .gpay-container button,
+        .gpay-container .gpay-button {
+          border-radius: 10px !important;
         }
       `}</style>
     </div>
   );
 }
-
