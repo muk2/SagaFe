@@ -52,6 +52,7 @@ export default function SagaTourPage() {
         'handicaps',
         'season-play',
         'makeup-rounds',
+        'saga-rules',
         'awards',
         'anish-joshi',
         'saga-champions',
@@ -97,6 +98,7 @@ export default function SagaTourPage() {
     { id: 'handicaps', label: 'Handicaps' },
     { id: 'season-play', label: 'Season Play & Rounds' },
     { id: 'makeup-rounds', label: 'Makeup Rounds' },
+    { id: 'saga-rules', label: 'SAGA Rules' },
     { id: 'awards', label: 'Awards Overview' },
     { id: 'anish-joshi', label: 'Anish Joshi Trophy' },
     { id: 'saga-champions', label: 'SAGA Champions' },
@@ -348,10 +350,126 @@ export default function SagaTourPage() {
                 <ul className="info-list">
                   <li>Any changes to declared rounds must be communicated well in advance</li>
                   <li>
-                    All changes must be approved by the team captain and the Competition Committee 
+                    All changes must be approved by the team captain and the Competition Committee
                     before the makeup round is played
                   </li>
                 </ul>
+
+                <h4>Makeup Round Dates — Forsgate Country Club</h4>
+                <p><strong>Brunswick Cup Dates</strong></p>
+                <div className="makeup-dates-grid">
+                  <div className="date-item">April 26th</div>
+                  <div className="date-item">May 16th</div>
+                  <div className="date-item">May 30th</div>
+                  <div className="date-item">June 14th</div>
+                  <div className="date-item">June 27th</div>
+                  <div className="date-item">July 19th</div>
+                  <div className="date-item">Aug 2nd</div>
+                  <div className="date-item">Aug 22nd</div>
+                  <div className="date-item">Sept 20th</div>
+                </div>
+              </div>
+            </section>
+
+            {/* SAGA Rules */}
+            <section id="saga-rules" className="tour-section">
+              <h2>SAGA Rules</h2>
+
+              <div className="content-card">
+                <h4>SAGA Specific Rules</h4>
+                <ol className="info-list numbered">
+                  <li>The tournament directors and/or executive members who are present will arbitrate any disputes after the round. Do not enter a score for the hole(s) on which the dispute occurred, but each participant must still complete the hole.</li>
+                  <li>Flights will play from the tees decided by the committee.</li>
+                  <li><strong>Count every stroke:</strong> A stroke is the forward movement of the club made with the intention of striking the ball. Every stroke counts, including whiffs. (A whiff is when you attempt to hit the ball but miss it entirely.) It is your responsibility to keep track of your own strokes on each hole. We will follow USGA rules.</li>
+                  <li>All players must agree (sign card) on the scores being turned in at the end of the round. It is mandatory to add the total for each round for each player in the foursome.</li>
+                  <li><strong>Gimmie:</strong> Pick up the ball while putting if the ball is inside the leather of your putter (standard length).</li>
+                </ol>
+              </div>
+
+              <div className="content-card">
+                <h4>Pace of Play</h4>
+                <ol className="info-list numbered">
+                  <li>For the speed of play, once your attempt for net bogey is unsuccessful <strong>AND</strong> you have reached your maximum equitable score control (ESC) score, pick up your ball.</li>
+                  <li>If your group or any player is unusually slow, please speak up and ask them to pick up the pace. Groups need to maintain an average pace of <strong>15 minutes per hole</strong> and not fall behind more than 1 hole from the group in front of them.</li>
+                  <li>Always be ready to play when it is your turn and play ready golf.</li>
+                  <li>Hit your ball before helping to look for someone else's ball.</li>
+                  <li>Putt out rather than mark your ball and encourage others to putt out as well.</li>
+                  <li>Stand behind your ball and align your putt while others are putting.</li>
+                  <li>Always have your club and an extra ball readily available to speed up play.</li>
+                  <li>Use common sense to speed up play — Think! Think! Think!</li>
+                </ol>
+              </div>
+
+              <div className="content-card">
+                <h4>Tie-Breaking Rules (Finals)</h4>
+                <p>
+                  Overall winner for each flight will be determined by adding the scores assigned based on rankings
+                  at the end of the regular season and adding scores from the Playoff + Finals.
+                </p>
+                <ul className="info-list">
+                  <li>Top point-getter from each flight will win that flight</li>
+                  <li>In case of a tie to determine the flight winners, the following method will be employed:
+                    <ol className="tiebreak-list">
+                      <li>The highest Stableford score at SAGA Open</li>
+                      <li>The highest Stableford in the first playoff event, and if still a tie</li>
+                      <li>The highest Stableford score on the back 9 of SAGA Open, and if still a tie</li>
+                      <li>The highest Stableford score on the last 6 holes of SAGA Open, and if still a tie</li>
+                      <li>The highest Stableford score on the last 3 holes of SAGA Open, and if still a tie</li>
+                      <li>The highest Stableford score on the last hole of SAGA Open, and if still a tie</li>
+                      <li>Coin toss</li>
+                    </ol>
+                  </li>
+                  <li>The back 9 as described above relates to holes 10–18, irrelevant of the starting hole</li>
+                </ul>
+                <div className="note-box">
+                  <p>
+                    <strong>Anish Joshi Trophy:</strong> The winner will be determined by adding the points at the end of
+                    the playoff round plus the SAGA Open score. If there is a tie, the flight winner method will be employed.
+                  </p>
+                </div>
+              </div>
+
+              <div className="content-card">
+                <h4>Common Rules to Be Aware Of</h4>
+                <ol className="info-list numbered">
+                  <li>
+                    <strong>Maximum Clubs in Bag:</strong> A player is allowed to carry a maximum of 14 clubs.
+                    Failing to do so will lead to a 2-stroke penalty for each hole. Maximum penalty is 4 strokes
+                    for the round. Penalty will be applied to the first two holes played.
+                  </li>
+                  <li>
+                    <strong>Ball Falling Off Tee:</strong> If a ball falls off the tee or is knocked off by a player
+                    addressing it, the ball may be re-teed without penalty.
+                  </li>
+                  <li>
+                    <strong>Ball Moving Accidentally After Address:</strong> No penalty if the ball moves after it
+                    has been addressed, either off the tee or on the green.
+                  </li>
+                  <li>
+                    <strong>Artificial Obstruction:</strong> (such as a bench, water fountain, shelter, house, or
+                    protective screen) If your ball lies on or touches an artificial obstruction, or when an
+                    immovable obstruction within two club lengths of the ball interferes with your stance or stroke,
+                    you may without penalty pick up the ball and drop it within two club lengths of the original lie,
+                    but not nearer the hole.
+                    <br/><em>Note: Out of bounds stakes are not considered artificial obstructions.</em>
+                  </li>
+                  <li>
+                    <strong>Casual Water, Ground Under Repair:</strong> If your ball lies in or touches casual water,
+                    ground under repair, or a hole made by a burrowing animal, you may obtain relief without penalty.
+                    Your ball may be lifted and dropped as near as possible to the original lie, but not nearer the hole.
+                    If your ball requires such relief in a bunker, it must be dropped within the bunker. If you elect
+                    to drop behind the bunker, you must count one penalty stroke. (Casual water is a puddle of rain
+                    water or hose water — not a creek or pond.)
+                  </li>
+                  <li>
+                    <strong>Wrong Ball:</strong> If a competitor makes a stroke or strokes at a wrong ball that is not
+                    in a hazard, they incur a penalty of two strokes. The competitor must correct their mistake before
+                    the next hole by playing the correct ball. Strokes made with a wrong ball do not count in their
+                    score. If a player plays any strokes in a hazard with a wrong ball, there is no penalty provided
+                    that player then plays the correct ball. If the wrong ball belongs to another player in the group,
+                    its owner shall place a ball on the spot from which the wrong ball was played.
+                  </li>
+                </ol>
               </div>
             </section>
 
@@ -596,6 +714,7 @@ export default function SagaTourPage() {
                 </ul>
               </div>
             </section>
+
           </main>
         </div>
       </div>
@@ -915,6 +1034,58 @@ export default function SagaTourPage() {
           color: var(--primary);
           font-weight: bold;
           font-size: 1.2rem;
+        }
+
+        .info-list.numbered {
+          counter-reset: list-counter;
+        }
+
+        .info-list.numbered li::before {
+          counter-increment: list-counter;
+          content: counter(list-counter) ".";
+          font-size: 1rem;
+        }
+
+        .tiebreak-list {
+          list-style: none;
+          padding: 0;
+          margin: 0.5rem 0 0 1rem;
+          counter-reset: tiebreak-counter;
+        }
+
+        .tiebreak-list li {
+          padding: 0.4rem 0 0.4rem 1.5rem;
+          position: relative;
+          line-height: 1.5;
+          color: var(--text-secondary);
+          font-size: 0.95rem;
+        }
+
+        .tiebreak-list li::before {
+          counter-increment: tiebreak-counter;
+          content: counter(tiebreak-counter, lower-alpha) ")";
+          position: absolute;
+          left: 0;
+          color: var(--primary);
+          font-weight: 600;
+        }
+
+        .makeup-dates-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0.75rem;
+          margin-top: 0.75rem;
+        }
+
+        .date-item {
+          background: #f0f9ff;
+          border: 1px solid #bae6fd;
+          border-radius: var(--radius);
+          padding: 0.625rem 1rem;
+          text-align: center;
+          font-weight: 500;
+          color: #1e3a8a;
+          font-size: 0.95rem;
         }
 
         .checklist {
