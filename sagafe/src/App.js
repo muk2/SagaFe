@@ -800,13 +800,14 @@ export function LeaderboardSection() {
   const [events, setEvents] = useState([]);
   const [selectedEventId, setSelectedEventId] = useState('');
   const [roundWinner, setRoundWinner] = useState(null);
-  const [leaderboardUrl, setLeaderboardUrl] = useState(null);
+  const [leaderboardEntries, setLeaderboardEntries] = useState([]);
   const [loadingWinner, setLoadingWinner] = useState(false);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
+  const [lbExpanded, setLbExpanded] = useState(false);
 
   useEffect(() => {
     fetchEvents();
-    fetchLeaderboardUrl();
+    fetchLeaderboardData();
   }, []);
 
   const fetchEvents = async () => {
@@ -823,13 +824,13 @@ export function LeaderboardSection() {
     }
   };
 
-  const fetchLeaderboardUrl = async () => {
+  const fetchLeaderboardData = async () => {
     setLoadingLeaderboard(true);
     try {
-      const data = await api.get('/api/leaderboard/pdf');
-      setLeaderboardUrl(data?.url || null);
+      const data = await api.get('/api/leaderboard/entries');
+      setLeaderboardEntries(data || []);
     } catch {
-      setLeaderboardUrl(null);
+      setLeaderboardEntries([]);
     } finally {
       setLoadingLeaderboard(false);
     }
@@ -893,30 +894,66 @@ export function LeaderboardSection() {
           <div className="ss-panel">
             {loadingLeaderboard ? (
               <div className="ss-empty"><div className="ss-spinner" /></div>
-            ) : leaderboardUrl ? (
-              <div className="ss-pdf-card">
-                <div className="ss-pdf-left">
-                  <div className="ss-pdf-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="36" height="36">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="ss-pdf-title">SAGA Season Leaderboard</h3>
-                    <p className="ss-pdf-desc">Current standings for all SAGA members this season. Updated by the association.</p>
-                  </div>
+            ) : leaderboardEntries.length > 0 ? (
+              <div className="ss-leaderboard">
+                <div className="ss-lb-header">
+                  <h3 className="ss-lb-title">Season Leaderboard</h3>
                 </div>
-                <a
-                  href={`${API_URL}${leaderboardUrl}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ss-pdf-btn"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="16" height="16">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                  </svg>
-                  View Leaderboard
-                </a>
+
+                {(() => {
+                  // Compute tied positions: sort by points desc, assign ranks with ties
+                  const sorted = [...leaderboardEntries].sort((a, b) => b.stableford_points - a.stableford_points);
+                  const pointsCount = {};
+                  sorted.forEach(e => { pointsCount[e.stableford_points] = (pointsCount[e.stableford_points] || 0) + 1; });
+                  let rank = 1;
+                  let prevPts = null;
+                  const ranked = sorted.map((entry, i) => {
+                    if (entry.stableford_points !== prevPts) {
+                      rank = i + 1;
+                      prevPts = entry.stableford_points;
+                    }
+                    const isTied = pointsCount[entry.stableford_points] > 1;
+                    return { ...entry, displayPos: isTied ? `T-${rank}` : `${rank}` };
+                  });
+                  const visible = lbExpanded ? ranked : ranked.slice(0, 5);
+
+                  return (
+                    <div className="ss-table-wrap">
+                      <table className="ss-table ss-lb-table">
+                        <thead>
+                          <tr>
+                            <th style={{width:'60px'}}>Pos.</th>
+                            <th>Player</th>
+                            <th style={{width:'120px', textAlign:'right'}}>Stableford Pts</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {visible.map((entry) => (
+                            <tr key={entry.id}>
+                              <td>
+                                <span className="ss-lb-pos">
+                                  {entry.displayPos}
+                                </span>
+                              </td>
+                              <td><strong>{entry.first_name} {entry.last_name}</strong></td>
+                              <td className="ss-result" style={{textAlign:'right'}}>{entry.stableford_points}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+                {leaderboardEntries.length > 5 && (
+                  <div className="ss-lb-expand">
+                    <button className="ss-lb-expand-btn" onClick={() => setLbExpanded(!lbExpanded)}>
+                      {lbExpanded ? 'Show Less' : `View All ${leaderboardEntries.length} Players`}
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" width="14" height="14" style={{transform: lbExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease'}}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="ss-empty">
@@ -1089,29 +1126,6 @@ export function LeaderboardSection() {
           border-radius: 16px; overflow: hidden;
           box-shadow: 0 2px 16px rgba(0,0,0,0.06); min-height: 200px;
         }
-        .ss-pdf-card {
-          display: flex; align-items: center; justify-content: space-between;
-          gap: 1.5rem; padding: 2rem 2.5rem; flex-wrap: wrap;
-        }
-        .ss-pdf-left { display: flex; align-items: center; gap: 1.25rem; }
-        .ss-pdf-icon {
-          width: 64px; height: 64px;
-          background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-          border-radius: 14px; display: flex; align-items: center; justify-content: center;
-          color: #065f46; flex-shrink: 0;
-        }
-        .ss-pdf-title { font-size: 1.1rem; font-weight: 700; color: #111827; margin: 0 0 0.35rem; }
-        .ss-pdf-desc { font-size: 0.875rem; color: #6b7280; margin: 0; max-width: 380px; }
-        .ss-pdf-btn {
-          display: inline-flex; align-items: center; gap: 0.5rem;
-          padding: 0.65rem 1.5rem;
-          background: linear-gradient(135deg, #059669, #047857);
-          color: white; border-radius: 10px; font-weight: 700;
-          font-size: 0.9rem; text-decoration: none; white-space: nowrap;
-          transition: transform 0.15s ease, box-shadow 0.15s ease;
-          box-shadow: 0 2px 8px rgba(5,150,105,0.3);
-        }
-        .ss-pdf-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(5,150,105,0.4); }
         .ss-empty {
           display: flex; flex-direction: column; align-items: center;
           justify-content: center; padding: 3.5rem 2rem;
@@ -1173,12 +1187,37 @@ export function LeaderboardSection() {
           border-radius: 10px; font-size: 0.72rem; font-weight: 700;
         }
         .ss-result { font-weight: 700; color: #059669; font-variant-numeric: tabular-nums; }
+
+        /* Leaderboard visual styles */
+        .ss-leaderboard { padding: 0; }
+        .ss-lb-header {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 1.25rem 1.75rem; border-bottom: 1px solid #f3f4f6;
+        }
+        .ss-lb-title { font-size: 1.15rem; font-weight: 800; color: #111827; margin: 0; }
+        .ss-lb-table tbody tr:hover td { background: #f0fdf4; }
+        .ss-lb-pos {
+          display: inline-flex; align-items: center; justify-content: center;
+          min-width: 28px; height: 28px; padding: 0 6px; border-radius: 8px;
+          font-size: 0.78rem; font-weight: 700; color: #374151;
+          background: #f3f4f6; white-space: nowrap;
+        }
+        .ss-lb-expand {
+          display: flex; justify-content: center;
+          padding: 0.75rem 1.75rem 1.25rem; border-top: 1px solid #f3f4f6;
+        }
+        .ss-lb-expand-btn {
+          display: inline-flex; align-items: center; gap: 0.4rem;
+          padding: 0.5rem 1.25rem; border: 1px solid #d1d5db; border-radius: 9px;
+          background: white; color: #374151; font-size: 0.85rem; font-weight: 600;
+          cursor: pointer; transition: all 0.15s ease;
+        }
+        .ss-lb-expand-btn:hover { background: #f9fafb; border-color: #9ca3af; }
+
         @media (max-width: 640px) {
           .saga-standings-section { padding: 3rem 1rem; }
           .ss-tab-bar { width: 100%; }
           .ss-tab { flex: 1; justify-content: center; font-size: 0.8rem; padding: 0.55rem 0.75rem; white-space: normal; text-align: center; }
-          .ss-pdf-card { flex-direction: column; padding: 1.5rem; }
-          .ss-pdf-btn { width: 100%; justify-content: center; }
           .ss-table th, .ss-table td { padding: 0.75rem 1rem; }
         }
 	      `}</style>

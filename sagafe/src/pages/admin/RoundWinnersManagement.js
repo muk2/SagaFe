@@ -16,9 +16,9 @@ const EMPTY_FORM = {
 };
 
 const RoundWinnersManagement = () => {
-  const [leaderboardUrl, setLeaderboardUrl] = useState(null);
-  const [uploadingPdf, setUploadingPdf] = useState(false);
-  const [pdfMsg, setPdfMsg] = useState(null);
+  const [uploadingXls, setUploadingXls] = useState(false);
+  const [xlsMsg, setXlsMsg] = useState(null);
+  const [leaderboardEntries, setLeaderboardEntries] = useState([]);
   const [events, setEvents] = useState([]);
   const [selectedEventId, setSelectedEventId] = useState('');
   const [form, setForm] = useState(EMPTY_FORM);
@@ -28,7 +28,7 @@ const RoundWinnersManagement = () => {
   const [deleting, setDeleting] = useState(false);
   const [formMsg, setFormMsg] = useState(null);
 
-  useEffect(() => { fetchEvents(); fetchLeaderboardUrl(); }, []);
+  useEffect(() => { fetchEvents(); fetchLeaderboardEntries(); }, []);
   useEffect(() => { if (selectedEventId) fetchRoundWinner(selectedEventId); }, [selectedEventId]);
 
   const flashMsg = (setter, type, text) => {
@@ -45,11 +45,40 @@ const RoundWinnersManagement = () => {
     } catch { }
   };
 
-  const fetchLeaderboardUrl = async () => {
+  const fetchLeaderboardEntries = async () => {
     try {
-      const data = await api.get('/api/leaderboard/pdf');
-      setLeaderboardUrl(data?.url || null);
-    } catch { setLeaderboardUrl(null); }
+      const data = await api.get('/api/leaderboard/entries');
+      setLeaderboardEntries(data || []);
+    } catch { setLeaderboardEntries([]); }
+  };
+
+  const handleXlsUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingXls(true);
+    setXlsMsg(null);
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${API_URL}/api/admin/leaderboard/upload-xls`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Upload failed');
+      }
+      const data = await res.json();
+      setLeaderboardEntries(data);
+      flashMsg(setXlsMsg, 'success', `Leaderboard updated — ${data.length} players loaded!`);
+    } catch (err) {
+      flashMsg(setXlsMsg, 'error', err.message || 'Upload failed. Please try again.');
+    } finally {
+      setUploadingXls(false);
+      e.target.value = '';
+    }
   };
 
   const fetchRoundWinner = async (eventId) => {
@@ -78,33 +107,6 @@ const RoundWinnersManagement = () => {
       }
     } catch { }
     finally { setLoadingWinner(false); }
-  };
-
-  const handlePdfUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (file.type !== 'application/pdf') { flashMsg(setPdfMsg, 'error', 'Please select a PDF file.'); return; }
-    setUploadingPdf(true);
-    setPdfMsg(null);
-    const fd = new FormData();
-    fd.append('file', file);
-    try {
-      const token = localStorage.getItem('access_token');
-      const res = await fetch(`${API_URL}/api/leaderboard/pdf`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd,
-      });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setLeaderboardUrl(data.url);
-      flashMsg(setPdfMsg, 'success', 'Leaderboard PDF uploaded successfully!');
-    } catch {
-      flashMsg(setPdfMsg, 'error', 'Upload failed. Please try again.');
-    } finally {
-      setUploadingPdf(false);
-      e.target.value = '';
-    }
   };
 
   const setField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
@@ -171,23 +173,25 @@ const RoundWinnersManagement = () => {
     <div className="rw-root">
       <h2 className="admin-section-title">Leaderboard &amp; Round Winners</h2>
 
-      {/* PDF Card */}
+      {/* XLS Leaderboard Upload Card */}
       <div className="rw-card">
         <div className="rw-card-head">
-          <span className="rw-card-icon">📄</span>
-          <h3>SAGA Leaderboard PDF</h3>
+          <span className="rw-card-icon">📊</span>
+          <h3>SAGA Leaderboard (XLS Upload)</h3>
         </div>
-        {leaderboardUrl && (
-          <div className="rw-pdf-current">
-            <span>Current file:</span>
-            <a href={`${API_URL}${leaderboardUrl}`} target="_blank" rel="noopener noreferrer">View Leaderboard ↗</a>
-          </div>
+        <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
+          Upload an Excel file with columns: <strong>Pos.</strong>, <strong>Player</strong> (Last, First), <strong>Stableford Points</strong>, and <strong>Total Gross</strong>. This will replace the current leaderboard data.
+        </p>
+        {leaderboardEntries.length > 0 && (
+          <p style={{ fontSize: '0.85rem', color: '#065f46', marginBottom: '0.75rem', fontWeight: 600 }}>
+            Current leaderboard: {leaderboardEntries.length} players loaded
+          </p>
         )}
-        <label className={`rw-upload-btn ${uploadingPdf ? 'disabled' : ''}`}>
-          {uploadingPdf ? 'Uploading…' : leaderboardUrl ? '↑ Replace PDF' : '↑ Upload Leaderboard PDF'}
-          <input type="file" accept="application/pdf" onChange={handlePdfUpload} disabled={uploadingPdf} style={{ display: 'none' }} />
+        <label className={`rw-upload-btn ${uploadingXls ? 'disabled' : ''}`}>
+          {uploadingXls ? 'Uploading…' : leaderboardEntries.length > 0 ? '↑ Replace Leaderboard XLS' : '↑ Upload Leaderboard XLS'}
+          <input type="file" accept=".xls,.xlsx" onChange={handleXlsUpload} disabled={uploadingXls} style={{ display: 'none' }} />
         </label>
-        {pdfMsg && <p className={`rw-msg ${pdfMsg.type}`}>{pdfMsg.text}</p>}
+        {xlsMsg && <p className={`rw-msg ${xlsMsg.type}`}>{xlsMsg.text}</p>}
       </div>
 
       {/* Round Winners Card */}
@@ -359,9 +363,6 @@ const RoundWinnersManagement = () => {
         .rw-rm-btn:hover { background:#fef2f2; }
         .rw-add-btn { background:none; border:1px dashed #d1d5db; border-radius:8px; padding:0.4rem 0.875rem; font-size:0.83rem; color:#6b7280; cursor:pointer; margin-top:0.25rem; }
         .rw-add-btn:hover { border-color:#9ca3af; color:#374151; background:#f9fafb; }
-        .rw-pdf-current { display:flex; align-items:center; gap:0.75rem; font-size:0.875rem; color:#6b7280; margin-bottom:0.75rem; }
-        .rw-pdf-current a { color:#059669; font-weight:600; text-decoration:none; }
-        .rw-pdf-current a:hover { text-decoration:underline; }
         .rw-upload-btn { display:inline-block; padding:0.55rem 1.25rem; background:#059669; color:white; border-radius:9px; font-weight:700; font-size:0.875rem; cursor:pointer; }
         .rw-upload-btn:hover:not(.disabled) { background:#047857; }
         .rw-upload-btn.disabled { opacity:0.6; cursor:not-allowed; }

@@ -1088,7 +1088,7 @@ export default function SagaTourPage() {
           grid-template-columns: repeat(3, 1fr);
           gap: 0.75rem;
           margin-top: 0.75rem;
-	  margin-bottom: 0.75rem;
+          margin-bottom: 0.75rem;
         }
 
         .date-item {
