@@ -925,6 +925,7 @@ export function LeaderboardSection() {
                             <th style={{width:'60px'}}>Pos.</th>
                             <th>Player</th>
                             <th style={{width:'120px', textAlign:'right'}}>Stableford Pts</th>
+                            <th style={{width:'100px', textAlign:'right'}}>Gross</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -937,6 +938,7 @@ export function LeaderboardSection() {
                               </td>
                               <td><strong>{entry.first_name} {entry.last_name}</strong></td>
                               <td className="ss-result" style={{textAlign:'right'}}>{entry.stableford_points}</td>
+                              <td className="ss-result" style={{textAlign:'right'}}>{entry.total_gross != null ? entry.total_gross : '—'}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -1037,13 +1039,6 @@ export function LeaderboardSection() {
                           </tr>
                         </thead>
                         <tbody>
-                          {roundWinner.lowest_gross_winner && (
-                            <tr>
-                              <td><span className="ss-cat-icon">🏌️</span> Lowest Gross Score</td>
-                              <td><strong>{roundWinner.lowest_gross_winner}</strong></td>
-                              <td className="ss-result">{roundWinner.lowest_gross_score != null ? roundWinner.lowest_gross_score : '—'}</td>
-                            </tr>
-                          )}
                           {roundWinner.stableford_winner && (
                             <tr>
                               <td><span className="ss-cat-icon">📊</span> Highest Stableford Points</td>

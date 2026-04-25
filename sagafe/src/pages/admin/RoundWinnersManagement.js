@@ -258,20 +258,6 @@ const RoundWinnersManagement = () => {
             </fieldset>
 
             <fieldset className="rw-fieldset">
-              <legend>🏌️ Lowest Gross Score</legend>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Winner Name</label>
-                  <input type="text" value={form.lowest_gross_winner} onChange={e => setField('lowest_gross_winner', e.target.value)} placeholder="Full name" />
-                </div>
-                <div className="form-group">
-                  <label>Gross Score</label>
-                  <input type="number" value={form.lowest_gross_score} onChange={e => setField('lowest_gross_score', e.target.value)} placeholder="e.g. 72" />
-                </div>
-              </div>
-            </fieldset>
-
-            <fieldset className="rw-fieldset">
               <legend>📊 Highest Stableford Points</legend>
               <div className="form-row">
                 <div className="form-group">
