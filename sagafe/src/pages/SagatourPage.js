@@ -368,6 +368,19 @@ export default function SagaTourPage() {
                   <div className="date-item">Aug 22nd</div>
                   <div className="date-item">Sept 20th</div>
                 </div>
+
+                <p><strong>Brunswick Cup Rain Dates</strong></p>
+                <div className="makeup-dates-grid">
+                  <div className="date-item rain">May 2nd</div>
+                  <div className="date-item rain">May 17th</div>
+                  <div className="date-item rain">May 31st</div>
+                  <div className="date-item rain">June 28th</div>
+                  <div className="date-item rain">July 12th</div>
+                  <div className="date-item rain">July 25th</div>
+                  <div className="date-item rain">Aug 16th</div>
+                  <div className="date-item rain">Aug 23rd</div>
+                  <div className="date-item rain">Sept 27th</div>
+                </div>
               </div>
             </section>
 
@@ -1075,6 +1088,7 @@ export default function SagaTourPage() {
           grid-template-columns: repeat(3, 1fr);
           gap: 0.75rem;
           margin-top: 0.75rem;
+          margin-bottom: 0.75rem;
         }
 
         .date-item {
@@ -1086,6 +1100,12 @@ export default function SagaTourPage() {
           font-weight: 500;
           color: #1e3a8a;
           font-size: 0.95rem;
+        }
+
+        .date-item.rain {
+          background: #fefce8;
+          border-color: #fde68a;
+          color: #854d0e;
         }
 
         .checklist {

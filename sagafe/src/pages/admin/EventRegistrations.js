@@ -146,16 +146,22 @@ const EventRegistrations = () => {
       return;
     }
   
-    const headers = ['Name', 'Email', 'Phone', 'Handicap', 'Membership', 'Company', 'Registration Date'];
-    const rows = registrations.map(reg => [
-      reg.user_name || 'Unknown',
+    const headers = ['First Name', 'Last Name', 'Email', 'Phone', 'Handicap', 'Membership', 'Company', 'Registration Date'];
+    const rows = registrations.map(reg => {
+      const fullName = reg.user_name || 'Unknown';
+      const spaceIdx = fullName.indexOf(' ');
+      const firstName = spaceIdx > -1 ? fullName.substring(0, spaceIdx) : fullName;
+      const lastName = spaceIdx > -1 ? fullName.substring(spaceIdx + 1) : '';
+      return [
+      firstName,
+      lastName,
       reg.email,
       reg.phone || reg.phone_number || 'N/A',
       reg.handicap || reg.golf_handicap || 'N/A',
       (reg.membership || 'guest').toUpperCase(),
       reg.is_sponsor ? (reg.company_name || 'N/A') : '',
       formatToEastern(reg.created_at),
-    ]);
+    ]; });
   
     const csvContent = [
       headers.join(','),
