@@ -180,7 +180,7 @@ const RoundWinnersManagement = () => {
           <h3>SAGA Leaderboard (XLS Upload)</h3>
         </div>
         <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
-          Upload an Excel file with columns: <strong>Pos.</strong>, <strong>Player</strong> (Last, First), <strong>Stableford Points</strong>, and <strong>Total Gross</strong>. This will replace the current leaderboard data.
+          Upload an Excel file with columns: <strong>Pos.</strong>, <strong>Player</strong> (Last, First), <strong>Stableford Points</strong>, and <strong>Total Gross</strong>. Players in the file will be added or updated; players not in the file will remain unchanged.
         </p>
         {leaderboardEntries.length > 0 && (
           <p style={{ fontSize: '0.85rem', color: '#065f46', marginBottom: '0.75rem', fontWeight: 600 }}>
