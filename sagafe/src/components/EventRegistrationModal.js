@@ -429,7 +429,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
         setLoading(false);
       }
     },
-    [user, event.id, registrationForm, additionalGolfers, additionalEvents, failedRegistrationId, onSuccess]
+    [user, event.id, registrationForm, additionalGolfers, additionalEvents, failedRegistrationId, onSuccess, promoApplied, promoCode]
   );
 
   const handlePaymentError = useCallback((errorMsg) => {
@@ -506,7 +506,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
     } finally {
       setLoading(false);
     }
-  }, [user, event.id, registrationForm, additionalGolfers, additionalEvents, onSuccess]);
+  }, [user, event.id, registrationForm, additionalGolfers, additionalEvents, onSuccess, promoApplied, promoCode]);
 
   const handleRetry = useCallback(() => {
     setPaymentError('');
