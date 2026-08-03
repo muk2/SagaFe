@@ -924,8 +924,7 @@ export function LeaderboardSection() {
                           <tr>
                             <th style={{width:'60px'}}>Pos.</th>
                             <th>Player</th>
-                            <th style={{width:'120px', textAlign:'right'}}>Stableford Pts</th>
-                            <th style={{width:'100px', textAlign:'right'}}>Gross</th>
+                            <th style={{width:'120px', textAlign:'right'}}>Total Stableford Points</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -938,7 +937,6 @@ export function LeaderboardSection() {
                               </td>
                               <td><strong>{entry.first_name} {entry.last_name}</strong></td>
                               <td className="ss-result" style={{textAlign:'right'}}>{entry.stableford_points}</td>
-                              <td className="ss-result" style={{textAlign:'right'}}>{entry.total_gross != null ? entry.total_gross : '—'}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -956,6 +954,12 @@ export function LeaderboardSection() {
                     </button>
                   </div>
                 )}
+                <p style={{ fontSize: '0.8rem', color: '#6b7280', textAlign: 'center', marginTop: '0.75rem' }}>
+                  For a full breakdown of the leaderboard,{' '}
+                  <a href="https://saga-golf-app.vercel.app/" target="_blank" rel="noopener noreferrer" style={{ color: '#059669', fontWeight: 600, textDecoration: 'underline' }}>
+                    click here
+                  </a>.
+                </p>
               </div>
             ) : (
               <div className="ss-empty">
@@ -1396,3 +1400,4 @@ function Footer() {
     </footer>
   );
 }
+

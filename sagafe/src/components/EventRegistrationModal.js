@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import PayPalPayment from './PayPalPayment';
-import { registrationsApi, membersApi, eventPromoCodesApi } from '../lib/api';
+import { registrationsApi, membersApi, eventPromoCodesApi, eventsApi } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { formatTime } from '../lib/dateUtils';
 
@@ -146,6 +146,21 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
   // Additional golfers
   const [additionalGolfers, setAdditionalGolfers] = useState([]);
 
+  // Additional events
+  const [additionalEvents, setAdditionalEvents] = useState([]);
+  const [allEvents, setAllEvents] = useState([]);
+
+  useEffect(() => {
+    eventsApi.getAll().then(data => {
+      const eventDate = parseEventDate(event.date);
+      setAllEvents(data.filter(e =>
+        e.id !== event.id &&
+        e.registration_open !== false &&
+        parseEventDate(e.date) > eventDate
+      ));
+    }).catch(() => {});
+  }, [event.id, event.date]);
+
   // Flow state
   const [step, setStep] = useState('form');
   const [loading, setLoading] = useState(false);
@@ -177,7 +192,16 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
     return sum + guestPrice;
   }, 0);
 
-  const displayPrice = basePrice + sponsorAdd + additionalGolfersPrice;
+  const additionalEventsPrice = additionalEvents.reduce((sum, ae) => {
+    if (!ae.eventObj) return sum;
+    const p = isMemberActive
+      ? parseFloat(ae.eventObj.price || ae.eventObj.member_price) || 0
+      : parseFloat(ae.eventObj.guest_price || ae.eventObj.price) || 0;
+    const aeSponsor = ae.sponsor === 'yes' ? (parseFloat(ae.sponsorAmount) || 0) : 0;
+    return sum + p + aeSponsor;
+  }, 0);
+
+  const displayPrice = basePrice + sponsorAdd + additionalGolfersPrice + additionalEventsPrice;
 
   const handleFormFieldChange = (field, value) => {
     setRegistrationForm((prev) => ({ ...prev, [field]: value }));
@@ -247,6 +271,24 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
         memberSearch: `${member.first_name} ${member.last_name}`,
       };
     }));
+  };
+
+  // --- Additional Event handlers ---
+  const addAdditionalEvent = () => {
+    setAdditionalEvents(prev => [...prev, { eventId: null, eventObj: null, sponsor: '', sponsorAmount: 350, companyName: '' }]);
+  };
+
+  const removeAdditionalEvent = (index) => {
+    setAdditionalEvents(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const selectAdditionalEvent = (index, eventId) => {
+    const found = allEvents.find(e => String(e.id) === String(eventId)) || null;
+    setAdditionalEvents(prev => prev.map((ae, i) => i === index ? { ...ae, eventId: eventId || null, eventObj: found } : ae));
+  };
+
+  const updateAdditionalEvent = (index, field, value) => {
+    setAdditionalEvents(prev => prev.map((ae, i) => i === index ? { ...ae, [field]: value } : ae));
   };
 
   // --- Promo code handlers ---
@@ -334,6 +376,15 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
         };
       });
 
+      const eventsPayload = additionalEvents
+        .filter(ae => ae.eventId)
+        .map(ae => ({
+          event_id: parseInt(ae.eventId),
+          is_sponsor: ae.sponsor === 'yes',
+          sponsor_amount: ae.sponsor === 'yes' ? parseFloat(ae.sponsorAmount) || null : null,
+          company_name: ae.sponsor === 'yes' ? ae.companyName || null : null,
+        }));
+
       try {
         let response;
         if (failedRegistrationId) {
@@ -346,6 +397,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
             handicap:        cleanHandicap,
             paypal_order_id: orderID,
             additional_golfers: golferPayload,
+            additional_events:  eventsPayload,
             promo_code:      promoApplied ? promoCode.trim() : undefined,
             ...sponsorData,
           });
@@ -359,6 +411,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
             handicap:        cleanHandicap,
             paypal_order_id: orderID,
             additional_golfers: golferPayload,
+            additional_events:  eventsPayload,
             promo_code:      promoApplied ? promoCode.trim() : undefined,
             ...sponsorData,
           });
@@ -376,7 +429,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
         setLoading(false);
       }
     },
-    [user, event.id, registrationForm, additionalGolfers, failedRegistrationId, onSuccess]
+    [user, event.id, registrationForm, additionalGolfers, additionalEvents, failedRegistrationId, onSuccess]
   );
 
   const handlePaymentError = useCallback((errorMsg) => {
@@ -414,6 +467,10 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
       };
     });
 
+    const eventsPayload = additionalEvents
+      .filter(ae => ae.eventId)
+      .map(ae => ({ event_id: parseInt(ae.eventId) }));
+
     try {
       let response;
       if (user) {
@@ -422,6 +479,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
           handicap: cleanHandicap,
           payment_token: '',
           additional_golfers: golferPayload,
+          additional_events: eventsPayload,
           promo_code: promoApplied ? promoCode.trim() : undefined,
           ...sponsorData,
         });
@@ -435,6 +493,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
           handicap: cleanHandicap,
           payment_token: '',
           additional_golfers: golferPayload,
+          additional_events: eventsPayload,
           promo_code: promoApplied ? promoCode.trim() : undefined,
           ...sponsorData,
         });
@@ -447,7 +506,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
     } finally {
       setLoading(false);
     }
-  }, [user, event.id, registrationForm, additionalGolfers, onSuccess]);
+  }, [user, event.id, registrationForm, additionalGolfers, additionalEvents, onSuccess]);
 
   const handleRetry = useCallback(() => {
     setPaymentError('');
@@ -469,6 +528,11 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
       } else {
         if (!g.name.trim()) return false;
       }
+    }
+    // Validate additional events
+    for (const ae of additionalEvents) {
+      if (!ae.eventId) return false;
+      if (ae.sponsor === 'yes' && !ae.companyName.trim()) return false;
     }
     return true;
   };
@@ -978,8 +1042,143 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
             Add Additional Golfer
           </button>
 
-          {/* Price breakdown for multiple golfers */}
-          {additionalGolfers.length > 0 && (
+          {/* Additional Events Section */}
+          {additionalEvents.length > 0 && (
+            <div style={{ marginTop: '1.25rem' }}>
+              {additionalEvents.map((ae, index) => {
+                const selectedIds = new Set(
+                  additionalEvents.filter((_, i) => i !== index).map(x => x.eventId).filter(Boolean)
+                );
+                const availableEvents = allEvents.filter(e => !selectedIds.has(String(e.id)));
+                const aePrice = ae.eventObj
+                  ? (isMemberActive
+                      ? parseFloat(ae.eventObj.price || ae.eventObj.member_price) || 0
+                      : parseFloat(ae.eventObj.guest_price || ae.eventObj.price) || 0)
+                  : null;
+                return (
+                  <div key={index} style={{
+                    border: '1px solid #e5e7eb', borderRadius: '12px', padding: '1rem',
+                    marginBottom: '0.75rem', background: '#fafafa', position: 'relative',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#374151' }}>
+                        Additional Event {index + 1}
+                        {aePrice !== null && (
+                          <span style={{ fontWeight: 400, fontSize: '0.8rem', color: '#6b7280', marginLeft: '0.5rem' }}>
+                            (${aePrice.toFixed(2)} {isMemberActive ? 'member' : 'guest'} rate)
+                          </span>
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeAdditionalEvent(index)}
+                        style={{
+                          background: '#fee2e2', border: 'none', borderRadius: '6px',
+                          padding: '0.3rem 0.5rem', cursor: 'pointer', color: '#dc2626',
+                          display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: 600,
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="14" height="14">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" />
+                        </svg>
+                        Remove
+                      </button>
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor={`add-event-${index}`}>Select Event *</label>
+                      <select
+                        id={`add-event-${index}`}
+                        value={ae.eventId || ''}
+                        onChange={(e) => selectAdditionalEvent(index, e.target.value)}
+                      >
+                        <option value="">-- Select an event --</option>
+                        {availableEvents.map(e => {
+                          const price = isMemberActive
+                            ? parseFloat(e.price || e.member_price) || 0
+                            : parseFloat(e.guest_price || e.price) || 0;
+                          return (
+                            <option key={e.id} value={e.id}>
+                              {e.golf_course} — {parseEventDate(e.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} (${price.toFixed(2)})
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+
+                    <div className="form-group sponsor-dropdown-group" style={{ marginTop: '0.75rem' }}>
+                      <label>Would you like to sponsor this event?</label>
+                      <select
+                        value={ae.sponsor}
+                        onChange={(e) => updateAdditionalEvent(index, 'sponsor', e.target.value)}
+                        className="sponsor-select"
+                      >
+                        <option value=""></option>
+                        <option value="yes">Yes</option>
+                      </select>
+                    </div>
+
+                    {ae.sponsor === 'yes' && (
+                      <div className="sponsor-fields">
+                        <div className="sponsor-fields-inner">
+                          <div className="form-row">
+                            <div className="form-group">
+                              <label>Sponsorship Amount</label>
+                              <div className="input-prefix-wrap">
+                                <span className="input-prefix">$</span>
+                                <input
+                                  type="number"
+                                  value={ae.sponsorAmount}
+                                  onChange={(e) => updateAdditionalEvent(index, 'sponsorAmount', e.target.value)}
+                                  onBlur={() => updateAdditionalEvent(index, 'sponsorAmount', 350)}
+                                  min="100"
+                                  step="1"
+                                  required
+                                  className="prefix-input"
+                                />
+                              </div>
+                            </div>
+                            <div className="form-group">
+                              <label>Company Name</label>
+                              <input
+                                type="text"
+                                value={ae.companyName}
+                                onChange={(e) => updateAdditionalEvent(index, 'companyName', e.target.value)}
+                                required
+                                placeholder="Enter company name"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Add Additional Event Button */}
+          <button
+            type="button"
+            onClick={addAdditionalEvent}
+            style={{
+              width: '100%', padding: '0.65rem', marginTop: '0.75rem',
+              background: '#eff6ff', border: '1px dashed #93c5fd', borderRadius: '10px',
+              color: '#2563eb', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#dbeafe'; e.currentTarget.style.borderColor = '#60a5fa'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#eff6ff'; e.currentTarget.style.borderColor = '#93c5fd'; }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="18" height="18">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Add Additional Event
+          </button>
+
+          {/* Price breakdown */}
+          {(additionalGolfers.length > 0 || additionalEvents.length > 0) && (
             <div style={{
               marginTop: '1rem', padding: '0.75rem', background: '#f9fafb',
               borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '0.85rem',
@@ -994,6 +1193,28 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
                   <span>${(user && g.isMember ? memberPrice : guestPrice).toFixed(2)}</span>
                 </div>
               ))}
+              {additionalEvents.map((ae, i) => {
+                const p = ae.eventObj
+                  ? (isMemberActive
+                      ? parseFloat(ae.eventObj.price || ae.eventObj.member_price) || 0
+                      : parseFloat(ae.eventObj.guest_price || ae.eventObj.price) || 0)
+                  : 0;
+                const aeSponsorAmt = ae.sponsor === 'yes' ? (parseFloat(ae.sponsorAmount) || 0) : 0;
+                return (
+                  <React.Fragment key={i}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                      <span>Event {i + 1}: {ae.eventObj ? ae.eventObj.golf_course : 'TBD'} ({isMemberActive ? 'member' : 'guest'})</span>
+                      <span>${p.toFixed(2)}</span>
+                    </div>
+                    {aeSponsorAmt > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                        <span>Event {i + 1} sponsorship{ae.companyName ? ` (${ae.companyName})` : ''}</span>
+                        <span>${aeSponsorAmt.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </React.Fragment>
+                );
+              })}
               {sponsorAdd > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                   <span>Sponsorship</span>
@@ -1043,3 +1264,4 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
     </div>
   );
 }
+

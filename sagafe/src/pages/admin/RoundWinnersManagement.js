@@ -173,14 +173,17 @@ const RoundWinnersManagement = () => {
     <div className="rw-root">
       <h2 className="admin-section-title">Leaderboard &amp; Round Winners</h2>
 
-      {/* XLS Leaderboard Upload Card */}
+      {/* Leaderboard Upload Card */}
       <div className="rw-card">
         <div className="rw-card-head">
           <span className="rw-card-icon">📊</span>
-          <h3>SAGA Leaderboard (XLS Upload)</h3>
+          <h3>SAGA Leaderboard (CSV / XLS Upload)</h3>
         </div>
+        <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+          <strong>CSV format:</strong> <strong>Rank</strong>, <strong>Player</strong> (Last, First), <strong>Best 5 Total</strong> — additional columns are ignored.
+        </p>
         <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
-          Upload an Excel file with columns: <strong>Pos.</strong>, <strong>Player</strong> (Last, First), <strong>Stableford Points</strong>, and <strong>Total Gross</strong>. Players in the file will be added or updated; players not in the file will remain unchanged.
+          <strong>XLS/XLSX format:</strong> <strong>Pos.</strong>, <strong>Player</strong> (Last, First), <strong>Stableford Points</strong>, <strong>Total Gross</strong>. Players in the file will be added or updated; players not in the file will remain unchanged.
         </p>
         {leaderboardEntries.length > 0 && (
           <p style={{ fontSize: '0.85rem', color: '#065f46', marginBottom: '0.75rem', fontWeight: 600 }}>
@@ -188,8 +191,8 @@ const RoundWinnersManagement = () => {
           </p>
         )}
         <label className={`rw-upload-btn ${uploadingXls ? 'disabled' : ''}`}>
-          {uploadingXls ? 'Uploading…' : leaderboardEntries.length > 0 ? '↑ Replace Leaderboard XLS' : '↑ Upload Leaderboard XLS'}
-          <input type="file" accept=".xls,.xlsx" onChange={handleXlsUpload} disabled={uploadingXls} style={{ display: 'none' }} />
+          {uploadingXls ? 'Uploading…' : leaderboardEntries.length > 0 ? '↑ Update Leaderboard' : '↑ Upload Leaderboard'}
+          <input type="file" accept=".xls,.xlsx,.csv" onChange={handleXlsUpload} disabled={uploadingXls} style={{ display: 'none' }} />
         </label>
         {xlsMsg && <p className={`rw-msg ${xlsMsg.type}`}>{xlsMsg.text}</p>}
       </div>
