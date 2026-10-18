@@ -50,7 +50,8 @@ const EventRegistrations = () => {
   const [error, setError] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
-  
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+
   const formatToEastern = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleString('en-US', {
@@ -140,19 +141,49 @@ const EventRegistrations = () => {
     }
   };
 
+  const handleSort = (key) => {
+    setSortConfig(prev => {
+      if (prev.key === key) {
+        return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const sortedRegistrations = React.useMemo(() => {
+    if (!sortConfig.key) return registrations;
+    const sorted = [...registrations].sort((a, b) => {
+      let result = 0;
+      if (sortConfig.key === 'name') {
+        result = (a.user_name || '').localeCompare(b.user_name || '');
+      } else if (sortConfig.key === 'date') {
+        result = new Date(a.created_at) - new Date(b.created_at);
+      }
+      return sortConfig.direction === 'asc' ? result : -result;
+    });
+    return sorted;
+  }, [registrations, sortConfig]);
+
+  const sortIndicator = (key) => {
+    if (sortConfig.key !== key) return '';
+    return sortConfig.direction === 'asc' ? ' ▲' : ' ▼';
+  };
+
   const exportToCSV = () => {
     if (registrations.length === 0) {
       alert('No registrations to export');
       return;
     }
   
+    const isChampionship = selectedEvent?.event_type === 'championship';
     const headers = ['First Name', 'Last Name', 'Email', 'Phone', 'Handicap', 'Membership', 'Company', 'Registration Date'];
+    if (isChampionship) headers.push('Gala Guests');
     const rows = registrations.map(reg => {
       const fullName = reg.user_name || 'Unknown';
       const spaceIdx = fullName.indexOf(' ');
       const firstName = spaceIdx > -1 ? fullName.substring(0, spaceIdx) : fullName;
       const lastName = spaceIdx > -1 ? fullName.substring(spaceIdx + 1) : '';
-      return [
+      const row = [
       firstName,
       lastName,
       reg.email,
@@ -161,7 +192,10 @@ const EventRegistrations = () => {
       (reg.membership || 'guest').toUpperCase(),
       reg.is_sponsor ? (reg.company_name || 'N/A') : '',
       formatToEastern(reg.created_at),
-    ]; });
+    ];
+      if (isChampionship) row.push(reg.gala_guests || 0);
+      return row;
+    });
   
     const csvContent = [
       headers.join(','),
@@ -285,17 +319,22 @@ const EventRegistrations = () => {
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Name</th>
+                  <th className="sortable" onClick={() => handleSort('name')}>
+                    Name{sortIndicator('name')}
+                  </th>
                   <th>Email</th>
                   <th>Phone</th>
                   <th>Handicap</th>
                   <th>Membership</th>
-                  <th>Registered At</th>
+                  <th className="sortable" onClick={() => handleSort('date')}>
+                    Registered At{sortIndicator('date')}
+                  </th>
+                  {selectedEvent?.event_type === 'championship' && <th>Gala Guests</th>}
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {registrations.map((reg, index) => (
+                {sortedRegistrations.map((reg, index) => (
                   <tr key={reg.id || index}>
                     <td>{index + 1}</td>
                     <td>
@@ -321,6 +360,7 @@ const EventRegistrations = () => {
                       )}
                     </td>
                     <td>{formatToEastern(reg.created_at)}</td>
+                    {selectedEvent?.event_type === 'championship' && <td>{reg.gala_guests || 0}</td>}
                     <td>
                       <button
                         onClick={() => handleDeleteRegistration(reg)}
@@ -514,6 +554,16 @@ const EventRegistrations = () => {
           text-align: center;
         }
 
+        .admin-table th.sortable {
+          cursor: pointer;
+          user-select: none;
+          white-space: nowrap;
+        }
+
+        .admin-table th.sortable:hover {
+          color: #4f46e5;
+        }
+
         .btn-delete {
           background: none;
           border: 1px solid #ffffff;
@@ -553,3 +603,4 @@ const EventRegistrations = () => {
 };
 
 export default EventRegistrations;
+

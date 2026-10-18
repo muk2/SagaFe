@@ -226,21 +226,21 @@ export default function ScholarshipsPage() {
             <h2>Important Dates</h2>
             <div className="dates-timeline">
               <div className="date-item">
-                <div className="date-marker">Sep 30</div>
+                <div className="date-marker">Aug 30</div>
                 <div className="date-details">
                   <strong>Application Deadline</strong>
                   <p>Submit all required materials by this date annually</p>
                 </div>
               </div>
               <div className="date-item">
-                <div className="date-marker">Oct 5</div>
+                <div className="date-marker">Sept 10</div>
                 <div className="date-details">
                   <strong>Scholarship Announcement</strong>
                   <p>Recipients will be notified</p>
                 </div>
               </div>
               <div className="date-item">
-                <div className="date-marker">Spring</div>
+                <div className="date-marker">Sept 19</div>
                 <div className="date-details">
                   <strong>Scholarship Awarded</strong>
                   <p>Prior to college enrollment</p>

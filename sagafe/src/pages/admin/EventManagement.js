@@ -24,7 +24,8 @@ const EventManagement = () => {
     member_price: '',
     capacity:'',
     image_url: '',
-    event_type: 'regular'
+    event_type: 'regular',
+    gala_guest_price: ''
   });
 
   // Promo code state
@@ -192,7 +193,10 @@ const EventManagement = () => {
         member_price: parseFloat(formData.member_price),
         capacity: parseInt(formData.capacity),
         image_url: formData.image_url || null,
-        event_type: formData.event_type
+        event_type: formData.event_type,
+        gala_guest_price: formData.event_type === 'championship' && formData.gala_guest_price
+          ? parseFloat(formData.gala_guest_price)
+          : null,
       };
 
       
@@ -227,7 +231,8 @@ const EventManagement = () => {
       member_price: event.member_price,
       capacity: event.capacity,
       image_url: event.image_url || '',
-      event_type: event.event_type || 'regular'
+      event_type: event.event_type || 'regular',
+      gala_guest_price: event.gala_guest_price != null ? event.gala_guest_price : ''
     });
     setShowForm(true);
 
@@ -286,7 +291,8 @@ const EventManagement = () => {
       member_price: '',
       capacity: '',
       image_url: '',
-      event_type: 'regular'
+      event_type: 'regular',
+      gala_guest_price: ''
     });
   };
 
@@ -433,6 +439,21 @@ const EventManagement = () => {
                 />
               </div>
             </div>
+
+            {formData.event_type === 'championship' && (
+              <div className="form-group">
+                <label>Gala Guest Price</label>
+                <input
+                  type="number"
+                  name="gala_guest_price"
+                  value={formData.gala_guest_price}
+                  onChange={handleInputChange}
+                  step="0.01"
+                  min="0"
+                  placeholder="75.00"
+                />
+              </div>
+            )}
 
             <div className="form-group">
               <label>Capacity *</label>
