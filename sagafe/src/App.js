@@ -14,12 +14,13 @@ import DashboardPage from "./pages/DashboardPage.js";
 import EventRegistrationModal from "./components/EventRegistrationModal.js";
 import AdminDashboard from "./pages/AdminDashboard.js";
 import ScholarshipsPage from "./pages/ScholarshipPage.js";
+import NewsPage from "./pages/NewsPage.js";
 import RenewMembershipPage from "./pages/RenewMembershipPage.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser } from "@fortawesome/free-solid-svg-icons";
 import Banner from "./Banner";
 import { useAuth } from "./context/AuthContext";
-import { eventsApi, api, carouselApi, partnersApi, authApi} from "./lib/api";
+import { eventsApi, api, carouselApi, partnersApi, newsApi, authApi} from "./lib/api";
 import { isAdmin } from "./lib/auth";
 import ScrollToTop from "./components/ScrollToTop.js";
 
@@ -64,6 +65,7 @@ export function App() {
               <ItemList />
               <LeaderboardSection />
               <PartnersSection />
+              <NewsSection />
             </>
           }
         />
@@ -73,6 +75,7 @@ export function App() {
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/sagatour" element={<SagaTourPage />} />
         <Route path="/scholarships" element={<ScholarshipsPage />} />
+        <Route path="/news" element={<NewsPage />} />
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
         <Route path="/renew-membership" element={<ProtectedRoute allowExpired><RenewMembershipPage /></ProtectedRoute>} />
@@ -188,6 +191,7 @@ function Header() {
         <NavLink to="/about" className={({ isActive }) => isActive ? 'active' : ''} onClick={() => setMobileMenuOpen(false)}>About</NavLink>
         <NavLink to="/events" className={({ isActive }) => isActive ? 'active' : ''} onClick={() => setMobileMenuOpen(false)}>Events</NavLink>
         <NavLink to="/photos" className={({ isActive }) => isActive ? 'active' : ''} onClick={() => setMobileMenuOpen(false)}>Photos</NavLink>
+        <NavLink to="/news" className={({ isActive }) => isActive ? 'active' : ''} onClick={() => setMobileMenuOpen(false)}>News</NavLink>
         <NavLink to="/contact" className={({ isActive }) => isActive ? 'active' : ''} onClick={() => setMobileMenuOpen(false)}>Contact</NavLink>
         <NavLink to="/sagatour" className={({ isActive }) => isActive ? 'active' : ''} onClick={() => setMobileMenuOpen(false)}>Saga Tour</NavLink>
         <NavLink to="/scholarships" className={({ isActive }) => isActive ? 'active' : ''} onClick={() => setMobileMenuOpen(false)}>Scholarships</NavLink>
@@ -1361,6 +1365,83 @@ export function PartnersSection() {
             </div>
           )}
         </div>
+      </div>
+    </section>
+  );
+}
+
+export function NewsSection() {
+  const [newsItems, setNewsItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const HOME_NEWS_LIMIT = 6;
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        setLoading(true);
+        const data = await newsApi.getAll();
+        setNewsItems(data);
+      } catch (err) {
+        console.error('Failed to fetch news:', err);
+        setNewsItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNews();
+  }, []);
+
+  if (loading || newsItems.length === 0) {
+    return null;
+  }
+
+  const visibleItems = newsItems.slice(0, HOME_NEWS_LIMIT);
+
+  return (
+    <section className="collection news-section">
+      <div className="news-container">
+        <div className="section-header">
+          <div>
+            <h2>In the News</h2>
+            <p className="section-subtitle">Press coverage SAGA Golf has received</p>
+          </div>
+        </div>
+
+        <div className="news-grid-cards">
+          {visibleItems.map((item) => (
+            <a
+              key={item.id}
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="news-card-item"
+            >
+              <div className="news-card-thumb">
+                <img
+                  src={getFullImageUrl(item.thumbnail_url)}
+                  alt={item.title}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.style.display = 'none';
+                  }}
+                />
+              </div>
+              <div className="news-card-body">
+                {item.site_name && <span className="news-card-site">{item.site_name}</span>}
+                <h3 className="news-card-title">{item.title}</h3>
+                {item.description && <p className="news-card-description">{item.description}</p>}
+              </div>
+            </a>
+          ))}
+        </div>
+
+        {newsItems.length > HOME_NEWS_LIMIT && (
+          <div className="news-view-all">
+            <Link to="/news">View All News →</Link>
+          </div>
+        )}
       </div>
     </section>
   );

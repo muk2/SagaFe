@@ -667,17 +667,53 @@ export const adminPartnersApi = {
   getAll: async () => {
     return api.get('/api/admin/partners');
   },
-  
+
   create: async (partnerData) => {
     return api.post('/api/admin/partners', partnerData);
   },
-  
+
   update: async (partnerId, partnerData) => {
     return api.put(`/api/admin/partners/${partnerId}`, partnerData);
   },
-  
+
   delete: async (partnerId) => {
     return api.delete(`/api/admin/partners/${partnerId}`);
+  },
+};
+
+/**
+ * News API (public)
+ */
+export const newsApi = {
+  getAll: async () => {
+    const response = await api.get('/api/news');
+    return response.news_items || [];
+  },
+};
+
+/**
+ * Admin News API
+ */
+export const adminNewsApi = {
+  getAll: async () => {
+    const response = await api.get('/api/admin/news');
+    return response.news_items || [];
+  },
+
+  fetchMetadata: async (url) => {
+    return api.post('/api/admin/news/fetch-metadata', { url });
+  },
+
+  create: async (newsData) => {
+    return api.post('/api/admin/news', newsData);
+  },
+
+  update: async (newsId, newsData) => {
+    return api.put(`/api/admin/news/${newsId}`, newsData);
+  },
+
+  delete: async (newsId) => {
+    return api.delete(`/api/admin/news/${newsId}`);
   },
 };
 

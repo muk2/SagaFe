@@ -9,6 +9,7 @@ import BannerManagement from './admin/BannerManagement';
 import PhotoManagement from './admin/PhotoManagement';
 import MediaManagement from './admin/MediaManagement';
 import PartnerManagement from './admin/PartnerManagement';
+import NewsManagement from './admin/NewsManagement';
 import FAQManagement from './admin/FAQManagement';
 import ScholarshipRecipientsManagement from './admin/ScholarshipRecipientsManagement';
 import MembershipOptionsManagement from './admin/membershipoptionsmanagement';
@@ -34,6 +35,7 @@ const AdminDashboard = () => {
     { id: 'photos', label: 'Photos', icon: '📸' },
     { id: 'media', label: 'Media', icon: '🖼️' },
     { id: 'partners', label: 'Partners', icon: '🤝' },
+    { id: 'news', label: 'News', icon: '📰' },
     { id: 'faq', label: 'FAQ', icon: '❓' },
     { id: 'scholarship', label: 'Scholarships', icon: '🎓' },
     { id: 'membership', label: 'Membership', icon: '⭐️' },
@@ -56,7 +58,9 @@ const AdminDashboard = () => {
       case 'media':
         return <MediaManagement />;
       case 'partners':
-        return <PartnerManagement />;  
+        return <PartnerManagement />;
+      case 'news':
+        return <NewsManagement />;
       case 'faq':
         return <FAQManagement />; 
       case 'scholarship':

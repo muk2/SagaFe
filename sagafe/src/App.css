@@ -3938,6 +3938,121 @@ body {
   .partners-section { padding: 2rem 1rem; }
 }
 
+.news-section {
+  padding: 5rem 4rem;
+  background: white;
+}
+
+.news-grid-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.news-card-item {
+  background: white;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+}
+
+.news-card-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+}
+
+.news-card-thumb {
+  width: 100%;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  padding: 1.5rem;
+}
+
+.news-card-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.news-card-body {
+  padding: 1.25rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.news-card-site {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--primary);
+}
+
+.news-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.news-card-item:hover .news-card-title {
+  color: var(--primary);
+}
+
+.news-card-description {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #6b7280);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.news-view-all {
+  display: flex;
+  justify-content: center;
+  margin-top: 2.5rem;
+}
+
+.news-view-all a {
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.news-view-all a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 1024px) {
+  .news-grid-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .news-section { padding: 3rem 1.5rem; }
+}
+
+@media (max-width: 768px) {
+  .news-grid-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .news-section { padding: 2rem 1rem; }
+}
+
  /* Password Input Wrapper */
  .password-input-wrapper {
   position: relative;
