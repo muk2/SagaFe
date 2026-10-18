@@ -180,7 +180,7 @@ const RoundWinnersManagement = () => {
           <h3>SAGA Leaderboard (CSV / XLS Upload)</h3>
         </div>
         <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
-          <strong>CSV format:</strong> <strong>Rank</strong>, <strong>Player</strong> (Last, First), <strong>Best 5 Total</strong> — additional columns are ignored.
+          <strong>CSV format:</strong> <strong>Rank</strong>, <strong>Player</strong> (Last, First), <strong>Best 5 Total</strong> (or <strong>Total</strong>) — additional columns are ignored. Add an optional <strong>Flight</strong> column (e.g. "Flight 1") to split the public leaderboard into separate flight columns, each ranked by its own total. <strong>Warning:</strong> a file with a Flight column replaces the entire leaderboard rather than merging with existing entries.
         </p>
         <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
           <strong>XLS/XLSX format:</strong> <strong>Pos.</strong>, <strong>Player</strong> (Last, First), <strong>Stableford Points</strong>, <strong>Total Gross</strong>. Players in the file will be added or updated; players not in the file will remain unchanged.
@@ -242,9 +242,7 @@ const RoundWinnersManagement = () => {
                       placeholder="e.g. John Smith"
                     />
                   </div>
-                  {form.sponsors.length > 1 && (
-                    <button className="rw-rm-btn" onClick={() => removeSponsor(i)} title="Remove sponsor">✕</button>
-                  )}
+                  <button className="rw-rm-btn" onClick={() => removeSponsor(i)} title="Remove sponsor">✕</button>
                 </div>
               ))}
               <button className="rw-add-btn" onClick={addSponsor}>+ Add Another Sponsor</button>
@@ -308,9 +306,7 @@ const RoundWinnersManagement = () => {
                     <label>Distance</label>
                     <input type="text" value={row.distance} onChange={e => setCtpField(i, 'distance', e.target.value)} placeholder="e.g. 4.5" />
                   </div>
-                  {form.close_to_pin.length > 1 && (
-                    <button className="rw-rm-btn" onClick={() => removeCtp(i)} title="Remove row">✕</button>
-                  )}
+                  <button className="rw-rm-btn" onClick={() => removeCtp(i)} title="Remove row">✕</button>
                 </div>
               ))}
               <button className="rw-add-btn" onClick={addCtp}>+ Add Another Hole</button>

@@ -578,12 +578,12 @@ export function ItemList() {
         <div className="empty-state">
           <p>{error}</p>
         </div>
-      ) : slides.slides.length > 0 ? (
+      ) : slides.slides.length > 0 || slides.championshipEvent || slides.ryderCupEvent ? (
         <>
           {/* ✅ Slider Container with Regular Events + Championship */}
           <div className="slider-container">
   {/* On mobile: show ALL regular events in scrollable row; on desktop: show current slide only */}
-  {(isMobile ? items.filter(e => !e.event_type || e.event_type === 'regular') : slides.slides[currentSlide]).map((event) => (
+  {(isMobile ? items.filter(e => !e.event_type || e.event_type === 'regular') : (slides.slides[currentSlide] || [])).map((event) => (
     <div key={event.id} className="card">
       <div
         className="card-image"
@@ -754,36 +754,38 @@ export function ItemList() {
           )}
 
           {/* Slider Navigation */}
-          <div className="slider-nav">
-            <button
-              className="slider-arrow"
-              onClick={prevSlide}
-              aria-label="Previous slide"
-            >
-              &#10094;
-            </button>
+          {slides.slides.length > 0 && (
+            <div className="slider-nav">
+              <button
+                className="slider-arrow"
+                onClick={prevSlide}
+                aria-label="Previous slide"
+              >
+                &#10094;
+              </button>
 
-            <div className="slider-dots">
-              {slides.slides.map((_, index) => (
-                <button
-                  key={index}
-                  className={`slider-dot ${
-                    index === currentSlide ? "active" : ""
-                  }`}
-                  onClick={() => setCurrentSlide(index)}
-                  aria-label={`Go to slide ${index + 1}`}
-                />
-              ))}
+              <div className="slider-dots">
+                {slides.slides.map((_, index) => (
+                  <button
+                    key={index}
+                    className={`slider-dot ${
+                      index === currentSlide ? "active" : ""
+                    }`}
+                    onClick={() => setCurrentSlide(index)}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
+                ))}
+              </div>
+
+              <button
+                className="slider-arrow"
+                onClick={nextSlide}
+                aria-label="Next slide"
+              >
+                &#10095;
+              </button>
             </div>
-
-            <button
-              className="slider-arrow"
-              onClick={nextSlide}
-              aria-label="Next slide"
-            >
-              &#10095;
-            </button>
-          </div>
+          )}
         </>
       ) : (
         <div className="empty-state">
@@ -858,6 +860,34 @@ export function LeaderboardSection() {
 
   const selectedEvent = events.find(ev => String(ev.id) === selectedEventId);
 
+  // Sort by points desc and assign display ranks, marking ties with "T-"
+  const rankEntries = (entries) => {
+    const sorted = [...entries].sort((a, b) => b.stableford_points - a.stableford_points);
+    const pointsCount = {};
+    sorted.forEach(e => { pointsCount[e.stableford_points] = (pointsCount[e.stableford_points] || 0) + 1; });
+    let rank = 1;
+    let prevPts = null;
+    return sorted.map((entry, i) => {
+      if (entry.stableford_points !== prevPts) {
+        rank = i + 1;
+        prevPts = entry.stableford_points;
+      }
+      const isTied = pointsCount[entry.stableford_points] > 1;
+      return { ...entry, displayPos: isTied ? `T-${rank}` : `${rank}` };
+    });
+  };
+
+  const hasFlights = leaderboardEntries.some(e => e.flight);
+  const flightGroups = hasFlights
+    ? Object.entries(
+        leaderboardEntries.reduce((acc, e) => {
+          const key = e.flight || 'Unassigned';
+          (acc[key] = acc[key] || []).push(e);
+          return acc;
+        }, {})
+      ).sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+    : [];
+
   return (
     
     <section className="collection">
@@ -900,50 +930,75 @@ export function LeaderboardSection() {
                   <h3 className="ss-lb-title">Season Leaderboard</h3>
                 </div>
 
-                {(() => {
-                  // Compute tied positions: sort by points desc, assign ranks with ties
-                  const sorted = [...leaderboardEntries].sort((a, b) => b.stableford_points - a.stableford_points);
-                  const pointsCount = {};
-                  sorted.forEach(e => { pointsCount[e.stableford_points] = (pointsCount[e.stableford_points] || 0) + 1; });
-                  let rank = 1;
-                  let prevPts = null;
-                  const ranked = sorted.map((entry, i) => {
-                    if (entry.stableford_points !== prevPts) {
-                      rank = i + 1;
-                      prevPts = entry.stableford_points;
-                    }
-                    const isTied = pointsCount[entry.stableford_points] > 1;
-                    return { ...entry, displayPos: isTied ? `T-${rank}` : `${rank}` };
-                  });
-                  const visible = lbExpanded ? ranked : ranked.slice(0, 5);
+                {hasFlights ? (
+                  <div className="ss-lb-flights">
+                    {flightGroups.map(([flightName, flightEntries]) => {
+                      const ranked = rankEntries(flightEntries);
+                      const visible = lbExpanded ? ranked : ranked.slice(0, 5);
+                      return (
+                        <div className="ss-table-wrap" key={flightName}>
+                          <table className="ss-table ss-lb-table">
+                            <thead>
+                              <tr>
+                                <th colSpan={3} className="ss-lb-flight-name">{flightName}</th>
+                              </tr>
+                              <tr>
+                                <th style={{width:'50px'}}>Pos.</th>
+                                <th>Player</th>
+                                <th style={{width:'80px', textAlign:'right'}}>Total</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {visible.map((entry) => (
+                                <tr key={entry.id}>
+                                  <td>
+                                    <span className="ss-lb-pos">
+                                      {entry.displayPos}
+                                    </span>
+                                  </td>
+                                  <td><strong>{entry.first_name} {entry.last_name}</strong></td>
+                                  <td className="ss-result" style={{textAlign:'right'}}>{entry.stableford_points}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  (() => {
+                    const ranked = rankEntries(leaderboardEntries);
+                    const visible = lbExpanded ? ranked : ranked.slice(0, 5);
 
-                  return (
-                    <div className="ss-table-wrap">
-                      <table className="ss-table ss-lb-table">
-                        <thead>
-                          <tr>
-                            <th style={{width:'60px'}}>Pos.</th>
-                            <th>Player</th>
-                            <th style={{width:'120px', textAlign:'right'}}>Total Stableford Points</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {visible.map((entry) => (
-                            <tr key={entry.id}>
-                              <td>
-                                <span className="ss-lb-pos">
-                                  {entry.displayPos}
-                                </span>
-                              </td>
-                              <td><strong>{entry.first_name} {entry.last_name}</strong></td>
-                              <td className="ss-result" style={{textAlign:'right'}}>{entry.stableford_points}</td>
+                    return (
+                      <div className="ss-table-wrap">
+                        <table className="ss-table ss-lb-table">
+                          <thead>
+                            <tr>
+                              <th style={{width:'60px'}}>Pos.</th>
+                              <th>Player</th>
+                              <th style={{width:'120px', textAlign:'right'}}>Best 5 Total</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  );
-                })()}
+                          </thead>
+                          <tbody>
+                            {visible.map((entry) => (
+                              <tr key={entry.id}>
+                                <td>
+                                  <span className="ss-lb-pos">
+                                    {entry.displayPos}
+                                  </span>
+                                </td>
+                                <td><strong>{entry.first_name} {entry.last_name}</strong></td>
+                                <td className="ss-result" style={{textAlign:'right'}}>{entry.stableford_points}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })()
+                )}
                 {leaderboardEntries.length > 5 && (
                   <div className="ss-lb-expand">
                     <button className="ss-lb-expand-btn" onClick={() => setLbExpanded(!lbExpanded)}>
@@ -1195,6 +1250,24 @@ export function LeaderboardSection() {
         }
         .ss-lb-title { font-size: 1.15rem; font-weight: 800; color: #111827; margin: 0; }
         .ss-lb-table tbody tr:hover td { background: #f0fdf4; }
+        .ss-lb-flights {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+          gap: 1.25rem;
+          padding: 1.25rem 1.75rem;
+        }
+        .ss-lb-flights .ss-table-wrap {
+          border: 1px solid #f3f4f6; border-radius: 10px; overflow: hidden;
+        }
+        .ss-lb-flight-name {
+          background: #f0fdf4 !important; color: #065f46;
+          text-align: center; font-size: 0.85rem;
+        }
+        .ss-lb-flights .ss-table th,
+        .ss-lb-flights .ss-table td {
+          padding: 0.6rem 0.75rem;
+        }
+        .ss-lb-flights .ss-table { font-size: 0.85rem; }
         .ss-lb-pos {
           display: inline-flex; align-items: center; justify-content: center;
           min-width: 28px; height: 28px; padding: 0 6px; border-radius: 8px;

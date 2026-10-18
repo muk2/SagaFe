@@ -146,6 +146,11 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
   // Additional golfers
   const [additionalGolfers, setAdditionalGolfers] = useState([]);
 
+  // Championship gala guests
+  const [galaGuests, setGalaGuests] = useState(0);
+  const isChampionship = event.event_type === 'championship';
+  const galaGuestPrice = parseFloat(event.gala_guest_price) || 75;
+
   // Additional events
   const [additionalEvents, setAdditionalEvents] = useState([]);
   const [allEvents, setAllEvents] = useState([]);
@@ -201,7 +206,9 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
     return sum + p + aeSponsor;
   }, 0);
 
-  const displayPrice = basePrice + sponsorAdd + additionalGolfersPrice + additionalEventsPrice;
+  const galaGuestsTotal = isChampionship ? galaGuestPrice * galaGuests : 0;
+
+  const displayPrice = basePrice + sponsorAdd + additionalGolfersPrice + additionalEventsPrice + galaGuestsTotal;
 
   const handleFormFieldChange = (field, value) => {
     setRegistrationForm((prev) => ({ ...prev, [field]: value }));
@@ -399,6 +406,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
             additional_golfers: golferPayload,
             additional_events:  eventsPayload,
             promo_code:      promoApplied ? promoCode.trim() : undefined,
+            gala_guests:     isChampionship ? galaGuests : 0,
             ...sponsorData,
           });
         } else {
@@ -413,6 +421,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
             additional_golfers: golferPayload,
             additional_events:  eventsPayload,
             promo_code:      promoApplied ? promoCode.trim() : undefined,
+            gala_guests:     isChampionship ? galaGuests : 0,
             ...sponsorData,
           });
         }
@@ -429,7 +438,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
         setLoading(false);
       }
     },
-    [user, event.id, registrationForm, additionalGolfers, additionalEvents, failedRegistrationId, onSuccess, promoApplied, promoCode]
+    [user, event.id, registrationForm, additionalGolfers, additionalEvents, failedRegistrationId, onSuccess, isChampionship, galaGuests]
   );
 
   const handlePaymentError = useCallback((errorMsg) => {
@@ -481,6 +490,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
           additional_golfers: golferPayload,
           additional_events: eventsPayload,
           promo_code: promoApplied ? promoCode.trim() : undefined,
+          gala_guests: isChampionship ? galaGuests : 0,
           ...sponsorData,
         });
       } else {
@@ -495,6 +505,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
           additional_golfers: golferPayload,
           additional_events: eventsPayload,
           promo_code: promoApplied ? promoCode.trim() : undefined,
+          gala_guests: isChampionship ? galaGuests : 0,
           ...sponsorData,
         });
       }
@@ -506,7 +517,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
     } finally {
       setLoading(false);
     }
-  }, [user, event.id, registrationForm, additionalGolfers, additionalEvents, onSuccess, promoApplied, promoCode]);
+  }, [user, event.id, registrationForm, additionalGolfers, additionalEvents, onSuccess, isChampionship, galaGuests]);
 
   const handleRetry = useCallback(() => {
     setPaymentError('');
@@ -902,6 +913,25 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
             </div>
           )}
 
+          {/* Championship Gala Guests section */}
+          {isChampionship && (
+            <div className="form-group sponsor-dropdown-group">
+              <label htmlFor="reg-gala-guests">
+                Bringing additional guests to the gala? (${galaGuestPrice.toFixed(2)}/guest)
+              </label>
+              <select
+                id="reg-gala-guests"
+                value={galaGuests}
+                onChange={(e) => setGalaGuests(parseInt(e.target.value, 10))}
+                className="sponsor-select"
+              >
+                {Array.from({ length: 11 }, (_, i) => i).map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Additional Golfers Section */}
           {additionalGolfers.length > 0 && (
             <div style={{ marginTop: '1.25rem' }}>
@@ -1178,7 +1208,7 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
           </button>
 
           {/* Price breakdown */}
-          {(additionalGolfers.length > 0 || additionalEvents.length > 0) && (
+          {(additionalGolfers.length > 0 || additionalEvents.length > 0 || galaGuests > 0) && (
             <div style={{
               marginTop: '1rem', padding: '0.75rem', background: '#f9fafb',
               borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '0.85rem',
@@ -1219,6 +1249,12 @@ export default function EventRegistrationModal({ event, onClose, onSuccess, disp
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                   <span>Sponsorship</span>
                   <span>${sponsorAdd.toFixed(2)}</span>
+                </div>
+              )}
+              {galaGuestsTotal > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                  <span>Gala Guests ({galaGuests})</span>
+                  <span>${galaGuestsTotal.toFixed(2)}</span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, borderTop: '1px solid #e5e7eb', paddingTop: '0.5rem', marginTop: '0.25rem' }}>
